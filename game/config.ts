@@ -4,8 +4,9 @@ import MainScene from "./scenes/MainScene";
 
 export const gameConfig: Phaser.Types.Core.GameConfig = {
   type: Phaser.WEBGL,
-  width: window.innerWidth,
-  height: window.innerHeight,
+  // Use base dimensions (16:9 aspect ratio is common for games)
+  width: 1920,
+  height: 1080,
   parent: "phaser-game",
   backgroundColor: "#2d2d2d",
   scene: [MainScene, CombatScene],
@@ -32,6 +33,8 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
   },
   scale: {
     mode: Phaser.Scale.RESIZE,
-    autoCenter: Phaser.Scale.NO_CENTER,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+    width: window.innerWidth,
+    height: window.innerHeight,
   },
 };
