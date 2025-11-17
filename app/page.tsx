@@ -10,7 +10,7 @@ const PhaserGame = dynamic(() => import("@/components/PhaserGame"), {
 
 export default function Home() {
   return (
-    <main style={{ textAlign: "center", padding: "2rem" }}>
+    <main style={{ width: "100%", height: "100vh" }}>
       <PhaserGame />
     </main>
   );

@@ -26,14 +26,11 @@ export default function PhaserGame() {
     <div
       style={{
         width: "100%",
-        height: "600px",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
+        height: "100%",
         position: "relative",
       }}
     >
-      <div id="phaser-game" style={{ width: "800px", height: "600px" }} />
+      <div id="phaser-game" style={{ width: "100%", height: "100%" }} />
     </div>
   );
 }

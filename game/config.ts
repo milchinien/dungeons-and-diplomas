@@ -4,8 +4,8 @@ import MainScene from "./scenes/MainScene";
 
 export const gameConfig: Phaser.Types.Core.GameConfig = {
   type: Phaser.WEBGL,
-  width: 800,
-  height: 600,
+  width: window.innerWidth,
+  height: window.innerHeight,
   parent: "phaser-game",
   backgroundColor: "#2d2d2d",
   scene: [MainScene, CombatScene],
@@ -31,7 +31,7 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
     },
   },
   scale: {
-    mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH,
+    mode: Phaser.Scale.RESIZE,
+    autoCenter: Phaser.Scale.NO_CENTER,
   },
 };

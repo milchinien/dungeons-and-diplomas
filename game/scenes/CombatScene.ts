@@ -58,19 +58,25 @@ export default class CombatScene extends Phaser.Scene {
 
   private createSprites() {
     const centerY = this.cameras.main.centerY;
+    const width = this.cameras.main.width;
 
-    // Player sprite (left, blue circle)
+    // Player sprite (left side, 20% from left edge, blue circle)
+    const playerX = width * 0.2;
     this.playerSprite = this.add.graphics();
     this.playerSprite.fillStyle(0x0099ff, 1);
-    this.playerSprite.fillCircle(150, centerY, 30);
+    this.playerSprite.fillCircle(playerX, centerY, 30);
 
-    // Enemy sprite (right, red rectangle)
+    // Enemy sprite (right side, 80% from left edge, red rectangle)
+    const enemyX = width * 0.8;
     this.enemySprite = this.add.graphics();
     this.enemySprite.fillStyle(0xff0000, 1);
-    this.enemySprite.fillRect(650 - 40, centerY - 40, 80, 80);
+    this.enemySprite.fillRect(enemyX - 40, centerY - 40, 80, 80);
   }
 
   private createHPBars() {
+    const width = this.cameras.main.width;
+    const barWidth = 200;
+
     // Player HP Bar (top left)
     const playerBarX = 20;
     const playerBarY = 20;
@@ -91,8 +97,8 @@ export default class CombatScene extends Phaser.Scene {
       }
     );
 
-    // Enemy HP Bar (top right)
-    const enemyBarX = 580;
+    // Enemy HP Bar (top right, aligned to right edge)
+    const enemyBarX = width - barWidth - 20;
     const enemyBarY = 20;
     this.enemyHpBar = this.drawHPBar(
       enemyBarX,
@@ -141,7 +147,10 @@ export default class CombatScene extends Phaser.Scene {
 
   private createQuestionPanel() {
     const centerX = this.cameras.main.centerX;
-    const panelY = this.cameras.main.height - 180;
+    const height = this.cameras.main.height;
+
+    // Position question panel in bottom 25% of screen
+    const panelY = height * 0.8;
 
     // Question text
     this.questionText = this.add
@@ -264,19 +273,20 @@ export default class CombatScene extends Phaser.Scene {
     entity.currentHp = Math.max(0, entity.currentHp - damage);
 
     // Show damage number
-    const spriteX = target === "player" ? 150 : 650;
+    const width = this.cameras.main.width;
+    const spriteX = target === "player" ? width * 0.2 : width * 0.8;
     const spriteY = this.cameras.main.centerY;
     this.showDamageNumber(spriteX, spriteY - 50, damage);
 
     // Update HP bar and text
-    const barX = target === "player" ? 20 : 580;
+    const barWidth = 200;
+    const barX = target === "player" ? 20 : width - barWidth - 20;
     const barY = 20;
     const hpBar = target === "player" ? this.playerHpBar : this.enemyHpBar;
     const hpText = target === "player" ? this.playerHpText : this.enemyHpText;
 
     // Clear and redraw HP bar
     hpBar.clear();
-    const barWidth = 200;
     const barHeight = 20;
     const hpPercentage = entity.currentHp / entity.maxHp;
 
