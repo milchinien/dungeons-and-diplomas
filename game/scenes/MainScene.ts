@@ -95,5 +95,39 @@ export default class MainScene extends Phaser.Scene {
         });
       },
     });
+
+    // Add "Start Combat" button
+    const startButton = this.add
+      .text(centerX, centerY + 180, "Start Combat", {
+        fontSize: "24px",
+        color: "#ffffff",
+        backgroundColor: "#4ade80",
+        padding: { x: 20, y: 10 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true })
+      .setAlpha(0);
+
+    // Fade in button
+    this.tweens.add({
+      targets: startButton,
+      alpha: 1,
+      duration: 600,
+      delay: 1600,
+    });
+
+    // Click handler
+    startButton.on("pointerdown", () => {
+      this.scene.start("CombatScene");
+    });
+
+    // Hover effects
+    startButton.on("pointerover", () => {
+      startButton.setScale(1.1);
+    });
+
+    startButton.on("pointerout", () => {
+      startButton.setScale(1.0);
+    });
   }
 }
