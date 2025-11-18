@@ -148,7 +148,7 @@ export default class MainScene extends Phaser.Scene {
 
     // Click handler
     this.startButton.on("pointerdown", () => {
-      this.scene.start("CombatScene");
+      this.scene.start("DungeonScene");
     });
 
     // Hover effects

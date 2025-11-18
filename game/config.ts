@@ -1,5 +1,6 @@
 import * as Phaser from "phaser";
 import CombatScene from "./scenes/CombatScene";
+import DungeonScene from "./scenes/DungeonScene";
 import MainScene from "./scenes/MainScene";
 
 export const gameConfig: Phaser.Types.Core.GameConfig = {
@@ -9,7 +10,7 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
   height: 1080,
   parent: "phaser-game",
   backgroundColor: "#2d2d2d",
-  scene: [MainScene, CombatScene],
+  scene: [MainScene, CombatScene, DungeonScene],
   fps: {
     target: 60,
     forceSetTimeOut: false,

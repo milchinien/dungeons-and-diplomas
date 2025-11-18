@@ -14,16 +14,22 @@ import {
   createEnemyAnimations,
 } from "@/game/utils/assetLoader";
 
-export default class CombatScene extends Phaser.Scene {
+/**
+ * DungeonScene - A dungeon room with tiled floor and walls
+ * Features a player and enemy in a rectangular room layout
+ */
+export default class DungeonScene extends Phaser.Scene {
   private combatState!: CombatState;
+
+  // Sprites
+  private playerSprite!: Phaser.GameObjects.Sprite;
+  private enemySprite!: Phaser.GameObjects.Sprite;
 
   // UI References
   private playerHpBar!: Phaser.GameObjects.Graphics;
   private enemyHpBar!: Phaser.GameObjects.Graphics;
   private playerHpText!: Phaser.GameObjects.Text;
   private enemyHpText!: Phaser.GameObjects.Text;
-  private playerSprite!: Phaser.GameObjects.Sprite;
-  private enemySprite!: Phaser.GameObjects.Sprite;
   private questionText!: Phaser.GameObjects.Text;
   private optionButtons!: Phaser.GameObjects.Rectangle[];
   private optionTexts!: Phaser.GameObjects.Text[];
@@ -32,11 +38,24 @@ export default class CombatScene extends Phaser.Scene {
   private enemyStartX!: number;
   private enemyStartY!: number;
 
+  // Dungeon layout
+  private tileSize = 16; // Each tile is 16x16 pixels
+  private roomWidth = 40; // 40 tiles wide (much larger)
+  private roomHeight = 24; // 24 tiles tall (much larger)
+  private offsetX = 20; // Padding from left
+  private offsetY = 20; // Padding from top
+
   constructor() {
-    super({ key: "CombatScene" });
+    super({ key: "DungeonScene" });
   }
 
   preload() {
+    // Load dungeon tileset (16x16 tiles)
+    this.load.spritesheet("dungeon-tileset", "/sprites/dungeon-tileset.png", {
+      frameWidth: 16,
+      frameHeight: 16,
+    });
+
     // Load enemy sprite sheets
     loadEnemySprites(this);
   }
@@ -45,8 +64,11 @@ export default class CombatScene extends Phaser.Scene {
     // Initialize combat state
     this.initializeCombatState();
 
-    // Draw background
-    this.cameras.main.setBackgroundColor("#1a1a1a");
+    // Set background color
+    this.cameras.main.setBackgroundColor("#0a0a0a");
+
+    // Draw the dungeon room
+    this.drawDungeonRoom();
 
     // Generate animated player sprite asset
     generatePlayerSprite(this, "player-sprite");
@@ -67,144 +89,63 @@ export default class CombatScene extends Phaser.Scene {
   }
 
   /**
-   * Handle window resize - reposition all UI elements
+   * Draw the dungeon room with tiles from the tileset
+   * Based on the dungeon-tileset.png layout
    */
-  private handleResize(gameSize: Phaser.Structs.Size) {
-    // Guard: Check if scene is ready
-    if (!this.cameras || !this.cameras.main) {
-      return;
+  private drawDungeonRoom() {
+    // Tileset frame indices - bottom section has floor and wall tiles
+    // Looking at the tileset, the useful tiles appear to be:
+    // Frame 448-463: Dark floor tiles (bottom left area)
+    // Frame 464-479: Dark brown/red wall tiles
+    const FLOOR_TILE_1 = 448; // Dark floor
+    const FLOOR_TILE_2 = 449; // Dark floor variant
+    const WALL_TILE_1 = 464;  // Reddish brown wall
+    const WALL_TILE_2 = 465;  // Darker wall variant
+
+    // Draw floor with alternating tiles
+    for (let x = 0; x < this.roomWidth; x++) {
+      for (let y = 0; y < this.roomHeight; y++) {
+        const tileX = this.offsetX + x * this.tileSize;
+        const tileY = this.offsetY + y * this.tileSize;
+
+        // Alternate between two floor tile types
+        const frameId = ((x + y) % 2 === 0) ? FLOOR_TILE_1 : FLOOR_TILE_2;
+
+        this.add.sprite(tileX + this.tileSize / 2, tileY + this.tileSize / 2, "dungeon-tileset", frameId);
+      }
     }
 
-    const width = gameSize.width;
-    const height = gameSize.height;
+    // Draw top wall
+    for (let x = -1; x < this.roomWidth + 1; x++) {
+      const tileX = this.offsetX + x * this.tileSize;
+      const tileY = this.offsetY - this.tileSize;
+      const frameId = (x % 2 === 0) ? WALL_TILE_1 : WALL_TILE_2;
+      this.add.sprite(tileX + this.tileSize / 2, tileY + this.tileSize / 2, "dungeon-tileset", frameId);
+    }
 
-    // Update camera
-    this.cameras.main.setSize(width, height);
+    // Draw bottom wall
+    for (let x = -1; x < this.roomWidth + 1; x++) {
+      const tileX = this.offsetX + x * this.tileSize;
+      const tileY = this.offsetY + this.roomHeight * this.tileSize;
+      const frameId = (x % 2 === 0) ? WALL_TILE_1 : WALL_TILE_2;
+      this.add.sprite(tileX + this.tileSize / 2, tileY + this.tileSize / 2, "dungeon-tileset", frameId);
+    }
 
-    // Reposition all elements
-    this.repositionSprites();
-    this.repositionHPBars();
-    this.repositionQuestionPanel();
-  }
+    // Draw left wall
+    for (let y = -1; y < this.roomHeight + 1; y++) {
+      const tileX = this.offsetX - this.tileSize;
+      const tileY = this.offsetY + y * this.tileSize;
+      const frameId = (y % 2 === 0) ? WALL_TILE_1 : WALL_TILE_2;
+      this.add.sprite(tileX + this.tileSize / 2, tileY + this.tileSize / 2, "dungeon-tileset", frameId);
+    }
 
-  /**
-   * Reposition sprites based on current screen size
-   */
-  private repositionSprites() {
-    const centerY = this.cameras.main.centerY;
-    const width = this.cameras.main.width;
-
-    // Player sprite (left side, 20% from left edge)
-    const playerX = width * 0.2;
-    this.playerSprite.setPosition(playerX, centerY);
-
-    // Enemy sprite (right side, 80% from left edge)
-    const enemyX = width * 0.8;
-    this.enemySprite.setPosition(enemyX, centerY);
-  }
-
-  /**
-   * Reposition HP bars based on current screen size
-   */
-  private repositionHPBars() {
-    const width = this.cameras.main.width;
-    const height = this.cameras.main.height;
-    const barWidth = Math.min(200, width * 0.25); // Responsive bar width
-
-    // Responsive margins - use percentage of screen height for top margin
-    const topMargin = Math.max(30, height * 0.06); // 6% of height or min 30px
-    const sideMargin = Math.max(10, width * 0.02); // 2% of width or min 10px
-    const textOffset = Math.max(20, height * 0.03); // Space above bar for text
-
-    // Player HP Bar (top left)
-    const playerBarX = sideMargin;
-    const playerBarY = topMargin;
-
-    // Update text position
-    this.playerHpText.setPosition(playerBarX, playerBarY - textOffset);
-
-    // Redraw HP bar
-    this.playerHpBar.clear();
-    this.drawHPBarAt(
-      this.playerHpBar,
-      playerBarX,
-      playerBarY,
-      barWidth,
-      this.combatState.player.currentHp,
-      this.combatState.player.maxHp
-    );
-
-    // Enemy HP Bar (top right)
-    const enemyBarX = width - barWidth - sideMargin;
-    const enemyBarY = topMargin;
-
-    // Update text position
-    this.enemyHpText.setPosition(enemyBarX, enemyBarY - textOffset);
-
-    // Redraw HP bar
-    this.enemyHpBar.clear();
-    this.drawHPBarAt(
-      this.enemyHpBar,
-      enemyBarX,
-      enemyBarY,
-      barWidth,
-      this.combatState.enemy.currentHp,
-      this.combatState.enemy.maxHp
-    );
-  }
-
-  /**
-   * Reposition question panel based on current screen size
-   */
-  private repositionQuestionPanel() {
-    const centerX = this.cameras.main.centerX;
-    const height = this.cameras.main.height;
-    const width = this.cameras.main.width;
-
-    // Responsive sizing
-    const isMobile = width < 1024;
-    const isSmallScreen = height < 600;
-
-    const buttonWidth = isMobile ? 140 : 180;
-    const buttonHeight = isMobile || isSmallScreen ? 35 : 50;
-    const spacingX = isMobile ? 160 : 200;
-    const spacingY = isMobile || isSmallScreen ? 50 : 70;
-    const fontSize = isMobile || isSmallScreen ? "14px" : "18px";
-    const questionFontSize = isMobile || isSmallScreen ? "16px" : "20px";
-
-    // Calculate total height needed for question panel:
-    // Question text (assume ~30px height) + gap (60px) + 2 rows of buttons
-    const questionTextHeight = 40;
-    const questionGap = isSmallScreen ? 40 : 60;
-    const buttonGridHeight = buttonHeight + spacingY; // 2 rows: first row + spacing + second row
-    const totalPanelHeight = questionTextHeight + questionGap + buttonGridHeight;
-
-    // Position from bottom, ensuring all buttons are visible
-    const bottomPadding = isSmallScreen ? 10 : 20;
-    const panelY = height - totalPanelHeight - bottomPadding;
-
-    // Update question text position
-    this.questionText.setPosition(centerX, panelY - 60);
-    this.questionText.setFontSize(questionFontSize);
-
-    // Update option buttons layout (2x2 grid)
-    const startX = centerX - spacingX / 2;
-    const startY = panelY;
-
-    this.combatState.currentQuestion.options.forEach((option, index) => {
-      const col = index % 2;
-      const row = Math.floor(index / 2);
-      const x = startX + col * spacingX;
-      const y = startY + row * spacingY;
-
-      // Update button position and size
-      this.optionButtons[index].setPosition(x, y);
-      this.optionButtons[index].setSize(buttonWidth, buttonHeight);
-
-      // Update text position and size
-      this.optionTexts[index].setPosition(x, y);
-      this.optionTexts[index].setFontSize(fontSize);
-    });
+    // Draw right wall
+    for (let y = -1; y < this.roomHeight + 1; y++) {
+      const tileX = this.offsetX + this.roomWidth * this.tileSize;
+      const tileY = this.offsetY + y * this.tileSize;
+      const frameId = (y % 2 === 0) ? WALL_TILE_1 : WALL_TILE_2;
+      this.add.sprite(tileX + this.tileSize / 2, tileY + this.tileSize / 2, "dungeon-tileset", frameId);
+    }
   }
 
   private initializeCombatState() {
@@ -227,12 +168,11 @@ export default class CombatScene extends Phaser.Scene {
   }
 
   private createSprites() {
-    const centerY = this.cameras.main.centerY;
-    const width = this.cameras.main.width;
+    // Player sprite (left side of room)
+    const playerX = this.offsetX + this.tileSize * 5;
+    const playerY = this.offsetY + this.roomHeight * this.tileSize * 0.5;
 
-    // Player sprite (left side, 20% from left edge, animated sprite with idle animation)
-    const playerX = width * 0.2;
-    this.playerSprite = this.add.sprite(playerX, centerY, "player-sprite_0");
+    this.playerSprite = this.add.sprite(playerX, playerY, "player-sprite_0");
     this.playerSprite.setScale(1.5);
     this.playerSprite.setOrigin(0.5, 0.5);
 
@@ -253,90 +193,72 @@ export default class CombatScene extends Phaser.Scene {
       });
     }
 
-    // Play idle animation
     this.playerSprite.play("player-idle");
 
-    // Enemy sprite (right side, 80% from left edge, skeleton sprite with idle animation)
-    const enemyX = width * 0.8;
-    this.enemySprite = this.add.sprite(enemyX, centerY, "enemy-skeleton", 0);
-    this.enemySprite.setScale(0.6);
+    // Enemy sprite (right side of room)
+    const enemyX = this.offsetX + this.roomWidth * this.tileSize - this.tileSize * 5;
+    const enemyY = this.offsetY + this.roomHeight * this.tileSize * 0.5;
+
+    this.enemySprite = this.add.sprite(enemyX, enemyY, "enemy-skeleton", 0);
+    this.enemySprite.setScale(0.7);
     this.enemySprite.setOrigin(0.5, 0.5);
 
     // Store start position for movement boundaries
     this.enemyStartX = enemyX;
-    this.enemyStartY = centerY;
+    this.enemyStartY = enemyY;
 
     // Play skeleton idle animation
     this.enemySprite.play("skeleton-idle");
   }
 
   private createHPBars() {
-    const width = this.cameras.main.width;
-    const height = this.cameras.main.height;
-    const barWidth = Math.min(200, width * 0.25);
-
-    // Responsive margins - use percentage of screen height for top margin
-    const topMargin = Math.max(30, height * 0.06); // 6% of height or min 30px
-    const sideMargin = Math.max(10, width * 0.02); // 2% of width or min 10px
-    const textOffset = Math.max(20, height * 0.03); // Space above bar for text
+    const barWidth = 120;
+    const barHeight = 20;
+    const topMargin = 20;
+    const sideMargin = 20;
 
     // Player HP Bar (top left)
-    const playerBarX = sideMargin;
-    const playerBarY = topMargin;
-    this.playerHpBar = this.drawHPBar(
-      playerBarX,
-      playerBarY,
+    this.playerHpBar = this.add.graphics();
+    this.playerHpText = this.add.text(sideMargin, topMargin - 25, "", {
+      fontSize: "14px",
+      color: "#ffffff",
+    });
+    this.drawHPBarAt(
+      this.playerHpBar,
+      sideMargin,
+      topMargin,
+      barWidth,
       this.combatState.player.currentHp,
       this.combatState.player.maxHp
     );
+    this.playerHpText.setText(
+      `Player: ${this.combatState.player.currentHp}/${this.combatState.player.maxHp}`
+    );
 
-    this.playerHpText = this.add.text(
-      playerBarX,
-      playerBarY - textOffset,
-      `Player HP: ${this.combatState.player.currentHp}/${this.combatState.player.maxHp}`,
+    // Enemy HP Bar (top right)
+    this.enemyHpBar = this.add.graphics();
+    this.enemyHpText = this.add.text(
+      this.cameras.main.width - sideMargin - barWidth,
+      topMargin - 25,
+      "",
       {
-        fontSize: "16px",
+        fontSize: "14px",
         color: "#ffffff",
       }
     );
-
-    // Enemy HP Bar (top right, aligned to right edge)
-    const enemyBarX = width - barWidth - sideMargin;
-    const enemyBarY = topMargin;
-    this.enemyHpBar = this.drawHPBar(
-      enemyBarX,
-      enemyBarY,
+    this.drawHPBarAt(
+      this.enemyHpBar,
+      this.cameras.main.width - sideMargin - barWidth,
+      topMargin,
+      barWidth,
       this.combatState.enemy.currentHp,
       this.combatState.enemy.maxHp
     );
-
-    this.enemyHpText = this.add.text(
-      enemyBarX,
-      enemyBarY - textOffset,
-      `${this.combatState.enemy.name} HP: ${this.combatState.enemy.currentHp}/${this.combatState.enemy.maxHp}`,
-      {
-        fontSize: "16px",
-        color: "#ffffff",
-      }
+    this.enemyHpText.setText(
+      `${this.combatState.enemy.name}: ${this.combatState.enemy.currentHp}/${this.combatState.enemy.maxHp}`
     );
   }
 
-  private drawHPBar(
-    x: number,
-    y: number,
-    currentHp: number,
-    maxHp: number
-  ): Phaser.GameObjects.Graphics {
-    const width = this.cameras.main.width;
-    const barWidth = Math.min(200, width * 0.25);
-    const graphics = this.add.graphics();
-    this.drawHPBarAt(graphics, x, y, barWidth, currentHp, maxHp);
-    return graphics;
-  }
-
-  /**
-   * Draw HP bar on existing graphics object with custom width
-   */
   private drawHPBarAt(
     graphics: Phaser.GameObjects.Graphics,
     x: number,
@@ -365,44 +287,28 @@ export default class CombatScene extends Phaser.Scene {
   private createQuestionPanel() {
     const centerX = this.cameras.main.centerX;
     const height = this.cameras.main.height;
-    const width = this.cameras.main.width;
-
-    // Responsive sizing
-    const isMobile = width < 1024;
-    const isSmallScreen = height < 600;
-
-    const questionFontSize = isMobile || isSmallScreen ? "16px" : "20px";
-
-    // Calculate position using same logic as repositionQuestionPanel
-    const buttonHeight = isMobile || isSmallScreen ? 35 : 50;
-    const spacingY = isMobile || isSmallScreen ? 50 : 70;
-    const questionTextHeight = 40;
-    const questionGap = isSmallScreen ? 40 : 60;
-    const buttonGridHeight = buttonHeight + spacingY;
-    const totalPanelHeight = questionTextHeight + questionGap + buttonGridHeight;
-    const bottomPadding = isSmallScreen ? 10 : 20;
-    const panelY = height - totalPanelHeight - bottomPadding;
 
     // Question text
     this.questionText = this.add
       .text(
         centerX,
-        panelY - 60,
+        height - 200,
         this.combatState.currentQuestion.question,
         {
-          fontSize: questionFontSize,
+          fontSize: "16px",
           color: "#ffffff",
+          wordWrap: { width: 400 },
         }
       )
       .setOrigin(0.5);
 
-    // 2x2 Grid for options - responsive sizing
-    const buttonWidth = isMobile ? 140 : 180;
-    // buttonHeight and spacingY already declared above for position calculation
-    const spacingX = isMobile ? 160 : 200;
-    const fontSize = isMobile || isSmallScreen ? "14px" : "18px";
+    // Options grid
+    const buttonWidth = 140;
+    const buttonHeight = 40;
+    const spacingX = 160;
+    const spacingY = 60;
     const startX = centerX - spacingX / 2;
-    const startY = panelY;
+    const startY = height - 120;
 
     this.optionButtons = [];
     this.optionTexts = [];
@@ -422,7 +328,7 @@ export default class CombatScene extends Phaser.Scene {
       // Button text
       const text = this.add
         .text(x, y, option, {
-          fontSize: fontSize,
+          fontSize: "13px",
           color: "#ffffff",
         })
         .setOrigin(0.5);
@@ -479,7 +385,10 @@ export default class CombatScene extends Phaser.Scene {
     } else {
       // Wrong answer - red flash on selected, green on correct
       this.optionButtons[optionIndex].setStrokeStyle(4, 0xff0000);
-      this.optionButtons[this.combatState.currentQuestion.correctIndex].setStrokeStyle(4, 0x00ff00);
+      this.optionButtons[this.combatState.currentQuestion.correctIndex].setStrokeStyle(
+        4,
+        0x00ff00
+      );
 
       this.tweens.add({
         targets: this.optionButtons[optionIndex],
@@ -504,30 +413,29 @@ export default class CombatScene extends Phaser.Scene {
     entity.currentHp = Math.max(0, entity.currentHp - damage);
 
     // Show damage number
-    const width = this.cameras.main.width;
-    const height = this.cameras.main.height;
-    const spriteX = target === "player" ? width * 0.2 : width * 0.8;
-    const spriteY = this.cameras.main.centerY;
-    this.showDamageNumber(spriteX, spriteY - 50, damage);
+    const spriteX = target === "player" ? this.playerSprite.x : this.enemySprite.x;
+    const spriteY = target === "player" ? this.playerSprite.y : this.enemySprite.y;
+    this.showDamageNumber(spriteX, spriteY - 30, damage);
 
-    // Update HP bar and text with responsive positioning
-    const barWidth = Math.min(200, width * 0.25); // Responsive bar width
-    const topMargin = Math.max(30, height * 0.06); // 6% of height or min 30px
-    const sideMargin = Math.max(10, width * 0.02); // 2% of width or min 10px
-    const barX = target === "player" ? sideMargin : width - barWidth - sideMargin;
+    // Update HP bar
+    const barWidth = 120;
+    const topMargin = 20;
+    const sideMargin = 20;
+    const barX =
+      target === "player" ? sideMargin : this.cameras.main.width - sideMargin - barWidth;
     const barY = topMargin;
     const hpBar = target === "player" ? this.playerHpBar : this.enemyHpBar;
     const hpText = target === "player" ? this.playerHpText : this.enemyHpText;
 
-    // Clear and redraw HP bar using shared drawing function
+    // Clear and redraw HP bar
     hpBar.clear();
     this.drawHPBarAt(hpBar, barX, barY, barWidth, entity.currentHp, entity.maxHp);
 
     // Update text
     hpText.setText(
       target === "player"
-        ? `Player HP: ${entity.currentHp}/${entity.maxHp}`
-        : `${entity.name} HP: ${entity.currentHp}/${entity.maxHp}`
+        ? `Player: ${entity.currentHp}/${entity.maxHp}`
+        : `${entity.name}: ${entity.currentHp}/${entity.maxHp}`
     );
 
     // Check combat end after a short delay
@@ -539,7 +447,7 @@ export default class CombatScene extends Phaser.Scene {
   private showDamageNumber(x: number, y: number, damage: number) {
     const damageText = this.add
       .text(x, y, `-${damage}`, {
-        fontSize: "32px",
+        fontSize: "24px",
         color: "#ff0000",
         fontStyle: "bold",
       })
@@ -547,7 +455,7 @@ export default class CombatScene extends Phaser.Scene {
 
     this.tweens.add({
       targets: damageText,
-      y: y - 50,
+      y: y - 40,
       alpha: 0,
       duration: 1000,
       ease: "Power2",
@@ -593,7 +501,7 @@ export default class CombatScene extends Phaser.Scene {
         this.cameras.main.centerY,
         "Victory!",
         {
-          fontSize: "64px",
+          fontSize: "48px",
           color: "#00ff00",
           fontStyle: "bold",
         }
@@ -637,8 +545,8 @@ export default class CombatScene extends Phaser.Scene {
         this.cameras.main.centerY,
         "Defeat!",
         {
-          fontSize: "64px",
-          color: "#ff0000ff",
+          fontSize: "48px",
+          color: "#ff0000",
           fontStyle: "bold",
         }
       )
@@ -661,48 +569,41 @@ export default class CombatScene extends Phaser.Scene {
     });
   }
 
-  /**
-   * Start random movement for the enemy skeleton
-   * Periodically moves the skeleton to random positions on the right side of the screen
-   */
-  private startEnemyRandomMovement() {
-    // Schedule random movements every 3-5 seconds
-    const moveInterval = Phaser.Math.Between(3000, 5000);
+  private handleResize(gameSize: Phaser.Structs.Size) {
+    if (!this.cameras || !this.cameras.main) {
+      return;
+    }
 
-    // Use delayedCall to schedule first movement, then use loop
+    const width = gameSize.width;
+    const height = gameSize.height;
+
+    this.cameras.main.setSize(width, height);
+  }
+
+  private startEnemyRandomMovement() {
     const scheduleNextMovement = () => {
       this.performEnemyRandomMovement();
-      // Schedule next movement
       const nextInterval = Phaser.Math.Between(3000, 5000);
       this.time.delayedCall(nextInterval, scheduleNextMovement);
     };
 
-    // Start the movement loop
     scheduleNextMovement();
   }
 
-  /**
-   * Perform a random movement for the enemy
-   */
   private performEnemyRandomMovement() {
-    const width = this.cameras.main.width;
-    const height = this.cameras.main.height;
-
-    // Define movement boundaries - skeleton can move within right side of screen
-    // Right side is approximately 60% to 95% of screen width
-    const minX = width * 0.65;
-    const maxX = width * 0.95;
-    const minY = height * 0.25;
-    const maxY = height * 0.75;
+    // Define movement boundaries within the room (wider range for larger room)
+    const minX = this.offsetX + this.roomWidth * this.tileSize * 0.55;
+    const maxX = this.offsetX + this.roomWidth * this.tileSize * 0.95;
+    const minY = this.offsetY + this.roomHeight * this.tileSize * 0.2;
+    const maxY = this.offsetY + this.roomHeight * this.tileSize * 0.8;
 
     // Random target position
     const targetX = Phaser.Math.Between(minX, maxX);
     const targetY = Phaser.Math.Between(minY, maxY);
 
-    // Determine direction for sprite flip (face towards target)
+    // Determine direction for sprite flip
     const moveDistance = targetX - this.enemySprite.x;
     if (Math.abs(moveDistance) > 10) {
-      // Flip sprite based on direction (skeleton faces right by default)
       this.enemySprite.setFlip(moveDistance < 0, false);
     }
 
@@ -721,10 +622,5 @@ export default class CombatScene extends Phaser.Scene {
         this.enemySprite.play("skeleton-idle", true);
       },
     });
-
-    // Update HP bar position if sprite moved far from start position
-    if (Math.abs(targetX - this.enemyStartX) > 50) {
-      this.repositionHPBars();
-    }
   }
 }
