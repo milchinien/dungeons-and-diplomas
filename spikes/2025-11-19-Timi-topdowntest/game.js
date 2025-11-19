@@ -23,7 +23,8 @@ const keys = {
     ArrowDown: false,
     ArrowRight: false,
     e: false,
-    Space: false
+    E: false,  // Capital E fix
+    ' ': false  // Space key fix
 };
 
 let mouseX = 0;
@@ -124,15 +125,28 @@ class Player {
     }
 
     attack(enemies) {
-        if (this.attackCooldown > 0) return;
+        if (this.attackCooldown > 0) return null;
 
         for (let enemy of enemies) {
             if (!enemy.isDead && distance(this.x, this.y, enemy.x, enemy.y) < this.attackRange) {
                 enemy.takeDamage(this.attackDamage);
                 this.attackCooldown = 30; // 30 frames cooldown
-                break;
+                // Return attack info for visual effect
+                return {
+                    x: this.x + this.width / 2,
+                    y: this.y + this.height / 2,
+                    targetX: enemy.x + enemy.width / 2,
+                    targetY: enemy.y + enemy.height / 2
+                };
             }
         }
+
+        // Attack attempted but missed
+        if (this.attackCooldown === 0) {
+            this.attackCooldown = 30;
+        }
+
+        return null;
     }
 
     update(room, deltaTime) {
@@ -181,6 +195,15 @@ class Player {
     }
 
     draw(ctx) {
+        // Draw attack range indicator when attacking
+        if (this.attackCooldown > 25) {
+            ctx.strokeStyle = 'rgba(76, 175, 80, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(this.x + this.width / 2, this.y + this.height / 2, this.attackRange, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
         // Draw player
         ctx.fillStyle = this.color;
         ctx.fillRect(this.x, this.y, this.width, this.height);
@@ -288,12 +311,12 @@ class Bat {
         this.height = ENEMY_SIZE;
         this.maxHp = 30;
         this.hp = 30;
-        this.speed = 2;
+        this.speed = 1; // Slower movement speed
         this.isDead = false;
         this.state = 'idle'; // idle, charging, dashing
         this.dashCooldown = 0;
         this.dashTimer = 0;
-        this.dashSpeed = 8;
+        this.dashSpeed = 5; // Slower dash speed
         this.dashDirection = { x: 0, y: 0 };
         this.damage = 20;
     }
@@ -441,13 +464,13 @@ class Spider {
 
     shoot(player) {
         if (this.shootCooldown === 0 && !this.isDead) {
-            this.shootCooldown = 90; // 1.5 seconds
+            this.shootCooldown = 180; // 3 seconds (slower shooting)
             return new Projectile(
                 this.x + this.width / 2,
                 this.y + this.height / 2,
                 player.x + player.width / 2,
                 player.y + player.height / 2,
-                4,
+                2, // Slower projectile speed (was 4)
                 this.damage,
                 'web'
             );
@@ -940,6 +963,9 @@ class Game {
         this.fps = 0;
         this.gameTime = 0;
         this.lootGoblinSpawnTime = 600; // 10 seconds at 60fps
+        this.attackEffects = []; // Visual attack effects
+        this.isGameOver = false;
+        this.gameOverMenu = null;
 
         this.initLevel();
         this.setupKeyboardForDialog();
@@ -977,15 +1003,40 @@ class Game {
             return; // Pause game during math dialog
         }
 
+        if (this.isGameOver) {
+            // Only handle restart input when game over
+            if (keys[' ']) {
+                this.restartGame();
+                keys[' '] = false;
+            }
+            return;
+        }
+
         this.gameTime++;
 
         // Update player
         this.player.update(this.room, deltaTime);
 
-        // Player attack
-        if (keys.Space) {
-            this.player.attack(this.enemies);
+        // Player attack (use ' ' for space key)
+        if (keys[' ']) {
+            const attackResult = this.player.attack(this.enemies);
+            if (attackResult) {
+                // Add visual attack effect
+                this.attackEffects.push({
+                    x: attackResult.x,
+                    y: attackResult.y,
+                    targetX: attackResult.targetX,
+                    targetY: attackResult.targetY,
+                    lifetime: 15
+                });
+            }
         }
+
+        // Update attack effects
+        this.attackEffects = this.attackEffects.filter(effect => {
+            effect.lifetime--;
+            return effect.lifetime > 0;
+        });
 
         // Update enemies
         for (let enemy of this.enemies) {
@@ -1042,12 +1093,13 @@ class Game {
         }
 
         // Check interaction with chests (E key)
-        if (keys.e) {
+        if (keys.e || keys.E) {
             for (let chest of this.chests) {
                 if (!chest.isOpened &&
                     distance(this.player.x, this.player.y, chest.x, chest.y) < 50) {
                     this.openChest(chest);
                     keys.e = false; // Prevent multiple triggers
+                    keys.E = false;
                     break;
                 }
             }
@@ -1057,6 +1109,7 @@ class Game {
                 distance(this.player.x, this.player.y, this.exitDoor.x, this.exitDoor.y) < 60) {
                 this.openExitDoor();
                 keys.e = false;
+                keys.E = false;
             }
         }
 
@@ -1067,9 +1120,8 @@ class Game {
         }
 
         // Game over check
-        if (this.player.hp <= 0) {
-            alert('Game Over! Score: ' + this.player.score);
-            location.reload();
+        if (this.player.hp <= 0 && !this.isGameOver) {
+            this.isGameOver = true;
         }
     }
 
@@ -1102,13 +1154,26 @@ class Game {
     }
 
     nextLevel() {
-        alert('Level Complete! Score: ' + this.player.score);
         // Reset level
         this.gameTime = 0;
         this.enemies = [];
         this.projectiles = [];
         this.chests = [];
         this.lootGoblin = null;
+        this.attackEffects = [];
+        this.initLevel();
+    }
+
+    restartGame() {
+        // Complete restart
+        this.player = new Player(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+        this.gameTime = 0;
+        this.enemies = [];
+        this.projectiles = [];
+        this.chests = [];
+        this.lootGoblin = null;
+        this.attackEffects = [];
+        this.isGameOver = false;
         this.initLevel();
     }
 
@@ -1146,6 +1211,23 @@ class Game {
         // Draw player
         this.player.draw(ctx);
 
+        // Draw attack effects
+        for (let effect of this.attackEffects) {
+            const alpha = effect.lifetime / 15;
+            ctx.strokeStyle = `rgba(255, 255, 0, ${alpha})`;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(effect.x, effect.y);
+            ctx.lineTo(effect.targetX, effect.targetY);
+            ctx.stroke();
+
+            // Impact flash
+            ctx.fillStyle = `rgba(255, 200, 0, ${alpha * 0.5})`;
+            ctx.beginPath();
+            ctx.arc(effect.targetX, effect.targetY, 8, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
         // Draw UI
         this.drawUI();
 
@@ -1153,6 +1235,52 @@ class Game {
         if (this.mathDialog) {
             this.mathDialog.draw(ctx);
         }
+
+        // Draw game over menu
+        if (this.isGameOver) {
+            this.drawGameOverMenu();
+        }
+    }
+
+    drawGameOverMenu() {
+        // Darken background
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+        // Game Over Box
+        const boxWidth = 500;
+        const boxHeight = 300;
+        const boxX = CANVAS_WIDTH / 2 - boxWidth / 2;
+        const boxY = CANVAS_HEIGHT / 2 - boxHeight / 2;
+
+        ctx.fillStyle = '#2a2a2a';
+        ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+        ctx.strokeStyle = '#ff6b6b';
+        ctx.lineWidth = 5;
+        ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+
+        // Game Over Title
+        ctx.fillStyle = '#ff6b6b';
+        ctx.font = 'bold 48px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('GAME OVER', CANVAS_WIDTH / 2, boxY + 80);
+
+        // Score
+        ctx.fillStyle = '#FFD700';
+        ctx.font = 'bold 32px Arial';
+        ctx.fillText('Score: ' + this.player.score, CANVAS_WIDTH / 2, boxY + 140);
+
+        // Stats
+        ctx.fillStyle = '#888';
+        ctx.font = '20px Arial';
+        ctx.fillText('Enemies Defeated: ' + this.enemies.filter(e => e.isDead).length, CANVAS_WIDTH / 2, boxY + 180);
+
+        // Restart Instructions
+        ctx.fillStyle = '#4CAF50';
+        ctx.font = 'bold 24px Arial';
+        ctx.fillText('Drücke SPACE zum Neustarten', CANVAS_WIDTH / 2, boxY + 240);
+
+        ctx.textAlign = 'left';
     }
 
     drawUI() {
