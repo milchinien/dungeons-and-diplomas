@@ -3,7 +3,7 @@ const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 600;
 const TILE_SIZE = 40;
 const PLAYER_SIZE = 30;
-const PLAYER_SPEED = 3;
+const PLAYER_SPEED = 2; // Reduced from 3
 const ENEMY_SIZE = 30;
 const BARREL_SIZE = 35;
 const CHEST_SIZE = 35;
@@ -112,11 +112,19 @@ class Player {
         this.attackDamage = 15;
         this.isSlowed = false;
         this.slowTimer = 0;
+        this.isInvulnerable = false;
+        this.invulnerabilityTimer = 0;
     }
 
     takeDamage(amount) {
+        if (this.isInvulnerable) return; // No damage when invulnerable
         this.hp -= amount;
         if (this.hp < 0) this.hp = 0;
+    }
+
+    setInvulnerable(frames) {
+        this.isInvulnerable = true;
+        this.invulnerabilityTimer = frames;
     }
 
     heal(amount) {
@@ -152,6 +160,14 @@ class Player {
     update(room, deltaTime) {
         // Update cooldowns
         if (this.attackCooldown > 0) this.attackCooldown--;
+
+        // Handle invulnerability
+        if (this.isInvulnerable) {
+            this.invulnerabilityTimer--;
+            if (this.invulnerabilityTimer <= 0) {
+                this.isInvulnerable = false;
+            }
+        }
 
         // Handle slow effect
         if (this.isSlowed) {
@@ -204,6 +220,11 @@ class Player {
             ctx.stroke();
         }
 
+        // Invulnerability effect (flashing)
+        if (this.isInvulnerable && Math.floor(this.invulnerabilityTimer / 10) % 2 === 0) {
+            ctx.globalAlpha = 0.5;
+        }
+
         // Draw player
         ctx.fillStyle = this.color;
         ctx.fillRect(this.x, this.y, this.width, this.height);
@@ -213,6 +234,17 @@ class Player {
         ctx.fillRect(this.x + 8, this.y + 8, 4, 4);
         ctx.fillRect(this.x + 18, this.y + 8, 4, 4);
         ctx.fillRect(this.x + 10, this.y + 20, 10, 3);
+
+        // Invulnerability shield
+        if (this.isInvulnerable) {
+            ctx.strokeStyle = 'rgba(255, 215, 0, 0.6)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(this.x + this.width / 2, this.y + this.height / 2, this.width / 2 + 5, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        ctx.globalAlpha = 1.0;
 
         // HP bar
         const barWidth = this.width;
@@ -258,10 +290,15 @@ class Projectile {
         this.lifetime = 180; // 3 seconds at 60fps
     }
 
-    update() {
+    update(room) {
         this.x += this.vx;
         this.y += this.vy;
         this.lifetime--;
+
+        // Check wall collision
+        if (room && room.checkCollision(this)) {
+            this.isDead = true;
+        }
 
         if (this.lifetime <= 0) {
             this.isDead = true;
@@ -311,12 +348,12 @@ class Bat {
         this.height = ENEMY_SIZE;
         this.maxHp = 30;
         this.hp = 30;
-        this.speed = 1; // Slower movement speed
+        this.speed = 0.7; // Even slower movement speed
         this.isDead = false;
         this.state = 'idle'; // idle, charging, dashing
         this.dashCooldown = 0;
         this.dashTimer = 0;
-        this.dashSpeed = 5; // Slower dash speed
+        this.dashSpeed = 4; // Even slower dash speed
         this.dashDirection = { x: 0, y: 0 };
         this.damage = 20;
     }
@@ -405,6 +442,15 @@ class Bat {
         ctx.fillRect(this.x, this.y - 6, barWidth, barHeight);
         ctx.fillStyle = '#ff6b6b';
         ctx.fillRect(this.x, this.y - 6, barWidth * (this.hp / this.maxHp), barHeight);
+
+        // Attack charge indicator
+        if (this.state === 'charging' && this.dashTimer > 0) {
+            const chargeProgress = this.dashTimer / 30;
+            ctx.fillStyle = '#333';
+            ctx.fillRect(this.x, this.y - 12, barWidth, 3);
+            ctx.fillStyle = '#ff6b6b';
+            ctx.fillRect(this.x, this.y - 12, barWidth * chargeProgress, 3);
+        }
     }
 
     getBounds() {
@@ -474,7 +520,7 @@ class Spider {
 
     shoot(player) {
         if (this.shootCooldown === 0 && !this.isDead) {
-            this.shootCooldown = 180; // 3 seconds (slower shooting)
+            this.shootCooldown = 240; // 4 seconds (even slower)
             return new Projectile(
                 this.x + this.width / 2,
                 this.y + this.height / 2,
@@ -528,6 +574,15 @@ class Spider {
         ctx.fillRect(this.x, this.y - 6, barWidth, barHeight);
         ctx.fillStyle = '#6b4423';
         ctx.fillRect(this.x, this.y - 6, barWidth * (this.hp / this.maxHp), barHeight);
+
+        // Shoot cooldown indicator
+        if (this.shootCooldown > 0) {
+            const cooldownProgress = this.shootCooldown / 240; // 240 frames max cooldown
+            ctx.fillStyle = '#333';
+            ctx.fillRect(this.x, this.y - 12, barWidth, 3);
+            ctx.fillStyle = '#888';
+            ctx.fillRect(this.x, this.y - 12, barWidth * cooldownProgress, 3);
+        }
     }
 
     getBounds() {
@@ -1018,31 +1073,65 @@ class Game {
         });
     }
 
-    initLevel() {
-        // Generate random enemy count based on level
-        const numBats = Math.min(Math.floor(Math.random() * 2) + 1, 1 + Math.floor(this.levelNumber / 2));
-        const numSpiders = Math.min(Math.floor(Math.random() * 3) + 1, 2 + Math.floor(this.levelNumber / 3));
+    // Helper function to find valid spawn position
+    findValidSpawnPosition(size) {
+        let attempts = 0;
+        const maxAttempts = 50;
 
-        // Create enemies at random positions
-        for (let i = 0; i < numBats; i++) {
-            const x = Math.random() * (CANVAS_WIDTH - 200) + 100;
-            const y = Math.random() * (CANVAS_HEIGHT - 200) + 100;
-            this.enemies.push(new Bat(x, y));
+        while (attempts < maxAttempts) {
+            const x = Math.random() * (CANVAS_WIDTH - 200 - size) + 100;
+            const y = Math.random() * (CANVAS_HEIGHT - 200 - size) + 100;
+
+            // Create temporary entity to test collision
+            const testEntity = {
+                x: x,
+                y: y,
+                width: size,
+                height: size,
+                getBounds() {
+                    return {
+                        left: this.x,
+                        right: this.x + this.width,
+                        top: this.y,
+                        bottom: this.y + this.height
+                    };
+                }
+            };
+
+            // Check if position is valid (not in wall)
+            if (!this.room.checkCollision(testEntity)) {
+                return { x, y };
+            }
+
+            attempts++;
         }
 
-        for (let i = 0; i < numSpiders; i++) {
-            const x = Math.random() * (CANVAS_WIDTH - 200) + 100;
-            const y = Math.random() * (CANVAS_HEIGHT - 200) + 100;
-            this.enemies.push(new Spider(x, y));
+        // Fallback to center if no valid position found
+        return { x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT / 2 };
+    }
+
+    initLevel() {
+        // Generate random total enemy count based on level (3-8 enemies)
+        const totalEnemies = Math.min(Math.floor(Math.random() * 3) + 3, 3 + this.levelNumber);
+
+        // Create random mix of enemies
+        for (let i = 0; i < totalEnemies; i++) {
+            const pos = this.findValidSpawnPosition(ENEMY_SIZE);
+
+            // Random enemy type (50% bat, 50% spider)
+            if (Math.random() > 0.5) {
+                this.enemies.push(new Bat(pos.x, pos.y));
+            } else {
+                this.enemies.push(new Spider(pos.x, pos.y));
+            }
         }
 
         // Create chests at random positions (1-3 chests)
         const numChests = Math.floor(Math.random() * 3) + 1;
         for (let i = 0; i < numChests; i++) {
-            const x = Math.random() * (CANVAS_WIDTH - 200) + 100;
-            const y = Math.random() * (CANVAS_HEIGHT - 200) + 100;
+            const pos = this.findValidSpawnPosition(CHEST_SIZE);
             const difficulty = Math.min(Math.floor(this.levelNumber / 2) + 1, 5);
-            this.chests.push(new Chest(x, y, generateMathProblem(difficulty)));
+            this.chests.push(new Chest(pos.x, pos.y, generateMathProblem(difficulty)));
         }
 
         // Create exit door at top center
@@ -1116,7 +1205,7 @@ class Game {
 
         // Update projectiles
         for (let proj of this.projectiles) {
-            proj.update();
+            proj.update(this.room); // Pass room for wall collision
 
             // Check collision with player
             if (!proj.isDead && checkAABB(proj.getBounds(), this.player.getBounds())) {
@@ -1215,10 +1304,6 @@ class Game {
         // Generate new room with new random seed
         this.room = new Room(Date.now() + this.levelNumber);
 
-        // Reset player position to center
-        this.player.x = CANVAS_WIDTH / 2 - PLAYER_SIZE / 2;
-        this.player.y = CANVAS_HEIGHT / 2 - PLAYER_SIZE / 2;
-
         // Reset level
         this.gameTime = 0;
         this.enemies = [];
@@ -1226,7 +1311,18 @@ class Game {
         this.chests = [];
         this.lootGoblin = null;
         this.attackEffects = [];
+
+        // Init level first
         this.initLevel();
+
+        // Then set player position and invulnerability AFTER level init
+        const spawnPos = this.findValidSpawnPosition(PLAYER_SIZE);
+        this.player.x = spawnPos.x;
+        this.player.y = spawnPos.y;
+
+        // Give player 3 seconds invulnerability (180 frames at 60fps)
+        this.player.isInvulnerable = true;
+        this.player.invulnerabilityTimer = 180;
     }
 
     restartGame() {
