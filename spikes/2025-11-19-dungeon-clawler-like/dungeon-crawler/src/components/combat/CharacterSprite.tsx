@@ -14,18 +14,19 @@ const SpriteContainer = styled(motion.div)<{ $isPlayer: boolean }>`
   align-items: flex-end;
   justify-content: center;
   position: absolute;
-  bottom: 80px;
-  ${(props) => (props.$isPlayer ? 'left: 100px;' : 'right: 100px;')}
+  bottom: 100px;
+  ${(props) => (props.$isPlayer ? 'left: 150px;' : 'right: 150px;')}
+  filter: drop-shadow(4px 4px 8px rgba(0, 0, 0, 0.5));
 `;
 
 const StickFigure = styled.svg`
-  width: 120px;
-  height: 160px;
+  width: 140px;
+  height: 180px;
 `;
 
 const GoblinSprite = styled.svg`
-  width: 100px;
-  height: 120px;
+  width: 120px;
+  height: 140px;
 `;
 
 export function CharacterSprite({ isPlayer, isAttacking, isHurt }: CharacterSpriteProps) {

@@ -6,6 +6,7 @@ import { CombatUI } from './CombatUI';
 import { MathQuestion } from './MathQuestion';
 import { CombatState, GameScene } from '../../types/game';
 import { generateQuestion, getDifficultyForFloor } from '../../utils/mathGenerator';
+import { generateLoot } from '../../utils/lootGenerator';
 import { theme } from '../../styles/theme';
 
 const CombatContainer = styled.div`
@@ -67,6 +68,22 @@ const RewardText = styled.div`
   margin-bottom: ${theme.spacing.lg};
 `;
 
+const ItemList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${theme.spacing.sm};
+  margin-bottom: ${theme.spacing.lg};
+`;
+
+const ItemReward = styled.div`
+  font-size: ${theme.fontSize.md};
+  color: ${theme.colors.playerGreen};
+  background-color: rgba(0, 255, 0, 0.1);
+  padding: ${theme.spacing.sm} ${theme.spacing.md};
+  border-radius: ${theme.borderRadius.sm};
+  border: 1px solid ${theme.colors.playerGreen};
+`;
+
 export function CombatScene() {
   const {
     player,
@@ -83,6 +100,8 @@ export function CombatScene() {
 
   const [isPlayerAttacking, setIsPlayerAttacking] = useState(false);
   const [isEnemyHurt, setIsEnemyHurt] = useState(false);
+  const [isPlayerHurt, setIsPlayerHurt] = useState(false);
+  const [lootRewards, setLootRewards] = useState<{ gold: number; items: any[] } | null>(null);
 
   useEffect(() => {
     // When combat state changes, trigger animations
@@ -96,7 +115,29 @@ export function CombatScene() {
 
         // Check if enemy is defeated
         if (currentEnemy && currentEnemy.currentHp <= 0) {
+          // Generate loot
+          const loot = generateLoot(currentFloor?.level || 1, currentEnemy.isBoss);
+          setLootRewards(loot);
           setCombatState(CombatState.VICTORY);
+        } else {
+          // Generate next question
+          if (currentFloor) {
+            const difficulty = getDifficultyForFloor(currentFloor.level);
+            setCurrentQuestion(generateQuestion(difficulty));
+          }
+          setCombatState(CombatState.QUESTION_ACTIVE);
+        }
+      }, 1000);
+    } else if (combatState === CombatState.ENEMY_ATTACK) {
+      // Player took damage from wrong answer
+      setIsPlayerHurt(true);
+
+      setTimeout(() => {
+        setIsPlayerHurt(false);
+
+        // Check if player is defeated
+        if (player.currentHp <= 0) {
+          setCombatState(CombatState.DEFEAT);
         } else {
           // Generate next question
           if (currentFloor) {
@@ -118,13 +159,15 @@ export function CombatScene() {
   };
 
   const handleContinue = () => {
-    // Give gold reward
-    const goldReward = 10 + (currentFloor?.level || 0) * 5;
-    collectLoot(goldReward, []);
+    // Collect loot rewards
+    if (lootRewards) {
+      collectLoot(lootRewards.gold, lootRewards.items);
+    }
 
     // Return to map
     setScene(GameScene.MAP);
     setCombatState(CombatState.QUESTION_ACTIVE);
+    setLootRewards(null);
   };
 
   const handleDefeat = () => {
@@ -142,10 +185,19 @@ export function CombatScene() {
         <MathQuestion question={currentQuestion} onAnswer={handleAnswer} />
       )}
 
-      {combatState === CombatState.VICTORY && (
+      {combatState === CombatState.VICTORY && lootRewards && (
         <VictoryOverlay>
           <VictoryText>SIEG!</VictoryText>
-          <RewardText>+{10 + (currentFloor?.level || 0) * 5} Gold</RewardText>
+          <RewardText>+{lootRewards.gold} Gold</RewardText>
+          {lootRewards.items.length > 0 && (
+            <ItemList>
+              {lootRewards.items.map((item, index) => (
+                <ItemReward key={index}>
+                  {item.name} - {item.description}
+                </ItemReward>
+              ))}
+            </ItemList>
+          )}
           <ContinueButton onClick={handleContinue}>Weiter</ContinueButton>
         </VictoryOverlay>
       )}

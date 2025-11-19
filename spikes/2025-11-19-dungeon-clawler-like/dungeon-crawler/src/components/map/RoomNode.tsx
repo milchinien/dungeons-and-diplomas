@@ -19,53 +19,66 @@ interface RoomNodeProps {
 }
 
 const NodeContainer = styled.div<{ $isActive: boolean; $isCleared: boolean; $isLocked: boolean }>`
-  width: 120px;
-  height: 100px;
+  width: 110px;
+  height: 110px;
   border: 3px solid
     ${(props) =>
       props.$isActive
-        ? theme.colors.playerGreen
+        ? '#555'
         : props.$isLocked
-          ? '#333'
-          : theme.colors.border};
-  border-radius: ${theme.borderRadius.md};
-  background-color: ${(props) =>
-    props.$isCleared ? '#555' : props.$isLocked ? '#222' : theme.colors.stone};
+          ? '#999'
+          : '#777'};
+  border-radius: ${theme.borderRadius.lg};
+  background: ${(props) =>
+    props.$isCleared
+      ? 'linear-gradient(135deg, #b8b8b8 0%, #a5a5a5 100%)'
+      : props.$isLocked
+        ? 'linear-gradient(135deg, #d0d0d0 0%, #c0c0c0 100%)'
+        : 'linear-gradient(135deg, #e0e0e0 0%, #d0d0d0 100%)'};
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: ${(props) => (props.$isLocked ? 'not-allowed' : 'pointer')};
-  opacity: ${(props) => (props.$isLocked ? 0.5 : 1)};
+  opacity: ${(props) => (props.$isLocked ? 0.6 : 1)};
   transition: all 0.3s ease;
   position: relative;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
 
-  ${(props) =>
-    props.$isActive &&
-    `
-    box-shadow: 0 0 20px ${theme.colors.playerGreen};
-  `}
+  /* Subtle 3D effect */
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: ${theme.borderRadius.lg};
+    box-shadow:
+      inset -1px -1px 3px rgba(0, 0, 0, 0.2),
+      inset 1px 1px 3px rgba(255, 255, 255, 0.3);
+    pointer-events: none;
+  }
 
   &:hover {
     ${(props) =>
       !props.$isLocked &&
       `
-      transform: scale(1.05);
-      box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
     `}
   }
 `;
 
 const RoomLabel = styled.div`
   position: absolute;
-  bottom: -20px;
+  bottom: -24px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: ${theme.fontSize.xs};
-  color: ${theme.colors.textSecondary};
+  font-size: 11px;
+  color: #4a4a4a;
   white-space: nowrap;
+  font-weight: 500;
+  font-family: monospace;
 `;
 
-function getRoomIcon(type: RoomType, size: number = 48) {
+function getRoomIcon(type: RoomType, size: number = 58) {
   switch (type) {
     case RoomType.ENTRANCE:
       return <DoorIcon size={size} />;

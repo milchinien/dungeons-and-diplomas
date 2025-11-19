@@ -15,9 +15,21 @@ const flicker = keyframes`
 const DungeonContainer = styled.div`
   width: 100%;
   height: 400px;
-  background: linear-gradient(180deg, #3a3a3a 0%, #4a4a4a 100%);
+  background: linear-gradient(180deg, #2a2a2a 0%, #3a3a3a 60%, #4a4a4a 100%);
   position: relative;
   overflow: hidden;
+
+  /* Add some atmospheric fog */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(ellipse at 50% 100%, rgba(0, 0, 0, 0.3) 0%, transparent 60%);
+    pointer-events: none;
+  }
 `;
 
 const WallLayer = styled.div`
@@ -39,21 +51,37 @@ const StoneBlock = styled.div<{ $left: number; $bottom: number }>`
   position: absolute;
   left: ${(props) => props.$left}px;
   bottom: ${(props) => props.$bottom}px;
-  width: 80px;
-  height: 60px;
-  background-color: ${theme.colors.stone};
-  border: 2px solid #555;
+  width: 100px;
+  height: 70px;
+  background: linear-gradient(135deg, #6a6a6a 0%, ${theme.colors.stone} 50%, #5a5a5a 100%);
+  border: 2px solid #444;
   border-radius: 4px;
+  box-shadow:
+    inset -2px -2px 4px rgba(0, 0, 0, 0.3),
+    inset 2px 2px 4px rgba(255, 255, 255, 0.1);
 
+  /* Cracks and texture */
   &::before {
     content: '';
     position: absolute;
-    top: 5px;
-    left: 5px;
-    right: 5px;
-    bottom: 5px;
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
     border: 1px solid #777;
     border-radius: 2px;
+    opacity: 0.5;
+  }
+
+  /* Additional crack detail */
+  &::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 20%;
+    width: 60%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent 0%, #555 50%, transparent 100%);
   }
 `;
 
@@ -76,11 +104,27 @@ const TorchStick = styled.div`
 const TorchFlame = styled.div`
   width: 30px;
   height: 35px;
-  background: radial-gradient(ellipse at center, #ffcc00 0%, #ff9933 50%, #ff6600 100%);
+  background: radial-gradient(ellipse at center, #ffff00 0%, #ffcc00 30%, #ff9933 60%, #ff6600 100%);
   border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
   animation: ${flicker} 0.5s ease-in-out infinite;
   position: relative;
   top: -10px;
+  box-shadow:
+    0 0 20px rgba(255, 153, 51, 0.6),
+    0 0 40px rgba(255, 102, 0, 0.4);
+  filter: blur(1px);
+
+  /* Inner glow */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    right: 5px;
+    bottom: 5px;
+    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.8) 0%, transparent 70%);
+    border-radius: 50%;
+  }
 `;
 
 const Fence = styled.div`

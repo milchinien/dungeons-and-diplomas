@@ -9,6 +9,7 @@ import {
   MathQuestion,
   Item,
 } from '../types/game';
+import { applyItemEffect, canUseItem } from '../utils/itemEffects';
 
 interface GameStore extends GameState {
   // Actions
@@ -21,6 +22,7 @@ interface GameStore extends GameState {
   damagePlayer: (damage: number) => void;
   collectLoot: (gold: number, items: Item[]) => void;
   buyItem: (item: Item) => void;
+  useItem: (item: Item) => void;
   nextFloor: (floor: Floor) => void;
   resetGame: () => void;
   setCombatState: (state: CombatState) => void;
@@ -149,6 +151,33 @@ export const useGameStore = create<GameStore>((set, get) => ({
         ...player,
         gold: player.gold - item.price,
         inventory: [...player.inventory, item],
+      },
+    });
+  },
+
+  useItem: (item) => {
+    const { player } = get();
+
+    // Check if item can be used
+    if (!canUseItem(player, item)) {
+      console.warn('Cannot use item at this time');
+      return;
+    }
+
+    // Apply item effect
+    const updatedPlayer = applyItemEffect(player, item);
+
+    // Remove item from inventory
+    const itemIndex = player.inventory.findIndex((i) => i.id === item.id);
+    if (itemIndex === -1) return;
+
+    const newInventory = [...player.inventory];
+    newInventory.splice(itemIndex, 1);
+
+    set({
+      player: {
+        ...updatedPlayer,
+        inventory: newInventory,
       },
     });
   },
