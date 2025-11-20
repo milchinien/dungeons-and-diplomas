@@ -6,7 +6,7 @@ import { RoomType, GameScene } from '../../types/game';
 import { generateEnemy } from '../../data/enemies';
 import { generateQuestion, getDifficultyForFloor } from '../../utils/mathGenerator';
 import { generateFloor } from '../../utils/floorGenerator';
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import {
   PlayerIcon,
   DoorIcon,
@@ -16,6 +16,12 @@ import {
   CoinIcon,
   StairsIcon,
 } from '../ui/Icons';
+
+// Generate random positions for dust particles outside component
+const DUST_PARTICLE_POSITIONS = Array.from({ length: 35 }).map(() => ({
+  top: `${Math.random() * 100}%`,
+  left: `${Math.random() * 30}%`,
+}));
 
 const MapContainer = styled.div`
   width: 100%;
@@ -279,33 +285,8 @@ export function MapScene() {
   const { currentFloor, setScene, moveToRoom, setCurrentEnemy, setCurrentQuestion } =
     useGameStore();
 
-  useEffect(() => {
-    // Add keyboard navigation
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (!currentFloor) return;
-
-      const currentRoom = currentFloor.rooms.find((r) => r.id === currentFloor.currentRoomId);
-      if (!currentRoom) return;
-
-      // Simple navigation: move to next connected room
-      if (e.key === 'd' || e.key === 'D') {
-        // Move forward
-        if (currentRoom.connections.length > 0) {
-          const nextRoomId = currentRoom.connections[0];
-          handleRoomClick(nextRoomId);
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [currentFloor]);
-
-  if (!currentFloor) {
-    return <MapContainer>Loading floor...</MapContainer>;
-  }
-
-  const handleRoomClick = (roomId: string) => {
+  const handleRoomClick = useCallback((roomId: string) => {
+    if (!currentFloor) return;
     const room = currentFloor.rooms.find((r) => r.id === roomId);
     if (!room) return;
 
@@ -349,7 +330,33 @@ export function MapScene() {
         break;
       }
     }
-  };
+  }, [currentFloor, moveToRoom, setCurrentEnemy, setCurrentQuestion, setScene]);
+
+  useEffect(() => {
+    // Add keyboard navigation
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (!currentFloor) return;
+
+      const currentRoom = currentFloor.rooms.find((r) => r.id === currentFloor.currentRoomId);
+      if (!currentRoom) return;
+
+      // Simple navigation: move to next connected room
+      if (e.key === 'd' || e.key === 'D') {
+        // Move forward
+        if (currentRoom.connections.length > 0) {
+          const nextRoomId = currentRoom.connections[0];
+          handleRoomClick(nextRoomId);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [currentFloor, handleRoomClick]);
+
+  if (!currentFloor) {
+    return <MapContainer>Loading floor...</MapContainer>;
+  }
 
   const getRoomGridPosition = (roomId: string): { column: number; row: number } => {
     // Map room IDs to grid positions based on the structure
@@ -370,7 +377,7 @@ export function MapScene() {
 
   // Helper function to draw path connections
   const drawConnections = () => {
-    const paths: JSX.Element[] = [];
+    const paths: React.JSX.Element[] = [];
 
     currentFloor.rooms.forEach((room) => {
       const startPos = getRoomGridPosition(room.id);
@@ -428,14 +435,11 @@ export function MapScene() {
       <FogParticle $index={4} style={{ top: '90%', left: '20%' }} />
 
       {/* Intense wind dust particles */}
-      {Array.from({ length: 35 }).map((_, i) => (
+      {DUST_PARTICLE_POSITIONS.map((position, i) => (
         <DustParticle
           key={`dust-${i}`}
           $delay={i * 0.4}
-          style={{
-            top: `${Math.random() * 100}%`,
-            left: `${Math.random() * 30}%`,
-          }}
+          style={position}
         />
       ))}
 

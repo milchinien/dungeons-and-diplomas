@@ -4,7 +4,7 @@ import { useGameStore } from '../../store/gameStore';
 import { DungeonView } from './DungeonView';
 import { CombatUI } from './CombatUI';
 import { MathQuestion } from './MathQuestion';
-import { CombatState, GameScene } from '../../types/game';
+import { CombatState, GameScene, Item } from '../../types/game';
 import { generateQuestion, getDifficultyForFloor } from '../../utils/mathGenerator';
 import { generateLoot } from '../../utils/lootGenerator';
 import { theme } from '../../styles/theme';
@@ -100,8 +100,7 @@ export function CombatScene() {
 
   const [isPlayerAttacking, setIsPlayerAttacking] = useState(false);
   const [isEnemyHurt, setIsEnemyHurt] = useState(false);
-  const [isPlayerHurt, setIsPlayerHurt] = useState(false);
-  const [lootRewards, setLootRewards] = useState<{ gold: number; items: any[] } | null>(null);
+  const [lootRewards, setLootRewards] = useState<{ gold: number; items: Item[] } | null>(null);
 
   useEffect(() => {
     // When combat state changes, trigger animations
@@ -109,7 +108,7 @@ export function CombatScene() {
       setIsPlayerAttacking(true);
       setIsEnemyHurt(true);
 
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         setIsPlayerAttacking(false);
         setIsEnemyHurt(false);
 
@@ -128,13 +127,11 @@ export function CombatScene() {
           setCombatState(CombatState.QUESTION_ACTIVE);
         }
       }, 1000);
+
+      return () => clearTimeout(timer);
     } else if (combatState === CombatState.ENEMY_ATTACK) {
       // Player took damage from wrong answer
-      setIsPlayerHurt(true);
-
-      setTimeout(() => {
-        setIsPlayerHurt(false);
-
+      const timer = setTimeout(() => {
         // Check if player is defeated
         if (player.currentHp <= 0) {
           setCombatState(CombatState.DEFEAT);
@@ -147,8 +144,10 @@ export function CombatScene() {
           setCombatState(CombatState.QUESTION_ACTIVE);
         }
       }, 1000);
+
+      return () => clearTimeout(timer);
     }
-  }, [combatState]);
+  }, [combatState, currentEnemy, currentFloor, player.currentHp, setCombatState, setCurrentQuestion]);
 
   if (!currentEnemy || !currentQuestion) {
     return <CombatContainer>Loading combat...</CombatContainer>;

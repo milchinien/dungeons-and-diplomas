@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import styled from 'styled-components';
 import { useGameStore } from '../../store/gameStore';
 import { Item } from '../../types/game';
@@ -159,19 +158,10 @@ const StatValue = styled.div`
 
 export function Inventory({ isOpen, onClose }: InventoryProps) {
   const { player, useItem } = useGameStore();
-  const [selectedItem, setSelectedItem] = useState<string | null>(null);
 
   const handleUseItem = (item: Item) => {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     useItem(item);
-    setSelectedItem(item.id);
-    // Visual feedback
-    setTimeout(() => setSelectedItem(null), 500);
-  };
-
-  const handleKeyPress = (e: KeyboardEvent) => {
-    if (e.key === 'Escape' || e.key === 'i' || e.key === 'I') {
-      onClose();
-    }
   };
 
   return (
