@@ -5,6 +5,7 @@ import type { Question, QuestionDatabase } from '@/lib/questions';
 import { COMBAT_TIME_LIMIT, COMBAT_FEEDBACK_DELAY, DAMAGE_CORRECT, DAMAGE_WRONG, PLAYER_MAX_HP } from '@/lib/constants';
 import { selectQuestion } from '@/lib/combat/QuestionSelector';
 import { calculateEnemyXpReward } from '@/lib/scoring/LevelCalculator';
+import { calculatePlayerDamage, calculateEnemyDamage } from '@/lib/combat/DamageCalculator';
 
 interface UseCombatProps {
   questionDatabase: QuestionDatabase | null;
@@ -38,8 +39,9 @@ export function useCombat({
   const currentSubjectRef = useRef('');
   const questionStartTimeRef = useRef<number>(0);
   const askedQuestionsRef = useRef<Set<number>>(new Set());
+  const currentPlayerEloRef = useRef<number>(5); // Default to middle ELO
 
-  const startCombat = (enemy: Enemy) => {
+  const startCombat = async (enemy: Enemy) => {
     if (!questionDatabase || !userId) {
       console.error('Question database or user not loaded yet');
       return;
@@ -54,7 +56,26 @@ export function useCombat({
 
     askedQuestionsRef.current = new Set();
 
+    // Load current player ELO for this subject
+    await loadPlayerElo(enemy.subject);
+
     askQuestion();
+  };
+
+  const loadPlayerElo = async (subjectKey: string) => {
+    if (!userId) return;
+
+    try {
+      const response = await fetch(`/api/session-elo?userId=${userId}`);
+      if (response.ok) {
+        const eloScores = await response.json();
+        const subjectElo = eloScores.find((s: any) => s.subjectKey === subjectKey);
+        currentPlayerEloRef.current = subjectElo?.averageElo || 5;
+      }
+    } catch (error) {
+      console.error('Failed to load player ELO:', error);
+      currentPlayerEloRef.current = 5; // Default fallback
+    }
   };
 
   const askQuestion = async () => {
@@ -74,9 +95,16 @@ export function useCombat({
     try {
       const question = await selectQuestion(enemy, userId, askedQuestionsRef.current);
 
+      // Calculate dynamic time limit based on enemy level vs question difficulty
+      // Question level = 11 - ELO (lower ELO = harder question = higher level)
+      const questionLevel = question.elo !== null ? 11 - question.elo : 6; // Default to middle if no ELO
+      const enemyLevel = enemy.level;
+      const levelDifference = enemyLevel - questionLevel;
+      const dynamicTimeLimit = Math.max(3, Math.min(25, 13 - levelDifference)); // Clamp between 3 and 25 seconds
+
       setCombatQuestion(question);
       setCombatFeedback('');
-      setCombatTimer(COMBAT_TIME_LIMIT);
+      setCombatTimer(dynamicTimeLimit);
       setEnemyHp(enemy.hp);
 
       questionStartTimeRef.current = Date.now();
@@ -127,22 +155,31 @@ export function useCombat({
         });
 
         onUpdateSessionScores(currentSubjectRef.current);
+
+        // Reload player ELO after answer to update damage calculations
+        await loadPlayerElo(currentSubjectRef.current);
       } catch (error) {
         console.error('Failed to track answer:', error);
       }
     }
 
+    // Calculate dynamic damage based on player ELO vs enemy level
+    const playerElo = currentPlayerEloRef.current;
+    const enemyLevel = currentEnemyRef.current.level;
+
     if (isCorrect) {
-      setCombatFeedback('✓ Richtig!');
-      currentEnemyRef.current.takeDamage(DAMAGE_CORRECT);
+      const playerDamage = calculatePlayerDamage(playerElo, enemyLevel);
+      setCombatFeedback(`✓ Richtig! ${playerDamage} Schaden!`);
+      currentEnemyRef.current.takeDamage(playerDamage);
     } else {
+      const enemyDamage = calculateEnemyDamage(playerElo, enemyLevel);
       const correctAnswerText = combatQuestion.shuffledAnswers[combatQuestion.correctIndex];
       setCombatFeedback(
         isTimeout
-          ? `✗ Zeit abgelaufen! Richtige Antwort: ${correctAnswerText}`
-          : `✗ Falsch! Richtige Antwort: ${correctAnswerText}`
+          ? `✗ Zeit abgelaufen! Richtige Antwort: ${correctAnswerText} (-${enemyDamage} HP)`
+          : `✗ Falsch! Richtige Antwort: ${correctAnswerText} (-${enemyDamage} HP)`
       );
-      playerRef.current.hp -= DAMAGE_WRONG;
+      playerRef.current.hp -= enemyDamage;
       if (playerRef.current.hp < 0) playerRef.current.hp = 0;
       onPlayerHpUpdate(playerRef.current.hp);
     }
@@ -165,7 +202,8 @@ export function useCombat({
     // Award XP if enemy was defeated
     const enemy = currentEnemyRef.current;
     if (enemy && !enemy.alive && userId) {
-      const xpReward = calculateEnemyXpReward(enemy.level);
+      const playerElo = currentPlayerEloRef.current;
+      const xpReward = calculateEnemyXpReward(enemy.level, playerElo);
 
       try {
         await fetch('/api/xp', {

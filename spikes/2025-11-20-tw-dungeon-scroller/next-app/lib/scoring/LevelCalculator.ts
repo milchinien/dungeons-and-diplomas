@@ -56,14 +56,33 @@ export function getLevelInfo(xp: number): LevelInfo {
 }
 
 /**
- * Calculate XP reward for defeating an enemy
+ * Calculate base XP reward for defeating an enemy
  * Formula: (enemyLevel + 4) * 10
  *
  * Examples:
- * - Level 1 enemy: (1 + 4) * 10 = 50 XP
- * - Level 5 enemy: (5 + 4) * 10 = 90 XP
- * - Level 10 enemy: (10 + 4) * 10 = 140 XP
+ * - Level 1 enemy: (1 + 4) * 10 = 50 base XP
+ * - Level 5 enemy: (5 + 4) * 10 = 90 base XP
+ * - Level 10 enemy: (10 + 4) * 10 = 140 base XP
  */
-export function calculateEnemyXpReward(enemyLevel: number): number {
+export function calculateBaseEnemyXp(enemyLevel: number): number {
   return (enemyLevel + 4) * 10;
+}
+
+/**
+ * Calculate XP reward for defeating an enemy with skill-based multiplier
+ *
+ * Base XP: (enemyLevel + 4) * 10
+ * Multiplier: 1 + (enemyLevel - playerElo) / 10
+ *
+ * Multiplier ranges from 0.1 (easy kill) to 1.9 (hard kill)
+ *
+ * Examples:
+ * - ELO 10 vs Level 1: 50 * 0.1 = 5 XP (very easy)
+ * - ELO 5 vs Level 5: 90 * 1.0 = 90 XP (balanced)
+ * - ELO 1 vs Level 10: 140 * 1.9 = 266 XP (very hard)
+ */
+export function calculateEnemyXpReward(enemyLevel: number, playerElo: number): number {
+  const baseXp = calculateBaseEnemyXp(enemyLevel);
+  const multiplier = 1 + (enemyLevel - playerElo) / 10;
+  return Math.round(baseXp * multiplier);
 }

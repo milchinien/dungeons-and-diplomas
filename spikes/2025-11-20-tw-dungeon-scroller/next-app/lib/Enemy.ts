@@ -25,9 +25,9 @@ export class Enemy {
   isMoving: boolean = false;
   alive: boolean = true;
 
-  // HP system
-  hp: number = GOBLIN_MAX_HP;
-  maxHp: number = GOBLIN_MAX_HP;
+  // HP system (initialized in constructor based on level)
+  hp: number;
+  maxHp: number;
 
   // Level and subject
   level: number;
@@ -45,6 +45,11 @@ export class Enemy {
     this.spriteName = spriteName;
     this.level = level;
     this.subject = subject;
+
+    // Dynamic HP based on level: 10 + level * 5
+    // Level 1: 15 HP, Level 5: 35 HP, Level 10: 60 HP
+    this.hp = 10 + level * 5;
+    this.maxHp = this.hp;
   }
 
   async load() {

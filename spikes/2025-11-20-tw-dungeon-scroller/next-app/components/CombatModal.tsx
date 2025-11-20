@@ -44,6 +44,19 @@ export default function CombatModal({
   }
 
   return (
+    <>
+      <style jsx>{`
+        @keyframes timerBlink {
+          0%, 100% {
+            opacity: 1;
+            color: #FF4444;
+          }
+          50% {
+            opacity: 0.3;
+            color: #FF8888;
+          }
+        }
+      `}</style>
     <div style={{
       display: 'block',
       position: 'absolute',
@@ -90,7 +103,14 @@ export default function CombatModal({
         <div>Gegner HP: <span style={{ color: '#FF4444', fontWeight: 'bold' }}>{enemyHp}</span>/{currentEnemy?.maxHp ?? 0}</div>
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <div style={{ textAlign: 'center', fontSize: '24px', color: '#FFD700' }}>
+        <div style={{
+          textAlign: 'center',
+          fontSize: '24px',
+          color: combatTimer < 5 ? '#FF4444' : '#FFD700',
+          fontWeight: combatTimer < 5 ? 'bold' : 'normal',
+          animation: combatTimer < 5 ? 'timerBlink 0.5s ease-in-out infinite' : 'none',
+          textShadow: combatTimer < 5 ? '0 0 10px rgba(255, 68, 68, 0.8)' : 'none'
+        }}>
           Zeit: <span>{combatTimer}</span>s
         </div>
         {combatQuestion && (() => {
@@ -176,5 +196,6 @@ export default function CombatModal({
         </div>
       )}
     </div>
+    </>
   );
 }
