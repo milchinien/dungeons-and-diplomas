@@ -14,6 +14,7 @@ interface UseGameStateProps {
   userId: number | null;
   onPlayerHpUpdate: (hp: number) => void;
   onXpGained?: (amount: number) => void;
+  onTreasureCollected?: (screenX: number, screenY: number, xpAmount: number) => void;
 }
 
 export function useGameState({
@@ -21,7 +22,8 @@ export function useGameState({
   availableSubjects,
   userId,
   onPlayerHpUpdate,
-  onXpGained
+  onXpGained,
+  onTreasureCollected
 }: UseGameStateProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const minimapRef = useRef<HTMLCanvasElement>(null);
@@ -89,6 +91,27 @@ export function useGameState({
 
       if (onXpGained) {
         onXpGained(xpAmount);
+      }
+
+      // Calculate screen position for the bubble
+      if (onTreasureCollected && canvasRef.current && dungeonManagerRef.current) {
+        const canvas = canvasRef.current;
+        const tileSize = dungeonManagerRef.current.tileSize;
+        const player = playerRef.current;
+
+        // Calculate camera offset (camera is centered on player)
+        const cameraX = player.x + tileSize / 2 - canvas.width / 2;
+        const cameraY = player.y + tileSize / 2 - canvas.height / 2;
+
+        // Convert tile position to world position
+        const worldX = tileX * tileSize + tileSize / 2;
+        const worldY = tileY * tileSize + tileSize / 2;
+
+        // Convert world position to screen position
+        const screenX = worldX - cameraX;
+        const screenY = worldY - cameraY;
+
+        onTreasureCollected(screenX, screenY, xpAmount);
       }
 
       console.log(`Treasure collected at (${tileX}, ${tileY})! +${xpAmount} XP`);

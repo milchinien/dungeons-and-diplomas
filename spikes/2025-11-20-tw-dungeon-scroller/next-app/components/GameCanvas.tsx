@@ -7,6 +7,9 @@ import LoginModal from './LoginModal';
 import SkillDashboard from './SkillDashboard';
 import CharacterPanel from './CharacterPanel';
 import CombatModal from './CombatModal';
+import VictoryOverlay from './VictoryOverlay';
+import DefeatOverlay from './DefeatOverlay';
+import FloatingXpBubble from './FloatingXpBubble';
 import { useAuth } from '@/hooks/useAuth';
 import { useScoring } from '@/hooks/useScoring';
 import { useCombat } from '@/hooks/useCombat';
@@ -19,6 +22,7 @@ export default function GameCanvas() {
   const [showSkillDashboard, setShowSkillDashboard] = useState(false);
   const [playerHp, setPlayerHp] = useState(PLAYER_MAX_HP);
   const [playerXp, setPlayerXp] = useState(0);
+  const [treasureBubbles, setTreasureBubbles] = useState<Array<{ id: number; x: number; y: number; xp: number }>>([]);
 
   // Auth
   const { userId, username, showLogin, handleLogin, handleLogout } = useAuth();
@@ -81,13 +85,23 @@ export default function GameCanvas() {
     setPlayerXp(prev => prev + amount);
   };
 
+  const handleTreasureCollected = (screenX: number, screenY: number, xpAmount: number) => {
+    const bubbleId = Date.now() + Math.random();
+    setTreasureBubbles(prev => [...prev, { id: bubbleId, x: screenX, y: screenY, xp: xpAmount }]);
+  };
+
+  const removeTreasureBubble = (id: number) => {
+    setTreasureBubbles(prev => prev.filter(b => b.id !== id));
+  };
+
   // Game state
   const gameState = useGameState({
     questionDatabase,
     availableSubjects,
     userId,
     onPlayerHpUpdate: setPlayerHp,
-    onXpGained: handleXpGained
+    onXpGained: handleXpGained,
+    onTreasureCollected: handleTreasureCollected
   });
 
   // Combat
@@ -220,6 +234,30 @@ export default function GameCanvas() {
         {showSkillDashboard && userId && (
           <SkillDashboard userId={userId} onClose={handleCloseSkills} />
         )}
+
+        {/* Victory Overlay */}
+        {combat.showVictory && (
+          <VictoryOverlay
+            xpGained={combat.victoryXp}
+            onComplete={combat.handleVictoryComplete}
+          />
+        )}
+
+        {/* Defeat Overlay */}
+        {combat.showDefeat && (
+          <DefeatOverlay onRestart={combat.handleDefeatRestart} />
+        )}
+
+        {/* Treasure XP Bubbles */}
+        {treasureBubbles.map(bubble => (
+          <FloatingXpBubble
+            key={bubble.id}
+            xp={bubble.xp}
+            x={bubble.x}
+            y={bubble.y}
+            onComplete={() => removeTreasureBubble(bubble.id)}
+          />
+        ))}
       </div>
     </>
   );

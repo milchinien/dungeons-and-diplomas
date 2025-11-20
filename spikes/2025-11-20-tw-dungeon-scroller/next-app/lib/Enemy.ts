@@ -301,17 +301,18 @@ export class Enemy {
     if (player && this.alive) {
       const distanceToPlayer = this.getDistanceToPlayer(player, tileSize);
 
+      const drawRadiusThreshold = this.getAggroRadius() + 0.5; // Show when within aggro radius + 0.5 tiles
+
       // Show aggro radius when player is within 0.5 tiles
-      if (distanceToPlayer <= (0.5+this.getAggroRadius() * tileSize)) {
+      if (distanceToPlayer <= drawRadiusThreshold) {
         const aggroRadius = this.getAggroRadius();
         const centerX = this.x + tileSize / 2;
         const centerY = this.y + tileSize / 2;
         const radiusInPixels = aggroRadius * tileSize;
-
         ctx.save();
         ctx.strokeStyle = 'rgba(255, 100, 100, 0.3)'; // Weak red
         ctx.lineWidth = 2;
-        ctx.setLineDash([5, 5]); // Dashed line
+        ctx.setLineDash([5, 5]); // Dashed lines
         ctx.beginPath();
         ctx.arc(centerX, centerY, radiusInPixels, 0, Math.PI * 2);
         ctx.stroke();

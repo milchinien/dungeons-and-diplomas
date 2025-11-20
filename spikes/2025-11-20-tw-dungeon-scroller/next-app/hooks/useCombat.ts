@@ -33,6 +33,9 @@ export function useCombat({
   const [combatTimer, setCombatTimer] = useState(COMBAT_TIME_LIMIT);
   const [combatFeedback, setCombatFeedback] = useState('');
   const [enemyHp, setEnemyHp] = useState(0);
+  const [showVictory, setShowVictory] = useState(false);
+  const [victoryXp, setVictoryXp] = useState(0);
+  const [showDefeat, setShowDefeat] = useState(false);
 
   const currentEnemyRef = useRef<Enemy | null>(null);
   const combatTimerIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -220,6 +223,10 @@ export function useCombat({
         if (onXpGained) {
           onXpGained(xpReward);
         }
+
+        // Show victory overlay
+        setVictoryXp(xpReward);
+        setShowVictory(true);
       } catch (error) {
         console.error('Failed to award XP:', error);
       }
@@ -231,13 +238,23 @@ export function useCombat({
     setCombatFeedback('');
 
     if (playerRef.current.hp <= 0) {
-      setTimeout(() => {
-        alert('Du wurdest besiegt! Das Spiel wird neu gestartet.');
-        onGameRestart();
-      }, 500);
+      // Show defeat overlay instead of alert
+      setShowDefeat(true);
     }
 
     currentEnemyRef.current = null;
+  };
+
+  const handleVictoryComplete = () => {
+    setShowVictory(false);
+    setVictoryXp(0);
+  };
+
+  const handleDefeatRestart = () => {
+    setShowDefeat(false);
+    playerRef.current.hp = PLAYER_MAX_HP;
+    onPlayerHpUpdate(PLAYER_MAX_HP);
+    onGameRestart();
   };
 
   return {
@@ -250,6 +267,11 @@ export function useCombat({
     enemyHp,
     currentEnemyRef,
     startCombat,
-    answerQuestion
+    answerQuestion,
+    showVictory,
+    victoryXp,
+    showDefeat,
+    handleVictoryComplete,
+    handleDefeatRestart
   };
 }
