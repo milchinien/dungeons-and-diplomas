@@ -19,7 +19,8 @@ Your task is to create a log entry of what was changed within this code base sin
 - Always write in German
 - Find and read the latest log file from the list above. Find the latest entry and its git commit hash
 - Check all code changes on the current branch since this commit.
-- Create a new entry. Either create the log file for the current day based on the template or append a new entry to todays log file
+- Create a new entry. Either create the log file for the current day based on the template or append a new entry to todays log file. The filename is always yyyy-mm-dd.md
+
 
 ## Further user input (if any)
 

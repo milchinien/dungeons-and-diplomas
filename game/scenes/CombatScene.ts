@@ -35,6 +35,154 @@ export default class CombatScene extends Phaser.Scene {
     this.createSprites();
     this.createHPBars();
     this.createQuestionPanel();
+
+    // Setup resize handler
+    this.scale.on("resize", this.handleResize, this);
+  }
+
+  /**
+   * Handle window resize - reposition all UI elements
+   */
+  private handleResize(gameSize: Phaser.Structs.Size) {
+    // Guard: Check if scene is ready
+    if (!this.cameras || !this.cameras.main) {
+      return;
+    }
+
+    const width = gameSize.width;
+    const height = gameSize.height;
+
+    // Update camera
+    this.cameras.main.setSize(width, height);
+
+    // Reposition all elements
+    this.repositionSprites();
+    this.repositionHPBars();
+    this.repositionQuestionPanel();
+  }
+
+  /**
+   * Reposition sprites based on current screen size
+   */
+  private repositionSprites() {
+    const centerY = this.cameras.main.centerY;
+    const width = this.cameras.main.width;
+
+    // Player sprite (left side, 20% from left edge)
+    const playerX = width * 0.2;
+    this.playerSprite.clear();
+    this.playerSprite.fillStyle(0x0099ff, 1);
+    this.playerSprite.fillCircle(playerX, centerY, 30);
+
+    // Enemy sprite (right side, 80% from left edge)
+    const enemyX = width * 0.8;
+    this.enemySprite.clear();
+    this.enemySprite.fillStyle(0xff0000, 1);
+    this.enemySprite.fillRect(enemyX - 40, centerY - 40, 80, 80);
+  }
+
+  /**
+   * Reposition HP bars based on current screen size
+   */
+  private repositionHPBars() {
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+    const barWidth = Math.min(200, width * 0.25); // Responsive bar width
+
+    // Responsive margins - use percentage of screen height for top margin
+    const topMargin = Math.max(30, height * 0.06); // 6% of height or min 30px
+    const sideMargin = Math.max(10, width * 0.02); // 2% of width or min 10px
+    const textOffset = Math.max(20, height * 0.03); // Space above bar for text
+
+    // Player HP Bar (top left)
+    const playerBarX = sideMargin;
+    const playerBarY = topMargin;
+
+    // Update text position
+    this.playerHpText.setPosition(playerBarX, playerBarY - textOffset);
+
+    // Redraw HP bar
+    this.playerHpBar.clear();
+    this.drawHPBarAt(
+      this.playerHpBar,
+      playerBarX,
+      playerBarY,
+      barWidth,
+      this.combatState.player.currentHp,
+      this.combatState.player.maxHp
+    );
+
+    // Enemy HP Bar (top right)
+    const enemyBarX = width - barWidth - sideMargin;
+    const enemyBarY = topMargin;
+
+    // Update text position
+    this.enemyHpText.setPosition(enemyBarX, enemyBarY - textOffset);
+
+    // Redraw HP bar
+    this.enemyHpBar.clear();
+    this.drawHPBarAt(
+      this.enemyHpBar,
+      enemyBarX,
+      enemyBarY,
+      barWidth,
+      this.combatState.enemy.currentHp,
+      this.combatState.enemy.maxHp
+    );
+  }
+
+  /**
+   * Reposition question panel based on current screen size
+   */
+  private repositionQuestionPanel() {
+    const centerX = this.cameras.main.centerX;
+    const height = this.cameras.main.height;
+    const width = this.cameras.main.width;
+
+    // Responsive sizing
+    const isMobile = width < 1024;
+    const isSmallScreen = height < 600;
+
+    const buttonWidth = isMobile ? 140 : 180;
+    const buttonHeight = isMobile || isSmallScreen ? 35 : 50;
+    const spacingX = isMobile ? 160 : 200;
+    const spacingY = isMobile || isSmallScreen ? 50 : 70;
+    const fontSize = isMobile || isSmallScreen ? "14px" : "18px";
+    const questionFontSize = isMobile || isSmallScreen ? "16px" : "20px";
+
+    // Calculate total height needed for question panel:
+    // Question text (assume ~30px height) + gap (60px) + 2 rows of buttons
+    const questionTextHeight = 40;
+    const questionGap = isSmallScreen ? 40 : 60;
+    const buttonGridHeight = buttonHeight + spacingY; // 2 rows: first row + spacing + second row
+    const totalPanelHeight = questionTextHeight + questionGap + buttonGridHeight;
+
+    // Position from bottom, ensuring all buttons are visible
+    const bottomPadding = isSmallScreen ? 10 : 20;
+    const panelY = height - totalPanelHeight - bottomPadding;
+
+    // Update question text position
+    this.questionText.setPosition(centerX, panelY - 60);
+    this.questionText.setFontSize(questionFontSize);
+
+    // Update option buttons layout (2x2 grid)
+    const startX = centerX - spacingX / 2;
+    const startY = panelY;
+
+    this.combatState.currentQuestion.options.forEach((option, index) => {
+      const col = index % 2;
+      const row = Math.floor(index / 2);
+      const x = startX + col * spacingX;
+      const y = startY + row * spacingY;
+
+      // Update button position and size
+      this.optionButtons[index].setPosition(x, y);
+      this.optionButtons[index].setSize(buttonWidth, buttonHeight);
+
+      // Update text position and size
+      this.optionTexts[index].setPosition(x, y);
+      this.optionTexts[index].setFontSize(fontSize);
+    });
   }
 
   private initializeCombatState() {
@@ -75,11 +223,17 @@ export default class CombatScene extends Phaser.Scene {
 
   private createHPBars() {
     const width = this.cameras.main.width;
-    const barWidth = 200;
+    const height = this.cameras.main.height;
+    const barWidth = Math.min(200, width * 0.25);
+
+    // Responsive margins - use percentage of screen height for top margin
+    const topMargin = Math.max(30, height * 0.06); // 6% of height or min 30px
+    const sideMargin = Math.max(10, width * 0.02); // 2% of width or min 10px
+    const textOffset = Math.max(20, height * 0.03); // Space above bar for text
 
     // Player HP Bar (top left)
-    const playerBarX = 20;
-    const playerBarY = 20;
+    const playerBarX = sideMargin;
+    const playerBarY = topMargin;
     this.playerHpBar = this.drawHPBar(
       playerBarX,
       playerBarY,
@@ -89,7 +243,7 @@ export default class CombatScene extends Phaser.Scene {
 
     this.playerHpText = this.add.text(
       playerBarX,
-      playerBarY - 20,
+      playerBarY - textOffset,
       `Player HP: ${this.combatState.player.currentHp}/${this.combatState.player.maxHp}`,
       {
         fontSize: "16px",
@@ -98,8 +252,8 @@ export default class CombatScene extends Phaser.Scene {
     );
 
     // Enemy HP Bar (top right, aligned to right edge)
-    const enemyBarX = width - barWidth - 20;
-    const enemyBarY = 20;
+    const enemyBarX = width - barWidth - sideMargin;
+    const enemyBarY = topMargin;
     this.enemyHpBar = this.drawHPBar(
       enemyBarX,
       enemyBarY,
@@ -109,7 +263,7 @@ export default class CombatScene extends Phaser.Scene {
 
     this.enemyHpText = this.add.text(
       enemyBarX,
-      enemyBarY - 20,
+      enemyBarY - textOffset,
       `${this.combatState.enemy.name} HP: ${this.combatState.enemy.currentHp}/${this.combatState.enemy.maxHp}`,
       {
         fontSize: "16px",
@@ -124,33 +278,61 @@ export default class CombatScene extends Phaser.Scene {
     currentHp: number,
     maxHp: number
   ): Phaser.GameObjects.Graphics {
-    const barWidth = 200;
-    const barHeight = 20;
-    const hpPercentage = currentHp / maxHp;
-
+    const width = this.cameras.main.width;
+    const barWidth = Math.min(200, width * 0.25);
     const graphics = this.add.graphics();
+    this.drawHPBarAt(graphics, x, y, barWidth, currentHp, maxHp);
+    return graphics;
+  }
+
+  /**
+   * Draw HP bar on existing graphics object with custom width
+   */
+  private drawHPBarAt(
+    graphics: Phaser.GameObjects.Graphics,
+    x: number,
+    y: number,
+    barWidth: number,
+    currentHp: number,
+    maxHp: number
+  ) {
+    const barHeight = 20;
+    const hpPercentage = Math.max(0, currentHp / maxHp);
 
     // Background (grey)
     graphics.fillStyle(0x555555, 1);
     graphics.fillRect(x, y, barWidth, barHeight);
 
-    // Foreground (green)
-    graphics.fillStyle(0x00ff00, 1);
+    // Foreground (green/red based on HP percentage)
+    const barColor = hpPercentage > 0.3 ? 0x00ff00 : 0xff0000;
+    graphics.fillStyle(barColor, 1);
     graphics.fillRect(x, y, barWidth * hpPercentage, barHeight);
 
     // Border
     graphics.lineStyle(2, 0xffffff, 1);
     graphics.strokeRect(x, y, barWidth, barHeight);
-
-    return graphics;
   }
 
   private createQuestionPanel() {
     const centerX = this.cameras.main.centerX;
     const height = this.cameras.main.height;
+    const width = this.cameras.main.width;
 
-    // Position question panel in bottom 25% of screen
-    const panelY = height * 0.8;
+    // Responsive sizing
+    const isMobile = width < 1024;
+    const isSmallScreen = height < 600;
+
+    const questionFontSize = isMobile || isSmallScreen ? "16px" : "20px";
+
+    // Calculate position using same logic as repositionQuestionPanel
+    const buttonHeight = isMobile || isSmallScreen ? 35 : 50;
+    const spacingY = isMobile || isSmallScreen ? 50 : 70;
+    const questionTextHeight = 40;
+    const questionGap = isSmallScreen ? 40 : 60;
+    const buttonGridHeight = buttonHeight + spacingY;
+    const totalPanelHeight = questionTextHeight + questionGap + buttonGridHeight;
+    const bottomPadding = isSmallScreen ? 10 : 20;
+    const panelY = height - totalPanelHeight - bottomPadding;
 
     // Question text
     this.questionText = this.add
@@ -159,17 +341,17 @@ export default class CombatScene extends Phaser.Scene {
         panelY - 60,
         this.combatState.currentQuestion.question,
         {
-          fontSize: "20px",
+          fontSize: questionFontSize,
           color: "#ffffff",
         }
       )
       .setOrigin(0.5);
 
-    // 2x2 Grid for options
-    const buttonWidth = 180;
-    const buttonHeight = 50;
-    const spacingX = 200;
-    const spacingY = 70;
+    // 2x2 Grid for options - responsive sizing
+    const buttonWidth = isMobile ? 140 : 180;
+    // buttonHeight and spacingY already declared above for position calculation
+    const spacingX = isMobile ? 160 : 200;
+    const fontSize = isMobile || isSmallScreen ? "14px" : "18px";
     const startX = centerX - spacingX / 2;
     const startY = panelY;
 
@@ -191,7 +373,7 @@ export default class CombatScene extends Phaser.Scene {
       // Button text
       const text = this.add
         .text(x, y, option, {
-          fontSize: "18px",
+          fontSize: fontSize,
           color: "#ffffff",
         })
         .setOrigin(0.5);
@@ -274,34 +456,23 @@ export default class CombatScene extends Phaser.Scene {
 
     // Show damage number
     const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
     const spriteX = target === "player" ? width * 0.2 : width * 0.8;
     const spriteY = this.cameras.main.centerY;
     this.showDamageNumber(spriteX, spriteY - 50, damage);
 
-    // Update HP bar and text
-    const barWidth = 200;
-    const barX = target === "player" ? 20 : width - barWidth - 20;
-    const barY = 20;
+    // Update HP bar and text with responsive positioning
+    const barWidth = Math.min(200, width * 0.25); // Responsive bar width
+    const topMargin = Math.max(30, height * 0.06); // 6% of height or min 30px
+    const sideMargin = Math.max(10, width * 0.02); // 2% of width or min 10px
+    const barX = target === "player" ? sideMargin : width - barWidth - sideMargin;
+    const barY = topMargin;
     const hpBar = target === "player" ? this.playerHpBar : this.enemyHpBar;
     const hpText = target === "player" ? this.playerHpText : this.enemyHpText;
 
-    // Clear and redraw HP bar
+    // Clear and redraw HP bar using shared drawing function
     hpBar.clear();
-    const barHeight = 20;
-    const hpPercentage = entity.currentHp / entity.maxHp;
-
-    // Background (grey)
-    hpBar.fillStyle(0x555555, 1);
-    hpBar.fillRect(barX, barY, barWidth, barHeight);
-
-    // Foreground (green/red based on HP)
-    const barColor = hpPercentage > 0.3 ? 0x00ff00 : 0xff0000;
-    hpBar.fillStyle(barColor, 1);
-    hpBar.fillRect(barX, barY, barWidth * hpPercentage, barHeight);
-
-    // Border
-    hpBar.lineStyle(2, 0xffffff, 1);
-    hpBar.strokeRect(barX, barY, barWidth, barHeight);
+    this.drawHPBarAt(hpBar, barX, barY, barWidth, entity.currentHp, entity.maxHp);
 
     // Update text
     hpText.setText(

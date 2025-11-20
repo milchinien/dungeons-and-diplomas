@@ -1,0 +1,1763 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prozeduraler Dungeon Generator</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000000;
+        }
+
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 100;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+        }
+
+        button:hover {
+            opacity: 1;
+            background-color: #45a049;
+        }
+
+        #info {
+            margin-bottom: 10px;
+            font-size: 14px;
+            color: #aaaaaa;
+        }
+
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            background-color: #000000;
+            position: relative;
+        }
+
+        canvas {
+            display: block;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        #minimap {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            border: 3px solid #4CAF50;
+            border-radius: 4px;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 100;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="controls">
+        <button onclick="generateNewDungeon()">Neuen Dungeon generieren</button>
+    </div>
+
+    <div id="canvas-container">
+        <canvas id="dungeonCanvas"></canvas>
+        <canvas id="minimap"></canvas>
+    </div>
+
+    <!-- Combat UI -->
+    <div id="combat-ui" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0, 0, 0, 0.95); border: 4px solid #4CAF50; border-radius: 12px; padding: 30px; max-width: 600px; z-index: 200; color: white; font-family: Arial, sans-serif;">
+        <h2 id="combat-subject" style="text-align: center; color: #4CAF50; margin-top: 0;">Kampf!</h2>
+        <div id="combat-hp" style="margin-bottom: 20px; font-size: 18px;">
+            <div>Deine HP: <span id="player-hp-display" style="color: #4CAF50; font-weight: bold;">100</span>/100</div>
+            <div>Gegner HP: <span id="enemy-hp-display" style="color: #FF4444; font-weight: bold;">30</span>/30</div>
+        </div>
+        <div id="combat-timer" style="text-align: center; font-size: 24px; color: #FFD700; margin-bottom: 20px;">Zeit: <span id="timer-display">10</span>s</div>
+        <div id="combat-question" style="font-size: 20px; margin-bottom: 25px; line-height: 1.4;"></div>
+        <div id="combat-answers" style="display: flex; flex-direction: column; gap: 12px;"></div>
+        <div id="combat-feedback" style="margin-top: 20px; text-align: center; font-size: 18px; min-height: 30px; font-weight: bold;"></div>
+    </div>
+
+    <script src="database/questions.js"></script>
+    <script>
+        const DUNGEON_WIDTH = 100;
+        const DUNGEON_HEIGHT = 100;
+        const MIN_ROOM_SIZE = 4;
+        const MAX_ROOM_SIZE = 8;
+
+        // Tile types
+        const TILE = {
+            EMPTY: 0,
+            FLOOR: 1,
+            WALL: 2,
+            DOOR: 3,
+            CORNER: 4
+        };
+
+        // Direction constants
+        const DIRECTION = {
+            UP: 'up',
+            DOWN: 'down',
+            LEFT: 'left',
+            RIGHT: 'right'
+        };
+
+        // Animation constants
+        const ANIMATION = {
+            SPELLCAST: 'spellcast',
+            THRUST: 'thrust',
+            WALK: 'walk',
+            SLASH: 'slash',
+            SHOOT: 'shoot',
+            HURT: 'hurt',
+            CLIMB: 'climb',
+            IDLE: 'idle',
+            JUMP: 'jump',
+            SIT: 'sit',
+            EMOTE: 'emote',
+            RUN: 'run',
+            WATERING: 'watering',
+            COMBAT: 'combat'
+        };
+
+        // Spritesheet configurations (embedded to avoid CORS issues with file://)
+        const SPRITESHEET_CONFIGS = {
+            player: {
+                frameWidth: 64,
+                frameHeight: 64,
+                animations: [
+                    { name: 'spellcast', firstrow: 0, rowcount: 4, animcount: 7 },
+                    { name: 'thrust', firstrow: 4, rowcount: 4, animcount: 8 },
+                    { name: 'walk', firstrow: 8, rowcount: 4, animcount: 9 },
+                    { name: 'slash', firstrow: 12, rowcount: 4, animcount: 6 },
+                    { name: 'shoot', firstrow: 16, rowcount: 4, animcount: 13 },
+                    { name: 'hurt', firstrow: 20, rowcount: 1, animcount: 6 },
+                    { name: 'climb', firstrow: 21, rowcount: 1, animcount: 6 },
+                    { name: 'idle', firstrow: 22, rowcount: 4, animcount: 2 },
+                    { name: 'jump', firstrow: 26, rowcount: 4, animcount: 6 },
+                    { name: 'sit', firstrow: 30, rowcount: 4, animcount: 15 },
+                    { name: 'emote', firstrow: 34, rowcount: 4, animcount: 15 },
+                    { name: 'run', firstrow: 38, rowcount: 4, animcount: 8 },
+                    { name: 'watering', firstrow: 42, rowcount: 4, animcount: 7 },
+                    { name: 'combat', firstrow: 46, rowcount: 4, animcount: 3 }
+                ]
+            },
+            goblin: {
+                frameWidth: 64,
+                frameHeight: 64,
+                animations: [
+                    { name: 'spellcast', firstrow: 0, rowcount: 4, animcount: 7 },
+                    { name: 'thrust', firstrow: 4, rowcount: 4, animcount: 8 },
+                    { name: 'walk', firstrow: 8, rowcount: 4, animcount: 9 },
+                    { name: 'slash', firstrow: 12, rowcount: 4, animcount: 6 },
+                    { name: 'shoot', firstrow: 16, rowcount: 4, animcount: 13 },
+                    { name: 'hurt', firstrow: 20, rowcount: 1, animcount: 6 },
+                    { name: 'climb', firstrow: 21, rowcount: 1, animcount: 6 },
+                    { name: 'idle', firstrow: 22, rowcount: 4, animcount: 2 },
+                    { name: 'jump', firstrow: 26, rowcount: 4, animcount: 6 },
+                    { name: 'sit', firstrow: 30, rowcount: 4, animcount: 15 },
+                    { name: 'emote', firstrow: 34, rowcount: 4, animcount: 15 },
+                    { name: 'run', firstrow: 38, rowcount: 4, animcount: 8 },
+                    { name: 'watering', firstrow: 42, rowcount: 4, animcount: 7 },
+                    { name: 'combat', firstrow: 46, rowcount: 4, animcount: 3 }
+                ]
+            }
+        };
+
+        // Animation speeds (seconds per frame)
+        const ANIM_SPEEDS = {
+            run: 0.08,      // Fast for running
+            walk: 0.12,     // Normal walking
+            idle: 0.3,      // Slow for idle
+            combat: 0.1,    // Medium for combat animations
+            default: 0.12   // Default fallback
+        };
+
+        // SpriteSheetLoader class
+        class SpriteSheetLoader {
+            constructor(spritesheetName) {
+                this.spritesheetName = spritesheetName;
+                this.image = null;
+                this.config = null;
+                this.loaded = false;
+                this.currentAnimation = null;
+                this.currentDirection = DIRECTION.DOWN;
+                this.currentFrame = 0;
+                this.animTimer = 0;
+                this.animSpeed = ANIM_SPEEDS.default;
+                this.stopOnLastFrame = false; // For death animations
+            }
+
+            async load() {
+                return new Promise((resolve, reject) => {
+                    // Get config from embedded configurations
+                    this.config = SPRITESHEET_CONFIGS[this.spritesheetName];
+                    if (!this.config) {
+                        reject(new Error(`No configuration found for ${this.spritesheetName}`));
+                        return;
+                    }
+
+                    // Load image
+                    this.image = new Image();
+                    this.image.onload = () => {
+                        this.loaded = true;
+                        resolve();
+                    };
+                    this.image.onerror = () => reject(new Error(`Failed to load ${this.spritesheetName}.png`));
+                    this.image.src = `Assets/${this.spritesheetName}.png`;
+                });
+            }
+
+            playAnimation(direction, animationName) {
+                this.currentDirection = direction;
+
+                // Reset frame if animation changed
+                if (this.currentAnimation !== animationName) {
+                    this.currentAnimation = animationName;
+                    this.currentFrame = 0;
+                    this.animTimer = 0;
+
+                    // Set animation speed based on animation type
+                    this.animSpeed = ANIM_SPEEDS[animationName] || ANIM_SPEEDS.default;
+                }
+            }
+
+            update(dt) {
+                if (!this.loaded || !this.currentAnimation) return;
+
+                this.animTimer += dt;
+
+                const anim = this.config.animations.find(a => a.name === this.currentAnimation);
+                if (!anim) return;
+
+                if (this.animTimer >= this.animSpeed) {
+                    this.animTimer = 0;
+
+                    if (this.stopOnLastFrame && this.currentFrame >= anim.animcount - 1) {
+                        // Stay on last frame
+                        this.currentFrame = anim.animcount - 1;
+                    } else {
+                        this.currentFrame = (this.currentFrame + 1) % anim.animcount;
+                    }
+                }
+            }
+
+            draw(ctx, x, y, width, height) {
+                if (!this.loaded || !this.currentAnimation) return;
+
+                const anim = this.config.animations.find(a => a.name === this.currentAnimation);
+                if (!anim) return;
+
+                // Determine row based on animation and direction
+                let row = anim.firstrow;
+
+                if (anim.rowcount === 4) {
+                    // Multi-directional animation
+                    switch (this.currentDirection) {
+                        case DIRECTION.UP:
+                            row = anim.firstrow + 0;
+                            break;
+                        case DIRECTION.LEFT:
+                            row = anim.firstrow + 1;
+                            break;
+                        case DIRECTION.DOWN:
+                            row = anim.firstrow + 2;
+                            break;
+                        case DIRECTION.RIGHT:
+                            row = anim.firstrow + 3;
+                            break;
+                    }
+                } else {
+                    // Single row animation (same for all directions)
+                    row = anim.firstrow;
+                }
+
+                const frameWidth = this.config.frameWidth;
+                const frameHeight = this.config.frameHeight;
+
+                const srcX = this.currentFrame * frameWidth;
+                const srcY = row * frameHeight;
+
+                ctx.drawImage(
+                    this.image,
+                    srcX, srcY,
+                    frameWidth, frameHeight,
+                    x, y,
+                    width, height
+                );
+            }
+        }
+
+        let dungeon = [];
+        let tileSize = 64;
+        let canvas, ctx;
+        let minimapCanvas, minimapCtx;
+        let tilesetImage = null;
+        let isTilesetLoaded = false;
+
+        // Player globals
+        const PLAYER_SPEED_TILES = 6; // tiles per second
+        const PLAYER_SIZE = 0.5; // relative to tile size (smaller for better tolerance)
+
+        // Enemy globals
+        const ENEMY_SPEED_TILES = 3; // tiles per second (slower than player)
+        const ENEMY_AGGRO_RADIUS = 3; // tiles
+        const ENEMY_DEAGGRO_RADIUS = 6; // tiles (2x aggro radius)
+        const ENEMY_IDLE_WAIT_TIME = 2; // seconds to wait at waypoint
+
+        // Combat globals
+        const PLAYER_MAX_HP = 100;
+        const GOBLIN_MAX_HP = 30;
+        const COMBAT_TIME_LIMIT = 10; // seconds per question
+        const DAMAGE_CORRECT = 10; // damage to enemy on correct answer
+        const DAMAGE_WRONG = 15; // damage to player on wrong answer
+
+        // AI States
+        const AI_STATE = {
+            IDLE: 'idle',
+            WANDERING: 'wandering',
+            FOLLOWING: 'following'
+        };
+
+        // Combat state
+        let inCombat = false;
+        let currentEnemy = null;
+
+        let playerSprite = null; // SpriteSheetLoader instance
+
+        let player = {
+            x: 0,
+            y: 0,
+            width: 0,
+            height: 0,
+            direction: DIRECTION.DOWN,
+            isMoving: false,
+            hp: PLAYER_MAX_HP,
+            maxHp: PLAYER_MAX_HP
+        };
+
+        let keys = {
+            ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false,
+            w: false, s: false, a: false, d: false
+        };
+
+        let lastTime = 0;
+
+        // Enemy class
+        class Enemy {
+            constructor(x, y, spriteName, roomId) {
+                this.x = x;
+                this.y = y;
+                this.roomId = roomId;
+                this.sprite = null;
+                this.spriteName = spriteName;
+                this.direction = DIRECTION.DOWN;
+                this.isMoving = false;
+                this.alive = true;
+
+                // HP system
+                this.hp = GOBLIN_MAX_HP;
+                this.maxHp = GOBLIN_MAX_HP;
+
+                // AI state
+                this.aiState = AI_STATE.IDLE;
+                this.waypoint = null;
+                this.idleTimer = 0;
+            }
+
+            async load() {
+                this.sprite = new SpriteSheetLoader(this.spriteName);
+                await this.sprite.load();
+                this.sprite.playAnimation(this.direction, ANIMATION.IDLE);
+            }
+
+            getDistanceToPlayer() {
+                const dx = (player.x + tileSize / 2) - (this.x + tileSize / 2);
+                const dy = (player.y + tileSize / 2) - (this.y + tileSize / 2);
+                return Math.sqrt(dx * dx + dy * dy) / tileSize; // Return distance in tiles
+            }
+
+            pickRandomWaypoint() {
+                // Get all floor tiles in this enemy's room
+                const room = rooms[this.roomId];
+                if (!room) return;
+
+                const roomFloorTiles = [];
+                for (let y = room.y; y < room.y + room.height; y++) {
+                    for (let x = room.x; x < room.x + room.width; x++) {
+                        if (y >= 0 && y < DUNGEON_HEIGHT && x >= 0 && x < DUNGEON_WIDTH) {
+                            if (dungeon[y][x] === TILE.FLOOR && roomMap[y][x] === this.roomId) {
+                                roomFloorTiles.push({ x: x * tileSize, y: y * tileSize });
+                            }
+                        }
+                    }
+                }
+
+                if (roomFloorTiles.length > 0) {
+                    this.waypoint = roomFloorTiles[Math.floor(Math.random() * roomFloorTiles.length)];
+                }
+            }
+
+            update(dt) {
+                if (!this.sprite) return;
+
+                // Update sprite animation (even when dead for hurt animation)
+                this.sprite.update(dt);
+
+                // Skip AI if dead
+                if (!this.alive) return;
+
+                // AI Logic
+                const distanceToPlayer = this.getDistanceToPlayer();
+
+                // State transitions
+                if (this.aiState === AI_STATE.FOLLOWING) {
+                    // Deaggro if player is too far
+                    if (distanceToPlayer > ENEMY_DEAGGRO_RADIUS) {
+                        this.aiState = AI_STATE.IDLE;
+                        this.idleTimer = ENEMY_IDLE_WAIT_TIME;
+                    }
+                } else {
+                    // Aggro if player is close
+                    if (distanceToPlayer <= ENEMY_AGGRO_RADIUS) {
+                        this.aiState = AI_STATE.FOLLOWING;
+                        this.waypoint = null;
+                    }
+                }
+
+                // Execute behavior based on state
+                if (this.aiState === AI_STATE.IDLE) {
+                    this.idleTimer -= dt;
+                    if (this.idleTimer <= 0) {
+                        // Start wandering
+                        this.aiState = AI_STATE.WANDERING;
+                        this.pickRandomWaypoint();
+                    }
+                    this.sprite.playAnimation(this.direction, ANIMATION.IDLE);
+
+                } else if (this.aiState === AI_STATE.WANDERING) {
+                    if (!this.waypoint) {
+                        // No waypoint, go back to idle
+                        this.aiState = AI_STATE.IDLE;
+                        this.idleTimer = ENEMY_IDLE_WAIT_TIME;
+                        return;
+                    }
+
+                    // Move towards waypoint
+                    const dx = this.waypoint.x - this.x;
+                    const dy = this.waypoint.y - this.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < 5) {
+                        // Reached waypoint
+                        this.aiState = AI_STATE.IDLE;
+                        this.idleTimer = ENEMY_IDLE_WAIT_TIME;
+                        this.waypoint = null;
+                        this.sprite.playAnimation(this.direction, ANIMATION.IDLE);
+                    } else {
+                        // Move towards waypoint
+                        const speed = ENEMY_SPEED_TILES * tileSize * dt;
+                        const moveX = (dx / distance) * speed;
+                        const moveY = (dy / distance) * speed;
+
+                        const newX = this.x + moveX;
+                        const newY = this.y + moveY;
+
+                        // Simple collision check
+                        if (!this.checkCollision(newX, this.y)) {
+                            this.x = newX;
+                        }
+                        if (!this.checkCollision(this.x, newY)) {
+                            this.y = newY;
+                        }
+
+                        // Update direction
+                        if (Math.abs(dx) > Math.abs(dy)) {
+                            this.direction = dx > 0 ? DIRECTION.RIGHT : DIRECTION.LEFT;
+                        } else {
+                            this.direction = dy > 0 ? DIRECTION.DOWN : DIRECTION.UP;
+                        }
+
+                        this.sprite.playAnimation(this.direction, ANIMATION.WALK);
+                    }
+
+                } else if (this.aiState === AI_STATE.FOLLOWING) {
+                    // Chase the player
+                    const dx = (player.x + tileSize / 2) - (this.x + tileSize / 2);
+                    const dy = (player.y + tileSize / 2) - (this.y + tileSize / 2);
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance > tileSize / 2) {
+                        // Move towards player
+                        const speed = ENEMY_SPEED_TILES * tileSize * dt;
+                        const moveX = (dx / distance) * speed;
+                        const moveY = (dy / distance) * speed;
+
+                        const newX = this.x + moveX;
+                        const newY = this.y + moveY;
+
+                        // Simple collision check
+                        if (!this.checkCollision(newX, this.y)) {
+                            this.x = newX;
+                        }
+                        if (!this.checkCollision(this.x, newY)) {
+                            this.y = newY;
+                        }
+
+                        // Update direction
+                        if (Math.abs(dx) > Math.abs(dy)) {
+                            this.direction = dx > 0 ? DIRECTION.RIGHT : DIRECTION.LEFT;
+                        } else {
+                            this.direction = dy > 0 ? DIRECTION.DOWN : DIRECTION.UP;
+                        }
+
+                        this.sprite.playAnimation(this.direction, ANIMATION.RUN);
+                    } else {
+                        // Close enough - start combat!
+                        if (!inCombat) {
+                            startCombat(this);
+                        }
+                        this.sprite.playAnimation(this.direction, ANIMATION.IDLE);
+                    }
+                }
+            }
+
+            takeDamage(amount) {
+                this.hp -= amount;
+                if (this.hp <= 0) {
+                    this.hp = 0;
+                    this.die();
+                }
+            }
+
+            die() {
+                this.alive = false;
+                this.aiState = AI_STATE.IDLE; // Stop moving
+                this.sprite.playAnimation(this.direction, ANIMATION.HURT);
+                this.sprite.stopOnLastFrame = true; // Stop on last frame of hurt animation
+            }
+
+            checkCollision(x, y) {
+                const enemySize = tileSize * PLAYER_SIZE;
+                const margin = (tileSize - enemySize) / 2;
+
+                const left = x + margin;
+                const right = x + tileSize - margin;
+                const top = y + margin;
+                const bottom = y + tileSize - margin;
+
+                const points = [
+                    { x: left, y: top },
+                    { x: right, y: top },
+                    { x: left, y: bottom },
+                    { x: right, y: bottom }
+                ];
+
+                for (let p of points) {
+                    const tileX = Math.floor(p.x / tileSize);
+                    const tileY = Math.floor(p.y / tileSize);
+
+                    if (tileX < 0 || tileX >= DUNGEON_WIDTH || tileY < 0 || tileY >= DUNGEON_HEIGHT) {
+                        return true;
+                    }
+
+                    if (dungeon[tileY][tileX] === TILE.WALL || dungeon[tileY][tileX] === TILE.EMPTY) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            draw(ctx) {
+                if (!this.sprite || !this.sprite.loaded) return;
+
+                // Only draw if the enemy's room is visible
+                if (this.roomId >= 0 && rooms[this.roomId] && !rooms[this.roomId].visible) {
+                    return;
+                }
+
+                // Draw alive or dead (corpse)
+                this.sprite.draw(ctx, this.x, this.y, tileSize, tileSize);
+            }
+        }
+
+        let enemies = []; // Array of all enemies
+
+        // Room tracking for fog of war
+        let rooms = [];
+        let roomMap = []; // 2D array mapping each tile to its room index
+
+        // Tileset configuration (64x64 tiles)
+        const TILE_SOURCE_SIZE = 64;
+
+        // Tile coordinates in the tileset (column, row) - based on matrix
+        const TILESET_COORDS = {
+            FLOOR: { x: 0, y: 1 },  // Default floor tile
+            WALL_TOP: { x: 0, y: 0 },  // Default wall
+            WALL_BOTTOM: { x: 0, y: 0 },
+            WALL_LEFT: { x: 0, y: 0 },
+            WALL_RIGHT: { x: 0, y: 0 },
+            WALL_HORIZONTAL: { x: 0, y: 0 },
+            WALL_VERTICAL: { x: 0, y: 0 },
+            CORNER_TL: { x: 0, y: 0 },
+            CORNER_TR: { x: 0, y: 0 },
+            CORNER_BL: { x: 0, y: 0 },
+            CORNER_BR: { x: 0, y: 0 },
+            DOOR_VERTICAL: { x: 8, y: 0 },
+            DOOR_HORIZONTAL: { x: 13, y: 0 }
+        };
+
+        // Tile variants for random variation with probability weights
+        // Higher weight = more likely to appear
+        const WALL_VARIANTS = [
+            { x: 0, y: 0, weight: 20 },    // Common
+            { x: 1, y: 0, weight: 15 },    // Common
+            { x: 2, y: 0, weight: 15 },    // Common
+            { x: 3, y: 0, weight: 15 },    // Less common
+            { x: 3, y: 11, weight: 1 }    // Rare
+        ];
+
+        const FLOOR_VARIANTS = [
+            { x: 0, y: 1, weight: 200 },   // Very common (main floor tile)
+            { x: 1, y: 1, weight: 50 },    // Common
+            { x: 2, y: 1, weight: 30 },    // Less common
+            { x: 2, y: 11, weight: 2 },   // Rare
+            { x: 19, y: 8, weight: 1 }    // Rare (special tile)
+        ];
+
+        // Store tile variants for each position to maintain consistency
+        let tileVariants = [];
+
+        // Weighted random selection function
+        function getWeightedRandomVariant(variants) {
+            // Calculate total weight
+            const totalWeight = variants.reduce((sum, variant) => sum + variant.weight, 0);
+
+            // Generate random number between 0 and totalWeight
+            let random = Math.random() * totalWeight;
+
+            // Select variant based on weight
+            for (let variant of variants) {
+                random -= variant.weight;
+                if (random <= 0) {
+                    return { x: variant.x, y: variant.y };
+                }
+            }
+
+            // Fallback (should never reach here)
+            return { x: variants[0].x, y: variants[0].y };
+        }
+
+        // Initialize
+        window.onload = function () {
+            canvas = document.getElementById('dungeonCanvas');
+            ctx = canvas.getContext('2d');
+
+            minimapCanvas = document.getElementById('minimap');
+            minimapCtx = minimapCanvas.getContext('2d');
+
+            // Set minimap size (200x200 pixels)
+            minimapCanvas.width = 200;
+            minimapCanvas.height = 200;
+
+            // Handle resize
+            window.addEventListener('resize', () => {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            });
+
+            // Initial size
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            // Input handling
+            window.addEventListener('keydown', e => {
+                if (keys.hasOwnProperty(e.key)) keys[e.key] = true;
+            });
+            window.addEventListener('keyup', e => {
+                if (keys.hasOwnProperty(e.key)) keys[e.key] = false;
+            });
+
+            loadAssets();
+        };
+
+        async function loadAssets() {
+            // Load tileset
+            tilesetImage = new Image();
+            const tilesetPromise = new Promise((resolve) => {
+                tilesetImage.onload = () => {
+                    isTilesetLoaded = true;
+                    resolve();
+                };
+            });
+            tilesetImage.src = 'Assets/Castle-Dungeon2_Tiles/Tileset.png';
+
+            // Load player sprite
+            playerSprite = new SpriteSheetLoader('player');
+            const playerPromise = playerSprite.load();
+
+            // Wait for all assets
+            await Promise.all([tilesetPromise, playerPromise]);
+
+            // Set initial animation
+            playerSprite.playAnimation(DIRECTION.DOWN, ANIMATION.IDLE);
+
+            startGame();
+        }
+
+        function startGame() {
+            generateNewDungeon();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function gameLoop(timestamp) {
+            const dt = (timestamp - lastTime) / 1000;
+            lastTime = timestamp;
+
+            update(dt);
+            render();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function update(dt) {
+            if (isNaN(dt)) dt = 0;
+
+            // Skip update if in combat
+            if (inCombat) return;
+
+            // Handle movement
+            let dx = 0;
+            let dy = 0;
+
+            if (keys.ArrowUp || keys.w) dy -= 1;
+            if (keys.ArrowDown || keys.s) dy += 1;
+            if (keys.ArrowLeft || keys.a) dx -= 1;
+            if (keys.ArrowRight || keys.d) dx += 1;
+
+            player.isMoving = (dx !== 0 || dy !== 0);
+
+            if (player.isMoving) {
+                // Normalize vector
+                const length = Math.sqrt(dx * dx + dy * dy);
+                // Scale speed by tile size
+                const currentSpeed = PLAYER_SPEED_TILES * tileSize;
+                dx = dx / length * currentSpeed * dt;
+                dy = dy / length * currentSpeed * dt;
+
+                // Collision detection (simple box)
+                const newX = player.x + dx;
+                const newY = player.y + dy;
+
+                // Check collision with walls
+                if (!checkCollision(newX, player.y)) {
+                    player.x = newX;
+                }
+                if (!checkCollision(player.x, newY)) {
+                    player.y = newY;
+                }
+
+                // Update direction
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    player.direction = dx > 0 ? DIRECTION.RIGHT : DIRECTION.LEFT;
+                } else {
+                    player.direction = dy > 0 ? DIRECTION.DOWN : DIRECTION.UP;
+                }
+
+                // Play run animation
+                playerSprite.playAnimation(player.direction, ANIMATION.RUN);
+
+                // Update fog of war based on player position
+                updateFogOfWar();
+
+                // Check for door interaction (replace with floor)
+                const pTileX = Math.floor((player.x + tileSize / 2) / tileSize);
+                const pTileY = Math.floor((player.y + tileSize / 2) / tileSize);
+
+                if (pTileX >= 0 && pTileX < DUNGEON_WIDTH && pTileY >= 0 && pTileY < DUNGEON_HEIGHT) {
+                    if (dungeon[pTileY][pTileX] === TILE.DOOR) {
+                        dungeon[pTileY][pTileX] = TILE.FLOOR;
+                        // Update roomMap to remove door marker so it's treated as normal floor
+                        // We need to find which room this belongs to or just leave it as -2?
+                        // Better to leave it as -2 or find the neighbor room.
+                        // For rendering it doesn't matter much if it's floor.
+                    }
+                }
+            } else {
+                // Play idle animation
+                playerSprite.playAnimation(player.direction, ANIMATION.IDLE);
+            }
+
+            // Update sprite animation
+            playerSprite.update(dt);
+
+            // Update all enemies
+            for (const enemy of enemies) {
+                enemy.update(dt);
+            }
+        }
+
+        function checkCollision(x, y) {
+            // Player center in grid coords
+            const playerSize = tileSize * PLAYER_SIZE;
+            const margin = (tileSize - playerSize) / 2;
+
+            // Check corners of the player's collision box
+            const left = x + margin;
+            const right = x + tileSize - margin;
+            const top = y + margin;
+            const bottom = y + tileSize - margin;
+
+            const points = [
+                { x: left, y: top },
+                { x: right, y: top },
+                { x: left, y: bottom },
+                { x: right, y: bottom }
+            ];
+
+            for (let p of points) {
+                const tileX = Math.floor(p.x / tileSize);
+                const tileY = Math.floor(p.y / tileSize);
+
+                // Check bounds
+                if (tileX < 0 || tileX >= DUNGEON_WIDTH || tileY < 0 || tileY >= DUNGEON_HEIGHT) {
+                    return true;
+                }
+
+                // Check tile type
+                if (dungeon[tileY][tileX] === TILE.WALL || dungeon[tileY][tileX] === TILE.EMPTY) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function updateFogOfWar() {
+            const playerTileX = Math.floor((player.x + tileSize / 2) / tileSize);
+            const playerTileY = Math.floor((player.y + tileSize / 2) / tileSize);
+
+            if (playerTileX >= 0 && playerTileX < DUNGEON_WIDTH && playerTileY >= 0 && playerTileY < DUNGEON_HEIGHT) {
+                const roomId = roomMap[playerTileY][playerTileX];
+                if (roomId >= 0 && rooms[roomId] && !rooms[roomId].visible) {
+                    rooms[roomId].visible = true;
+                    // Also reveal neighbors? Maybe not, keep it strict.
+                }
+            }
+        }
+
+        function render() {
+            // Render map and player together in renderDungeon to handle camera transform
+            renderDungeon();
+            renderMinimap();
+        }
+
+        function drawPlayer() {
+            if (!playerSprite || !playerSprite.loaded) return;
+
+            playerSprite.draw(ctx, player.x, player.y, tileSize, tileSize);
+        }
+
+        async function generateNewDungeon() {
+            dungeon = createEmptyDungeon();
+
+            // Initialize tile variants array with weighted random selection
+            tileVariants = [];
+            for (let y = 0; y < DUNGEON_HEIGHT; y++) {
+                tileVariants[y] = [];
+                for (let x = 0; x < DUNGEON_WIDTH; x++) {
+                    tileVariants[y][x] = {
+                        floor: getWeightedRandomVariant(FLOOR_VARIANTS),
+                        wall: getWeightedRandomVariant(WALL_VARIANTS)
+                    };
+                }
+            }
+
+            // Generate rooms using BSP
+            generateRooms();
+
+            // Connect rooms using Union-Find to ensure reachability
+            connectRooms();
+
+            // Add walls around rooms
+            addWalls();
+
+            // Render the dungeon
+            // renderDungeon(); // Removed, handled by game loop
+
+            // Spawn player
+            spawnPlayer();
+
+            // Spawn enemies
+            await spawnEnemies();
+        }
+
+        function spawnPlayer() {
+            // Collect all valid floor tiles
+            const validSpawnPoints = [];
+
+            for (let y = 0; y < DUNGEON_HEIGHT; y++) {
+                for (let x = 0; x < DUNGEON_WIDTH; x++) {
+                    if (dungeon[y][x] === TILE.FLOOR) {
+                        validSpawnPoints.push({ x, y });
+                    }
+                }
+            }
+
+            // Pick a random spawn point
+            if (validSpawnPoints.length > 0) {
+                const spawnPoint = validSpawnPoints[Math.floor(Math.random() * validSpawnPoints.length)];
+
+                player.x = spawnPoint.x * tileSize;
+                player.y = spawnPoint.y * tileSize;
+
+                // Make sure the room containing this spawn point is visible
+                const roomId = roomMap[spawnPoint.y][spawnPoint.x];
+                if (roomId >= 0 && rooms[roomId]) {
+                    rooms[roomId].visible = true;
+                }
+            }
+        }
+
+        async function spawnEnemies() {
+            // Clear existing enemies
+            enemies = [];
+
+            // Spawn one goblin per room (except the player's starting room)
+            const playerRoomId = roomMap[Math.floor((player.y + tileSize / 2) / tileSize)]
+            [Math.floor((player.x + tileSize / 2) / tileSize)];
+
+            for (let i = 0; i < rooms.length; i++) {
+                // Skip player's starting room
+                if (i === playerRoomId) continue;
+
+                const room = rooms[i];
+
+                // Find a random floor tile in this room
+                const roomFloorTiles = [];
+                for (let y = room.y; y < room.y + room.height; y++) {
+                    for (let x = room.x; x < room.x + room.width; x++) {
+                        if (y >= 0 && y < DUNGEON_HEIGHT && x >= 0 && x < DUNGEON_WIDTH) {
+                            if (dungeon[y][x] === TILE.FLOOR && roomMap[y][x] === i) {
+                                roomFloorTiles.push({ x, y });
+                            }
+                        }
+                    }
+                }
+
+                // Spawn goblin at random position in room
+                if (roomFloorTiles.length > 0) {
+                    const spawnPos = roomFloorTiles[Math.floor(Math.random() * roomFloorTiles.length)];
+                    const enemy = new Enemy(
+                        spawnPos.x * tileSize,
+                        spawnPos.y * tileSize,
+                        'goblin',
+                        i
+                    );
+                    await enemy.load();
+                    enemies.push(enemy);
+                }
+            }
+        }
+
+        function createEmptyDungeon() {
+            const grid = [];
+            for (let y = 0; y < DUNGEON_HEIGHT; y++) {
+                grid[y] = [];
+                for (let x = 0; x < DUNGEON_WIDTH; x++) {
+                    grid[y][x] = TILE.EMPTY;
+                }
+            }
+            return grid;
+        }
+
+        // BSP Node class for room generation
+        class BSPNode {
+            constructor(x, y, width, height) {
+                this.x = x;
+                this.y = y;
+                this.width = width;
+                this.height = height;
+                this.leftChild = null;
+                this.rightChild = null;
+                this.splitDirection = null; // 'horizontal' or 'vertical'
+                this.splitPosition = null;
+                this.roomId = null; // ID for leaf rooms
+            }
+
+            split() {
+                // Stop splitting if too small
+                if (this.width < MIN_ROOM_SIZE * 2 + 1 || this.height < MIN_ROOM_SIZE * 2 + 1) {
+                    return;
+                }
+
+                // Randomly stop splitting to create varied room sizes
+                if (this.width <= MAX_ROOM_SIZE && this.height <= MAX_ROOM_SIZE && Math.random() < 0.25) {
+                    return;
+                }
+
+                // Decide split direction based on dimensions
+                let splitHorizontally;
+                if (this.height < MIN_ROOM_SIZE * 2 + 1) {
+                    splitHorizontally = false;
+                } else if (this.width < MIN_ROOM_SIZE * 2 + 1) {
+                    splitHorizontally = true;
+                } else if (this.height > this.width * 1.25) {
+                    splitHorizontally = true;
+                } else if (this.width > this.height * 1.25) {
+                    splitHorizontally = false;
+                } else {
+                    splitHorizontally = Math.random() > 0.5;
+                }
+
+                if (splitHorizontally) {
+                    const minSplit = MIN_ROOM_SIZE;
+                    const maxSplit = this.height - MIN_ROOM_SIZE - 1;
+                    const splitPos = Math.floor(Math.random() * (maxSplit - minSplit) + minSplit);
+
+                    this.splitDirection = 'horizontal';
+                    this.splitPosition = splitPos;
+
+                    this.leftChild = new BSPNode(this.x, this.y, this.width, splitPos);
+                    this.rightChild = new BSPNode(this.x, this.y + splitPos + 1, this.width, this.height - splitPos - 1);
+                } else {
+                    const minSplit = MIN_ROOM_SIZE;
+                    const maxSplit = this.width - MIN_ROOM_SIZE - 1;
+                    const splitPos = Math.floor(Math.random() * (maxSplit - minSplit) + minSplit);
+
+                    this.splitDirection = 'vertical';
+                    this.splitPosition = splitPos;
+
+                    this.leftChild = new BSPNode(this.x, this.y, splitPos, this.height);
+                    this.rightChild = new BSPNode(this.x + splitPos + 1, this.y, this.width - splitPos - 1, this.height);
+                }
+
+                // Recursively split children
+                this.leftChild.split();
+                this.rightChild.split();
+            }
+
+            fillRooms() {
+                if (!this.leftChild && !this.rightChild) {
+                    // Leaf node - create a room and register it
+                    this.roomId = rooms.length;
+
+                    // Assign room type with weighted random selection
+                    // Ratio: 3 empty : 1 treasure : 1 combat
+                    const typeRoll = Math.random() * 10;
+                    let roomType;
+                    if (typeRoll < 2) {
+                        roomType = 'treasure';
+                    } else if (typeRoll < 3) {
+                        roomType = 'combat';
+                    } else {
+                        roomType = 'empty';
+                    }
+
+                    rooms.push({
+                        id: this.roomId,
+                        x: this.x,
+                        y: this.y,
+                        width: this.width,
+                        height: this.height,
+                        visible: false,
+                        neighbors: [], // Will be filled when doors are added
+                        type: roomType
+                    });
+
+                    // Fill entire partition with floor and mark tiles with room ID
+                    for (let y = this.y; y < this.y + this.height; y++) {
+                        for (let x = this.x; x < this.x + this.width; x++) {
+                            dungeon[y][x] = TILE.FLOOR;
+                            roomMap[y][x] = this.roomId;
+                        }
+                    }
+                } else {
+                    // Not a leaf - fill children and add wall between them
+                    if (this.leftChild) this.leftChild.fillRooms();
+                    if (this.rightChild) this.rightChild.fillRooms();
+
+                    // Add wall between children
+                    if (this.splitDirection === 'horizontal') {
+                        const wallY = this.y + this.splitPosition;
+                        for (let x = this.x; x < this.x + this.width; x++) {
+                            dungeon[wallY][x] = TILE.WALL;
+                            roomMap[wallY][x] = -1; // -1 for walls
+                        }
+                    } else {
+                        const wallX = this.x + this.splitPosition;
+                        for (let y = this.y; y < this.y + this.height; y++) {
+                            dungeon[y][wallX] = TILE.WALL;
+                            roomMap[y][wallX] = -1; // -1 for walls
+                        }
+                    }
+                }
+            }
+        }
+
+        function generateRooms() {
+            // Reset rooms array
+            rooms = [];
+
+            // Initialize roomMap
+            roomMap = [];
+            for (let y = 0; y < DUNGEON_HEIGHT; y++) {
+                roomMap[y] = [];
+                for (let x = 0; x < DUNGEON_WIDTH; x++) {
+                    dungeon[y][x] = TILE.FLOOR;
+                    roomMap[y][x] = null;
+                }
+            }
+
+            // Create BSP tree
+            const root = new BSPNode(0, 0, DUNGEON_WIDTH, DUNGEON_HEIGHT);
+            root.split();
+            root.fillRooms();
+
+            // Make the first room visible by default
+            if (rooms.length > 0) {
+                rooms[0].visible = true;
+            }
+        }
+
+        // Union-Find implementation
+        class UnionFind {
+            constructor(size) {
+                this.parent = new Array(size).fill(0).map((_, i) => i);
+            }
+
+            find(i) {
+                if (this.parent[i] === i) {
+                    return i;
+                }
+                this.parent[i] = this.find(this.parent[i]); // Path compression
+                return this.parent[i];
+            }
+
+            union(i, j) {
+                const rootI = this.find(i);
+                const rootJ = this.find(j);
+                if (rootI !== rootJ) {
+                    this.parent[rootI] = rootJ;
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        function connectRooms() {
+            // 1. Identify all possible connections (adjacent rooms)
+            const possibleConnections = [];
+
+            // Scan horizontal walls
+            for (let y = 0; y < DUNGEON_HEIGHT; y++) {
+                for (let x = 0; x < DUNGEON_WIDTH; x++) {
+                    if (dungeon[y][x] === TILE.WALL) {
+                        // Check vertical neighbors (Room Above <-> Room Below)
+                        if (y > 0 && y < DUNGEON_HEIGHT - 1) {
+                            const roomAbove = roomMap[y - 1][x];
+                            const roomBelow = roomMap[y + 1][x];
+
+                            if (roomAbove >= 0 && roomBelow >= 0 && roomAbove !== roomBelow) {
+                                // Valid connection point
+                                possibleConnections.push({
+                                    x: x,
+                                    y: y,
+                                    roomA: roomAbove,
+                                    roomB: roomBelow,
+                                    orientation: 'horizontal' // Wall is horizontal, door connects vertically
+                                });
+                            }
+                        }
+
+                        // Check horizontal neighbors (Room Left <-> Room Right)
+                        if (x > 0 && x < DUNGEON_WIDTH - 1) {
+                            const roomLeft = roomMap[y][x - 1];
+                            const roomRight = roomMap[y][x + 1];
+
+                            if (roomLeft >= 0 && roomRight >= 0 && roomLeft !== roomRight) {
+                                // Valid connection point
+                                possibleConnections.push({
+                                    x: x,
+                                    y: y,
+                                    roomA: roomLeft,
+                                    roomB: roomRight,
+                                    orientation: 'vertical' // Wall is vertical, door connects horizontally
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 2. Shuffle connections to ensure random dungeon layout
+            for (let i = possibleConnections.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [possibleConnections[i], possibleConnections[j]] = [possibleConnections[j], possibleConnections[i]];
+            }
+
+            // 3. Use Union-Find to connect all rooms
+            const uf = new UnionFind(rooms.length);
+            const finalDoors = [];
+
+            for (const conn of possibleConnections) {
+                if (uf.union(conn.roomA, conn.roomB)) {
+                    // This connection merges two previously unconnected sets
+                    finalDoors.push(conn);
+
+                    // Add neighbors
+                    rooms[conn.roomA].neighbors.push(conn.roomB);
+                    rooms[conn.roomB].neighbors.push(conn.roomA);
+                }
+            }
+
+            // Optional: Add a few random extra doors to create loops (5% chance for remaining valid connections)
+            for (const conn of possibleConnections) {
+                // Check if we already placed a door here
+                if (dungeon[conn.y][conn.x] === TILE.DOOR) continue;
+
+                // If rooms are already connected (which they are now), maybe add a shortcut
+                if (Math.random() < 0.02) { // 2% chance for extra doors
+                    finalDoors.push(conn);
+                    // Add neighbors if not already there (though they are connected via path)
+                    if (!rooms[conn.roomA].neighbors.includes(conn.roomB)) {
+                        rooms[conn.roomA].neighbors.push(conn.roomB);
+                        rooms[conn.roomB].neighbors.push(conn.roomA);
+                    }
+                }
+            }
+
+            // 4. Place doors in the dungeon
+            for (const door of finalDoors) {
+                dungeon[door.y][door.x] = TILE.DOOR;
+                roomMap[door.y][door.x] = -2; // -2 for doors
+            }
+        }
+
+        function addWalls() {
+            // Walls are already created by the room generation algorithm
+            // This function now only adds outer boundary walls if needed
+            for (let x = 0; x < DUNGEON_WIDTH; x++) {
+                if (dungeon[0][x] === TILE.EMPTY) dungeon[0][x] = TILE.WALL;
+                if (dungeon[DUNGEON_HEIGHT - 1][x] === TILE.EMPTY) dungeon[DUNGEON_HEIGHT - 1][x] = TILE.WALL;
+            }
+            for (let y = 0; y < DUNGEON_HEIGHT; y++) {
+                if (dungeon[y][0] === TILE.EMPTY) dungeon[y][0] = TILE.WALL;
+                if (dungeon[y][DUNGEON_WIDTH - 1] === TILE.EMPTY) dungeon[y][DUNGEON_WIDTH - 1] = TILE.WALL;
+            }
+        }
+
+        function getTileCoords(x, y, tile) {
+            if (tile === TILE.EMPTY) {
+                return null;
+            }
+
+            if (tile === TILE.FLOOR) {
+                // Check room type and use appropriate tile
+                const roomId = roomMap[y][x];
+                if (roomId >= 0 && rooms[roomId]) {
+                    const roomType = rooms[roomId].type;
+
+                    if (roomType === 'treasure') {
+                        return { x: 18, y: 11 }; // Treasure room floor
+                    } else if (roomType === 'combat') {
+                        return { x: 7, y: 12 }; // Combat room floor
+                    }
+                }
+
+                // Default: use random floor variant for empty rooms
+                return tileVariants[y][x].floor;
+            }
+
+            if (tile === TILE.DOOR) {
+                // Check if door should be horizontal or vertical based on wall orientation
+                const hasWallLeft = x > 0 && dungeon[y][x - 1] === TILE.WALL;
+                const hasWallRight = x < DUNGEON_WIDTH - 1 && dungeon[y][x + 1] === TILE.WALL;
+                const hasWallAbove = y > 0 && dungeon[y - 1][x] === TILE.WALL;
+                const hasWallBelow = y < DUNGEON_HEIGHT - 1 && dungeon[y + 1][x] === TILE.WALL;
+
+                // If walls are left/right, door is vertical (opens horizontally)
+                // If walls are above/below, door is horizontal (opens vertically)
+                if (hasWallLeft || hasWallRight) {
+                    return TILESET_COORDS.DOOR_VERTICAL;
+                } else if (hasWallAbove || hasWallBelow) {
+                    return TILESET_COORDS.DOOR_HORIZONTAL;
+                } else {
+                    // Fallback - check floor positions
+                    const hasFloorLeft = x > 0 && dungeon[y][x - 1] === TILE.FLOOR;
+                    const hasFloorRight = x < DUNGEON_WIDTH - 1 && dungeon[y][x + 1] === TILE.FLOOR;
+
+                    if (hasFloorLeft && hasFloorRight) {
+                        return TILESET_COORDS.DOOR_HORIZONTAL;
+                    } else {
+                        return TILESET_COORDS.DOOR_VERTICAL;
+                    }
+                }
+            }
+
+            if (tile === TILE.WALL || tile === TILE.CORNER) {
+                // Use random wall variant for this position
+                return tileVariants[y][x].wall;
+            }
+
+            return tileVariants[y][x].floor;
+        }
+
+        function renderDungeon() {
+            if (!isTilesetLoaded) {
+                return;
+            }
+
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            // Calculate camera position (centered on player)
+            // Clamp camera so it doesn't show too much black space outside map (optional)
+            // For now, just center freely
+            let camX = player.x + tileSize / 2 - canvas.width / 2;
+            let camY = player.y + tileSize / 2 - canvas.height / 2;
+
+            // Optional: Clamp to map bounds
+            // camX = Math.max(0, Math.min(camX, DUNGEON_WIDTH * tileSize - canvas.width));
+            // camY = Math.max(0, Math.min(camY, DUNGEON_HEIGHT * tileSize - canvas.height));
+
+            ctx.save();
+            ctx.translate(-Math.floor(camX), -Math.floor(camY));
+
+            // Fill background with black
+            ctx.fillStyle = '#000000';
+            // Fill only visible area
+            ctx.fillRect(Math.floor(camX), Math.floor(camY), canvas.width, canvas.height);
+
+            // Determine visible tile range
+            // We intentionally allow going out of bounds to render outer walls
+            const startCol = Math.floor(camX / tileSize);
+            const endCol = startCol + (canvas.width / tileSize) + 1;
+            const startRow = Math.floor(camY / tileSize);
+            const endRow = startRow + (canvas.height / tileSize) + 1;
+
+            for (let y = startRow; y < endRow; y++) {
+                for (let x = startCol; x < endCol; x++) {
+                    // Check bounds
+                    if (x >= 0 && x < DUNGEON_WIDTH && y >= 0 && y < DUNGEON_HEIGHT) {
+                        const tile = dungeon[y][x];
+                        const roomId = roomMap[y][x];
+
+                        if (tile === TILE.EMPTY) {
+                            // Draw wall for empty space inside dungeon too? 
+                            // Or keep black? User said "Außenwände", implying outside the grid.
+                            // Let's keep empty as black for now, or wall? 
+                            // Usually empty space inside is void.
+                            continue;
+                        }
+
+                        // Check if this tile's room is visible
+                        let isVisible = false;
+
+                        if (roomId >= 0 && rooms[roomId]) {
+                            isVisible = rooms[roomId].visible;
+                        } else if (roomId === -1 || roomId === -2) { // Wall or Door
+                            // Check if any adjacent tile belongs to a visible room
+                            for (let dy = -1; dy <= 1; dy++) {
+                                for (let dx = -1; dx <= 1; dx++) {
+                                    if (dx === 0 && dy === 0) continue;
+                                    const ny = y + dy;
+                                    const nx = x + dx;
+                                    if (ny >= 0 && ny < DUNGEON_HEIGHT && nx >= 0 && nx < DUNGEON_WIDTH) {
+                                        const neighborRoomId = roomMap[ny][nx];
+                                        if (neighborRoomId >= 0 && rooms[neighborRoomId] && rooms[neighborRoomId].visible) {
+                                            isVisible = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                if (isVisible) break;
+                            }
+                        }
+
+                        if (!isVisible) {
+                            // Draw fog of war (black)
+                            ctx.fillStyle = '#000000';
+                            ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+                            continue;
+                        }
+
+                        const coords = getTileCoords(x, y, tile);
+                        if (coords) {
+                            // Calculate source position in tileset
+                            const srcX = coords.x * TILE_SOURCE_SIZE;
+                            const srcY = coords.y * TILE_SOURCE_SIZE;
+
+                            // Draw tile from tileset
+                            ctx.drawImage(
+                                tilesetImage,
+                                srcX, srcY, TILE_SOURCE_SIZE, TILE_SOURCE_SIZE,
+                                x * tileSize, y * tileSize, tileSize, tileSize
+                            );
+                        }
+                    } else {
+                        // Out of bounds - Render Outer Wall
+                        // Use a standard wall tile
+                        const wallCoords = TILESET_COORDS.WALL_TOP; // Or any default wall
+
+                        const srcX = wallCoords.x * TILE_SOURCE_SIZE;
+                        const srcY = wallCoords.y * TILE_SOURCE_SIZE;
+
+                        ctx.drawImage(
+                            tilesetImage,
+                            srcX, srcY, TILE_SOURCE_SIZE, TILE_SOURCE_SIZE,
+                            x * tileSize, y * tileSize, tileSize, tileSize
+                        );
+                    }
+                }
+            }
+
+            // Draw enemies (before player so player appears on top)
+            for (const enemy of enemies) {
+                enemy.draw(ctx);
+            }
+
+            // Draw player (already in world coordinates, translation handles position)
+            drawPlayer();
+
+            ctx.restore();
+        }
+
+        function renderMinimap() {
+            if (!minimapCtx) return;
+
+            // Clear minimap
+            minimapCtx.fillStyle = '#000000';
+            minimapCtx.fillRect(0, 0, minimapCanvas.width, minimapCanvas.height);
+
+            // Calculate scale factor (fit dungeon into minimap)
+            const scaleX = minimapCanvas.width / DUNGEON_WIDTH;
+            const scaleY = minimapCanvas.height / DUNGEON_HEIGHT;
+            const scale = Math.min(scaleX, scaleY);
+
+            // Calculate offset to center the dungeon in minimap
+            const offsetX = (minimapCanvas.width - DUNGEON_WIDTH * scale) / 2;
+            const offsetY = (minimapCanvas.height - DUNGEON_HEIGHT * scale) / 2;
+
+            // Draw dungeon tiles
+            for (let y = 0; y < DUNGEON_HEIGHT; y++) {
+                for (let x = 0; x < DUNGEON_WIDTH; x++) {
+                    const tile = dungeon[y][x];
+                    const roomId = roomMap[y][x];
+
+                    // Check if this tile's room is visible
+                    let isVisible = false;
+                    if (roomId >= 0 && rooms[roomId]) {
+                        isVisible = rooms[roomId].visible;
+                    } else if (roomId === -1 || roomId === -2) { // Wall or Door
+                        // Check if any adjacent tile belongs to a visible room
+                        for (let dy = -1; dy <= 1; dy++) {
+                            for (let dx = -1; dx <= 1; dx++) {
+                                if (dx === 0 && dy === 0) continue;
+                                const ny = y + dy;
+                                const nx = x + dx;
+                                if (ny >= 0 && ny < DUNGEON_HEIGHT && nx >= 0 && nx < DUNGEON_WIDTH) {
+                                    const neighborRoomId = roomMap[ny][nx];
+                                    if (neighborRoomId >= 0 && rooms[neighborRoomId] && rooms[neighborRoomId].visible) {
+                                        isVisible = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (isVisible) break;
+                        }
+                    }
+
+                    if (!isVisible) {
+                        // Fog of war - keep black
+                        continue;
+                    }
+
+                    // Choose color based on tile type
+                    if (tile === TILE.FLOOR) {
+                        // Different colors for different room types
+                        if (roomId >= 0 && rooms[roomId]) {
+                            const roomType = rooms[roomId].type;
+                            if (roomType === 'treasure') {
+                                minimapCtx.fillStyle = '#FFD700'; // Gold
+                            } else if (roomType === 'combat') {
+                                minimapCtx.fillStyle = '#FF4444'; // Red
+                            } else {
+                                minimapCtx.fillStyle = '#888888'; // Gray
+                            }
+                        } else {
+                            minimapCtx.fillStyle = '#888888';
+                        }
+                    } else if (tile === TILE.WALL) {
+                        minimapCtx.fillStyle = '#444444'; // Dark gray
+                    } else if (tile === TILE.DOOR) {
+                        minimapCtx.fillStyle = '#4CAF50'; // Green
+                    } else {
+                        // Empty - keep black
+                        continue;
+                    }
+
+                    // Draw pixel
+                    minimapCtx.fillRect(
+                        offsetX + x * scale,
+                        offsetY + y * scale,
+                        Math.max(1, scale),
+                        Math.max(1, scale)
+                    );
+                }
+            }
+
+            // Draw player position
+            const playerTileX = Math.floor((player.x + tileSize / 2) / tileSize);
+            const playerTileY = Math.floor((player.y + tileSize / 2) / tileSize);
+
+            minimapCtx.fillStyle = '#00FFFF'; // Cyan for player
+            minimapCtx.fillRect(
+                offsetX + playerTileX * scale - scale,
+                offsetY + playerTileY * scale - scale,
+                Math.max(2, scale * 3),
+                Math.max(2, scale * 3)
+            );
+        }
+
+
+
+        // Handle canvas click for revealing rooms via DOORS
+        function handleCanvasClick(event) {
+            const rect = canvas.getBoundingClientRect();
+
+            // Need to account for camera position
+            let camX = player.x + tileSize / 2 - canvas.width / 2;
+            let camY = player.y + tileSize / 2 - canvas.height / 2;
+
+            const clickX = Math.floor((event.clientX - rect.left + camX) / tileSize);
+            const clickY = Math.floor((event.clientY - rect.top + camY) / tileSize);
+
+            // Check if click is within bounds
+            if (clickX < 0 || clickX >= DUNGEON_WIDTH || clickY < 0 || clickY >= DUNGEON_HEIGHT) {
+                return;
+            }
+
+            const clickedTile = dungeon[clickY][clickX];
+
+            // Only interact if clicking on a DOOR
+            if (clickedTile === TILE.DOOR) {
+                // Find adjacent rooms
+                let adjacentRooms = [];
+
+                // Check horizontal neighbors
+                if (clickX > 0 && clickX < DUNGEON_WIDTH - 1) {
+                    const left = roomMap[clickY][clickX - 1];
+                    const right = roomMap[clickY][clickX + 1];
+                    if (left >= 0) adjacentRooms.push(left);
+                    if (right >= 0) adjacentRooms.push(right);
+                }
+
+                // Check vertical neighbors
+                if (clickY > 0 && clickY < DUNGEON_HEIGHT - 1) {
+                    const top = roomMap[clickY - 1][clickX];
+                    const bottom = roomMap[clickY + 1][clickX];
+                    if (top >= 0) adjacentRooms.push(top);
+                    if (bottom >= 0) adjacentRooms.push(bottom);
+                }
+
+                // Check visibility
+                let canOpen = false;
+                let roomToReveal = null;
+
+                for (const rId of adjacentRooms) {
+                    if (rooms[rId].visible) {
+                        canOpen = true;
+                    } else {
+                        roomToReveal = rId;
+                    }
+                }
+
+                // If one side is visible and the other is hidden, reveal the hidden one
+                if (canOpen && roomToReveal !== null) {
+                    rooms[roomToReveal].visible = true;
+                }
+            }
+        }
+
+        // Add click listener to canvas after it's created
+        window.addEventListener('load', function () {
+            canvas.addEventListener('click', handleCanvasClick);
+        });
+
+        // Combat System
+        let combatTimer = 0;
+        let combatTimerInterval = null;
+        let currentQuestion = null;
+        let currentSubject = null;
+
+        function startCombat(enemy) {
+            inCombat = true;
+            currentEnemy = enemy;
+
+            // Choose random subject
+            const subjects = Object.keys(QUESTION_DATABASE);
+            currentSubject = subjects[Math.floor(Math.random() * subjects.length)];
+
+            // Show combat UI
+            document.getElementById('combat-ui').style.display = 'block';
+            document.getElementById('combat-subject').textContent = `Kampf: ${QUESTION_DATABASE[currentSubject].subject}`;
+
+            // Ask first question
+            askQuestion();
+        }
+
+        function askQuestion() {
+            if (!currentEnemy || !currentEnemy.alive || !player.hp > 0) {
+                endCombat();
+                return;
+            }
+
+            // Get random question from current subject
+            const questionPool = QUESTION_DATABASE[currentSubject].questions;
+            const questionData = questionPool[Math.floor(Math.random() * questionPool.length)];
+
+            currentQuestion = {
+                question: questionData.question,
+                correctAnswer: questionData.correct,
+                answers: [...questionData.answers]
+            };
+
+            // Shuffle answers
+            const shuffled = [];
+            const correctAnswerText = currentQuestion.answers[currentQuestion.correctAnswer];
+
+            // Create array of indices and shuffle
+            const indices = currentQuestion.answers.map((_, i) => i);
+            for (let i = indices.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [indices[i], indices[j]] = [indices[j], indices[i]];
+            }
+
+            // Rearrange answers and find new correct index
+            currentQuestion.answers = indices.map(i => questionData.answers[i]);
+            currentQuestion.correctAnswer = currentQuestion.answers.indexOf(correctAnswerText);
+
+            // Display question
+            document.getElementById('combat-question').textContent = currentQuestion.question;
+
+            // Display answers
+            const answersDiv = document.getElementById('combat-answers');
+            answersDiv.innerHTML = '';
+
+            currentQuestion.answers.forEach((answer, index) => {
+                const button = document.createElement('button');
+                button.textContent = answer;
+                button.style.cssText = 'padding: 15px; font-size: 16px; background-color: #2196F3; color: white; border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.2s;';
+                button.onmouseover = () => button.style.backgroundColor = '#1976D2';
+                button.onmouseout = () => button.style.backgroundColor = '#2196F3';
+                button.onclick = () => answerQuestion(index);
+                answersDiv.appendChild(button);
+            });
+
+            // Update HP display
+            updateHPDisplay();
+
+            // Start timer
+            combatTimer = COMBAT_TIME_LIMIT;
+            document.getElementById('timer-display').textContent = combatTimer;
+
+            if (combatTimerInterval) clearInterval(combatTimerInterval);
+            combatTimerInterval = setInterval(() => {
+                combatTimer--;
+                document.getElementById('timer-display').textContent = combatTimer;
+
+                if (combatTimer <= 0) {
+                    clearInterval(combatTimerInterval);
+                    answerQuestion(-1); // Time's up = wrong answer
+                }
+            }, 1000);
+        }
+
+        function answerQuestion(selectedIndex) {
+            if (combatTimerInterval) {
+                clearInterval(combatTimerInterval);
+                combatTimerInterval = null;
+            }
+
+            const feedbackDiv = document.getElementById('combat-feedback');
+
+            if (selectedIndex === currentQuestion.correctAnswer) {
+                // Correct answer!
+                feedbackDiv.textContent = '✓ Richtig!';
+                feedbackDiv.style.color = '#4CAF50';
+
+                currentEnemy.takeDamage(DAMAGE_CORRECT);
+            } else {
+                // Wrong answer or timeout
+                const correctAnswerText = currentQuestion.answers[currentQuestion.correctAnswer];
+                feedbackDiv.innerHTML = selectedIndex === -1
+                    ? `✗ Zeit abgelaufen!<br>Richtige Antwort: <span style="color: #4CAF50">${correctAnswerText}</span>`
+                    : `✗ Falsch!<br>Richtige Antwort: <span style="color: #4CAF50">${correctAnswerText}</span>`;
+                feedbackDiv.style.color = '#FF4444';
+
+                player.hp -= DAMAGE_WRONG;
+                if (player.hp < 0) player.hp = 0;
+            }
+
+            updateHPDisplay();
+
+            // Check if combat should end
+            if (!currentEnemy.alive || player.hp <= 0) {
+                setTimeout(() => {
+                    endCombat();
+                }, 1500);
+            } else {
+                // Next question
+                setTimeout(() => {
+                    feedbackDiv.textContent = '';
+                    askQuestion();
+                }, 1500);
+            }
+        }
+
+        function updateHPDisplay() {
+            document.getElementById('player-hp-display').textContent = player.hp;
+            document.getElementById('enemy-hp-display').textContent = currentEnemy ? currentEnemy.hp : 0;
+        }
+
+        function endCombat() {
+            if (combatTimerInterval) {
+                clearInterval(combatTimerInterval);
+                combatTimerInterval = null;
+            }
+
+            document.getElementById('combat-ui').style.display = 'none';
+            inCombat = false;
+
+            // Check if player died
+            if (player.hp <= 0) {
+                // Player died - restart game
+                setTimeout(() => {
+                    alert('Du wurdest besiegt! Das Spiel wird neu gestartet.');
+                    generateNewDungeon();
+                    player.hp = PLAYER_MAX_HP;
+                }, 500);
+            }
+
+            currentEnemy = null;
+            currentQuestion = null;
+        }
+    </script>
+</body>
+
+</html>

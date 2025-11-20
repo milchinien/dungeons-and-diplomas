@@ -11,16 +11,26 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Test connection function
+// Test connection function - queries app_metadata table to verify DB is accessible
 export async function testSupabaseConnection(): Promise<boolean> {
   try {
-    const { error } = await supabase.from("_test").select("*").limit(1);
-    // Even if table doesn't exist, if we get a proper error response, connection works
-    if (error && error.message.includes("relation") && error.message.includes("does not exist")) {
-      console.log("✅ Supabase connection successful (no tables yet)");
-      return true;
+    const { data, error } = await supabase
+      .from("app_metadata")
+      .select("key, value")
+      .eq("key", "app_version")
+      .single();
+
+    if (error) {
+      // If table doesn't exist yet, connection still works
+      if (error.message.includes("relation") && error.message.includes("does not exist")) {
+        console.warn("⚠️ Supabase connected, but app_metadata table not found. Run migrations!");
+        return true;
+      }
+      console.error("❌ Supabase query error:", error);
+      return false;
     }
-    console.log("✅ Supabase connection successful");
+
+    console.log(`✅ Supabase connection successful - App Version: ${data?.value || 'unknown'}`);
     return true;
   } catch (err) {
     console.error("❌ Supabase connection failed:", err);

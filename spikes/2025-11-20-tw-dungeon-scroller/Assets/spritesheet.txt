@@ -1,0 +1,33 @@
+Jede Animation ist in einer Zeile.
+Jede Zeile hat n Frames.
+Jedes Frame ist 64x64 Pixel
+Wenn es vier Zeilen sind, dann ist die Reihenfolge:
+ - Up
+ - Left
+ - Down
+ - Right
+
+Wenn es nur eine Zeile ist, dann ist das die Animation in jeder Richtung.
+
+Default: Animationen:
+{
+  "animations": [
+    { "name": "spellcast", "firstrow": 0, "rowcount": 4, "animcount": 7 },
+    { "name": "thrust", "firstrow": 4, "rowcount": 4, "animcount": 8 },
+    { "name": "walk", "firstrow": 8, "rowcount": 4, "animcount": 9 },
+    { "name": "slash", "firstrow": 12, "rowcount": 4, "animcount": 6 },
+    { "name": "shoot", "firstrow": 16, "rowcount": 4, "animcount": 13 },
+    { "name": "hurt", "firstrow": 20, "rowcount": 1, "animcount": 6 },
+    { "name": "climb", "firstrow": 21, "rowcount": 1, "animcount": 6 },
+    { "name": "idle", "firstrow": 22, "rowcount": 4, "animcount": 3 },
+    { "name": "jump", "firstrow": 26, "rowcount": 4, "animcount": 6 },
+    { "name": "sit", "firstrow": 30, "rowcount": 4, "animcount": 15 },
+    { "name": "emote", "firstrow": 34, "rowcount": 4, "animcount": 15 },
+    { "name": "run", "firstrow": 38, "rowcount": 4, "animcount": 8 },
+    { "name": "watering", "firstrow": 4, "rowcount": 4, "animcount": 7 },
+    { "name": "combat", "firstrow": 42, "rowcount": 4, "animcount": 3 }
+  ]
+}
+
+Achtung: Die Sequenz der Reihen ist in allen Spritesheets gleich. Die Anzahl der Frames variiert.
+Wir benötigen also eine Konfig pro Spritesheet.
