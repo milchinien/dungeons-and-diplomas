@@ -1,0 +1,55 @@
+{
+  "subject": "Physik",
+  "questions": [
+    {
+      "question": "Was ist die Einheit der Kraft im SI-System?",
+      "answers": ["Newton (N)", "Joule (J)", "Watt (W)", "Pascal (Pa)"],
+      "correct": 0
+    },
+    {
+      "question": "Wie schnell breitet sich Licht im Vakuum aus?",
+      "answers": ["300.000 km/s", "150.000 km/s", "500.000 km/s", "100.000 km/s"],
+      "correct": 0
+    },
+    {
+      "question": "Was besagt das erste Newtonsche Gesetz?",
+      "answers": ["Ein Körper bleibt in Ruhe oder gleichförmiger Bewegung, wenn keine Kraft wirkt", "Kraft = Masse × Beschleunigung", "Actio = Reactio", "Energie bleibt erhalten"],
+      "correct": 0
+    },
+    {
+      "question": "Was ist die Formel für die kinetische Energie?",
+      "answers": ["E = ½mv²", "E = mgh", "E = mc²", "E = Pt"],
+      "correct": 0
+    },
+    {
+      "question": "Wie groß ist die Erdbeschleunigung?",
+      "answers": ["9,81 m/s²", "10 m/s²", "8 m/s²", "12 m/s²"],
+      "correct": 0
+    },
+    {
+      "question": "Was ist ein Frequenz von 1 Hertz?",
+      "answers": ["1 Schwingung pro Sekunde", "1 Meter pro Sekunde", "1 Welle pro Minute", "1 Umdrehung pro Minute"],
+      "correct": 0
+    },
+    {
+      "question": "Welches Gesetz beschreibt den Zusammenhang zwischen Strom, Spannung und Widerstand?",
+      "answers": ["Ohmsches Gesetz", "Coulombsches Gesetz", "Kirchhoffsches Gesetz", "Faradaysches Gesetz"],
+      "correct": 0
+    },
+    {
+      "question": "Was passiert mit der Wellenlänge, wenn die Frequenz verdoppelt wird?",
+      "answers": ["Sie halbiert sich", "Sie verdoppelt sich", "Sie bleibt gleich", "Sie vervierfacht sich"],
+      "correct": 0
+    },
+    {
+      "question": "Was ist die Einheit der elektrischen Ladung?",
+      "answers": ["Coulomb (C)", "Ampere (A)", "Volt (V)", "Ohm (Ω)"],
+      "correct": 0
+    },
+    {
+      "question": "Welcher Aggregatzustand hat das höchste Volumen bei gleicher Masse?",
+      "answers": ["Gas", "Flüssigkeit", "Feststoff", "Alle gleich"],
+      "correct": 0
+    }
+  ]
+}
