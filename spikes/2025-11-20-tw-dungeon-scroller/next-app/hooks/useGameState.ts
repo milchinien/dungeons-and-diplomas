@@ -13,13 +13,15 @@ interface UseGameStateProps {
   availableSubjects: string[];
   userId: number | null;
   onPlayerHpUpdate: (hp: number) => void;
+  onXpGained?: (amount: number) => void;
 }
 
 export function useGameState({
   questionDatabase,
   availableSubjects,
   userId,
-  onPlayerHpUpdate
+  onPlayerHpUpdate,
+  onXpGained
 }: UseGameStateProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const minimapRef = useRef<HTMLCanvasElement>(null);
@@ -68,6 +70,33 @@ export function useGameState({
   const inCombatRef = useRef(false);
   const startCombatRef = useRef<(enemy: any) => void>(() => {});
 
+  const handleTreasureCollected = async (tileX: number, tileY: number) => {
+    if (!userId) return;
+
+    const xpAmount = 200;
+
+    try {
+      await fetch('/api/xp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: userId,
+          xp_amount: xpAmount,
+          reason: 'treasure',
+          enemy_level: null
+        })
+      });
+
+      if (onXpGained) {
+        onXpGained(xpAmount);
+      }
+
+      console.log(`Treasure collected at (${tileX}, ${tileY})! +${xpAmount} XP`);
+    } catch (error) {
+      console.error('Failed to award treasure XP:', error);
+    }
+  };
+
   const update = (dt: number) => {
     if (isNaN(dt)) dt = 0;
     if (!dungeonManagerRef.current) return;
@@ -84,7 +113,9 @@ export function useGameState({
       manager.roomMap,
       manager.rooms,
       manager.playerSprite,
-      inCombatRef.current
+      inCombatRef.current,
+      manager.treasures,
+      handleTreasureCollected
     );
 
     engine.updateEnemies(
@@ -116,7 +147,8 @@ export function useGameState({
       manager.rooms,
       manager.enemies,
       manager.playerSprite,
-      manager.tileSize
+      manager.tileSize,
+      manager.treasures
     );
 
     minimapRendererRef.current.render(

@@ -88,7 +88,8 @@ export class GameRenderer {
     rooms: Room[],
     enemies: Enemy[],
     playerSprite: SpriteSheetLoader | null,
-    tileSize: number
+    tileSize: number,
+    treasures?: Set<string>
   ) {
     const ctx = canvas.getContext('2d');
     if (!ctx || !this.tilesetImage) return;
@@ -171,8 +172,30 @@ export class GameRenderer {
       }
     }
 
+    // Draw treasures
+    if (treasures) {
+      for (const treasureKey of treasures) {
+        const [tx, ty] = treasureKey.split(',').map(Number);
+        const roomId = roomMap[ty]?.[tx];
+
+        // Only draw if room is visible
+        if (roomId >= 0 && rooms[roomId]?.visible) {
+          // Draw treasure chest sprite (10, 12)
+          const treasureCoords = { x: 10, y: 12 };
+          const srcX = treasureCoords.x * TILE_SOURCE_SIZE;
+          const srcY = treasureCoords.y * TILE_SOURCE_SIZE;
+
+          ctx.drawImage(
+            this.tilesetImage,
+            srcX, srcY, TILE_SOURCE_SIZE, TILE_SOURCE_SIZE,
+            tx * tileSize, ty * tileSize, tileSize, tileSize
+          );
+        }
+      }
+    }
+
     for (const enemy of enemies) {
-      enemy.draw(ctx, rooms, tileSize);
+      enemy.draw(ctx, rooms, tileSize, player);
     }
 
     playerSprite?.draw(ctx, player.x, player.y, tileSize, tileSize);

@@ -48,7 +48,9 @@ export class GameEngine {
     roomMap: number[][],
     rooms: Room[],
     playerSprite: SpriteSheetLoader | null,
-    inCombat: boolean
+    inCombat: boolean,
+    treasures?: Set<string>,
+    onTreasureCollected?: (x: number, y: number) => void
   ) {
     if (inCombat) return;
 
@@ -90,6 +92,15 @@ export class GameEngine {
       if (pTileX >= 0 && pTileX < DUNGEON_WIDTH && pTileY >= 0 && pTileY < DUNGEON_HEIGHT) {
         if (dungeon[pTileY][pTileX] === TILE.DOOR) {
           dungeon[pTileY][pTileX] = TILE.FLOOR;
+        }
+
+        // Check for treasure collection
+        if (treasures && onTreasureCollected) {
+          const treasureKey = `${pTileX},${pTileY}`;
+          if (treasures.has(treasureKey)) {
+            treasures.delete(treasureKey);
+            onTreasureCollected(pTileX, pTileY);
+          }
         }
       }
     } else {

@@ -38,6 +38,9 @@ export class Enemy {
   waypoint: { x: number; y: number } | null = null;
   idleTimer: number = 0;
 
+  // Dynamic aggro radius based on player ELO
+  playerElo: number = 5; // Default to middle ELO
+
   constructor(x: number, y: number, spriteName: string, roomId: number, level: number, subject: string) {
     this.x = x;
     this.y = y;
@@ -50,6 +53,28 @@ export class Enemy {
     // Level 1: 15 HP, Level 5: 35 HP, Level 10: 60 HP
     this.hp = 10 + level * 5;
     this.maxHp = this.hp;
+  }
+
+  /**
+   * Calculate dynamic aggro radius based on player ELO vs enemy level
+   * Formula: BASE_AGGRO * (1 + (enemyLevel - playerElo) / 10)
+   *
+   * Multiplier ranges from 0.1 to 1.9:
+   * - ELO 10 vs Level 1: 3 * 0.1 = 0.3 tiles (very short)
+   * - ELO 5 vs Level 5: 3 * 1.0 = 3 tiles (balanced)
+   * - ELO 1 vs Level 10: 3 * 1.9 = 5.7 tiles (very long)
+   */
+  getAggroRadius(): number {
+    const baseAggroRadius = ENEMY_AGGRO_RADIUS; // 3 tiles
+    const multiplier = 1 + (this.level - this.playerElo) / 10;
+    return baseAggroRadius * multiplier;
+  }
+
+  /**
+   * Calculate dynamic deaggro radius (2x aggro radius)
+   */
+  getDeaggroRadius(): number {
+    return this.getAggroRadius() * 2;
   }
 
   async load() {
@@ -132,17 +157,19 @@ export class Enemy {
 
     // AI Logic
     const distanceToPlayer = this.getDistanceToPlayer(player, tileSize);
+    const aggroRadius = this.getAggroRadius();
+    const deaggroRadius = this.getDeaggroRadius();
 
     // State transitions
     if (this.aiState === AI_STATE.FOLLOWING) {
       // Deaggro if player is too far
-      if (distanceToPlayer > ENEMY_DEAGGRO_RADIUS) {
+      if (distanceToPlayer > deaggroRadius) {
         this.aiState = AI_STATE.IDLE;
         this.idleTimer = ENEMY_IDLE_WAIT_TIME;
       }
     } else {
       // Aggro if player is close
-      if (distanceToPlayer <= ENEMY_AGGRO_RADIUS) {
+      if (distanceToPlayer <= aggroRadius) {
         this.aiState = AI_STATE.FOLLOWING;
         this.waypoint = null;
       }
@@ -262,12 +289,35 @@ export class Enemy {
     return CollisionDetector.checkEnemyCollision(x, y, tileSize, dungeon);
   }
 
-  draw(ctx: CanvasRenderingContext2D, rooms: Room[], tileSize: number) {
+  draw(ctx: CanvasRenderingContext2D, rooms: Room[], tileSize: number, player?: Player) {
     if (!this.sprite || !this.sprite.loaded) return;
 
     // Only draw if the enemy's room is visible
     if (this.roomId >= 0 && rooms[this.roomId] && !rooms[this.roomId].visible) {
       return;
+    }
+
+    // Draw aggro radius visualization if player is close
+    if (player && this.alive) {
+      const distanceToPlayer = this.getDistanceToPlayer(player, tileSize);
+
+      // Show aggro radius when player is within 0.5 tiles
+      if (distanceToPlayer <= (0.5+this.getAggroRadius() * tileSize)) {
+        const aggroRadius = this.getAggroRadius();
+        const centerX = this.x + tileSize / 2;
+        const centerY = this.y + tileSize / 2;
+        const radiusInPixels = aggroRadius * tileSize;
+
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255, 100, 100, 0.3)'; // Weak red
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]); // Dashed line
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radiusInPixels, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]); // Reset dash
+        ctx.restore();
+      }
     }
 
     // Calculate level-based scale

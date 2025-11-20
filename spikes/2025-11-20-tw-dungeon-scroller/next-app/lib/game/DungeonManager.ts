@@ -33,6 +33,7 @@ export class DungeonManager {
   public enemies: Enemy[] = [];
   public playerSprite: SpriteSheetLoader | null = null;
   public tileSize: number = 64;
+  public treasures: Set<string> = new Set(); // Store treasure positions as "x,y" strings
 
   constructor(player: Player) {
     this.player = player;
@@ -68,9 +69,39 @@ export class DungeonManager {
 
     this.spawnPlayer();
     await this.spawnEnemies(availableSubjects, userId);
+    this.spawnTreasures();
 
     // Reset player HP
     this.player.hp = PLAYER_MAX_HP;
+  }
+
+  private spawnTreasures() {
+    this.treasures.clear();
+
+    // Spawn one treasure in each treasure room
+    for (let i = 0; i < this.rooms.length; i++) {
+      const room = this.rooms[i];
+
+      if (room.type !== 'treasure') continue;
+
+      // Collect floor tiles in this room
+      const roomFloorTiles: { x: number; y: number }[] = [];
+      for (let y = room.y; y < room.y + room.height; y++) {
+        for (let x = room.x; x < room.x + room.width; x++) {
+          if (y >= 0 && y < DUNGEON_HEIGHT && x >= 0 && x < DUNGEON_WIDTH) {
+            if (this.dungeon[y][x] === TILE.FLOOR && this.roomMap[y][x] === i) {
+              roomFloorTiles.push({ x, y });
+            }
+          }
+        }
+      }
+
+      if (roomFloorTiles.length === 0) continue;
+
+      // Pick random position in room for treasure
+      const treasurePos = roomFloorTiles[Math.floor(Math.random() * roomFloorTiles.length)];
+      this.treasures.add(`${treasurePos.x},${treasurePos.y}`);
+    }
   }
 
   private spawnPlayer() {
@@ -220,6 +251,10 @@ export class DungeonManager {
           level,
           subject
         );
+
+        // Set player ELO for this subject (for dynamic aggro radius)
+        enemy.playerElo = subjectElos[subject] || 5;
+
         await enemy.load();
         this.enemies.push(enemy);
       }

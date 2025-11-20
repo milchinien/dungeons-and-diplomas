@@ -86,7 +86,8 @@ export default function GameCanvas() {
     questionDatabase,
     availableSubjects,
     userId,
-    onPlayerHpUpdate: setPlayerHp
+    onPlayerHpUpdate: setPlayerHp,
+    onXpGained: handleXpGained
   });
 
   // Combat
