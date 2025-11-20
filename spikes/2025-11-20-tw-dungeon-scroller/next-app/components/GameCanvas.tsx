@@ -6,6 +6,8 @@ import { Enemy } from '@/lib/Enemy';
 import type { Player } from '@/lib/Enemy';
 import { createEmptyDungeon, generateTileVariants, generateRooms, connectRooms, addWalls } from '@/lib/dungeon/generation';
 import type { Question, QuestionDatabase } from '@/lib/questions';
+import LoginModal from './LoginModal';
+import SkillDashboard from './SkillDashboard';
 import {
   DUNGEON_WIDTH,
   DUNGEON_HEIGHT,
@@ -28,6 +30,12 @@ export default function GameCanvas() {
   const minimapRef = useRef<HTMLCanvasElement>(null);
   const [gameInitialized, setGameInitialized] = useState(false);
   const [questionDatabase, setQuestionDatabase] = useState<QuestionDatabase | null>(null);
+
+  // User/Auth state
+  const [userId, setUserId] = useState<number | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
+  const [showLogin, setShowLogin] = useState(true);
+  const [showSkillDashboard, setShowSkillDashboard] = useState(false);
 
   // Combat state
   const [inCombat, setInCombat] = useState(false);
@@ -75,6 +83,20 @@ export default function GameCanvas() {
   const gameLoopIdRef = useRef<number | null>(null);
   const isInitializingRef = useRef(false);
   const isMountedRef = useRef(true);
+  const questionStartTimeRef = useRef<number>(0);
+  const gamePausedRef = useRef(false);
+
+  // Check localStorage for existing user on mount
+  useEffect(() => {
+    const storedUserId = localStorage.getItem('userId');
+    const storedUsername = localStorage.getItem('username');
+
+    if (storedUserId && storedUsername) {
+      setUserId(parseInt(storedUserId, 10));
+      setUsername(storedUsername);
+      setShowLogin(false);
+    }
+  }, []);
 
   // Load questions from API
   useEffect(() => {
@@ -93,6 +115,31 @@ export default function GameCanvas() {
 
     loadQuestions();
   }, []);
+
+  const handleLogin = (id: number, name: string) => {
+    setUserId(id);
+    setUsername(name);
+    setShowLogin(false);
+  };
+
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    localStorage.removeItem('userId');
+    localStorage.removeItem('username');
+    setUserId(null);
+    setUsername(null);
+    setShowLogin(true);
+  };
+
+  const handleOpenSkills = () => {
+    gamePausedRef.current = true;
+    setShowSkillDashboard(true);
+  };
+
+  const handleCloseSkills = () => {
+    gamePausedRef.current = false;
+    setShowSkillDashboard(false);
+  };
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -367,6 +414,9 @@ export default function GameCanvas() {
     setCombatTimer(COMBAT_TIME_LIMIT);
     setEnemyHp(currentEnemyRef.current?.hp ?? 0);
 
+    // Track question start time
+    questionStartTimeRef.current = Date.now();
+
     // Start timer
     if (combatTimerIntervalRef.current) clearInterval(combatTimerIntervalRef.current);
     combatTimerIntervalRef.current = setInterval(() => {
@@ -381,7 +431,7 @@ export default function GameCanvas() {
     }, 1000);
   };
 
-  const answerQuestion = (selectedIndex: number) => {
+  const answerQuestion = async (selectedIndex: number) => {
     if (combatTimerIntervalRef.current) {
       clearInterval(combatTimerIntervalRef.current);
       combatTimerIntervalRef.current = null;
@@ -389,13 +439,39 @@ export default function GameCanvas() {
 
     if (!combatQuestion || !currentEnemyRef.current) return;
 
-    if (selectedIndex === combatQuestion.correctIndex) {
+    // Calculate answer time
+    const answerTimeMs = Date.now() - questionStartTimeRef.current;
+    const isTimeout = selectedIndex === -1;
+    const isCorrect = selectedIndex === combatQuestion.correctIndex;
+
+    // Track answer in database
+    if (userId && combatQuestion.id) {
+      try {
+        await fetch('/api/answers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: userId,
+            question_id: combatQuestion.id,
+            selected_answer_index: isTimeout ? -1 : selectedIndex,
+            is_correct: isCorrect,
+            answer_time_ms: answerTimeMs,
+            timeout_occurred: isTimeout
+          })
+        });
+      } catch (error) {
+        console.error('Failed to track answer:', error);
+        // Continue game even if tracking fails
+      }
+    }
+
+    if (isCorrect) {
       setCombatFeedback('✓ Richtig!');
       currentEnemyRef.current.takeDamage(DAMAGE_CORRECT);
     } else {
       const correctAnswerText = combatQuestion.shuffledAnswers[combatQuestion.correctIndex];
       setCombatFeedback(
-        selectedIndex === -1
+        isTimeout
           ? `✗ Zeit abgelaufen! Richtige Antwort: ${correctAnswerText}`
           : `✗ Falsch! Richtige Antwort: ${correctAnswerText}`
       );
@@ -773,11 +849,13 @@ export default function GameCanvas() {
   };
 
   const gameLoop = (timestamp: number) => {
-    const dt = (timestamp - lastTimeRef.current) / 1000;
-    lastTimeRef.current = timestamp;
+    if (!gamePausedRef.current) {
+      const dt = (timestamp - lastTimeRef.current) / 1000;
+      lastTimeRef.current = timestamp;
 
-    update(dt);
-    render();
+      update(dt);
+      render();
+    }
 
     gameLoopIdRef.current = requestAnimationFrame(gameLoop);
   };
@@ -785,15 +863,24 @@ export default function GameCanvas() {
   return (
     <>
       <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&display=swap');
+
         body {
           margin: 0;
           padding: 0;
           overflow: hidden;
           background-color: #000000;
+          font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+        }
+
+        * {
+          font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
         }
       `}</style>
 
-      {!questionDatabase && (
+      {showLogin && <LoginModal onLogin={handleLogin} />}
+
+      {!questionDatabase && !showLogin && (
         <div style={{
           position: 'fixed',
           top: 0,
@@ -813,7 +900,7 @@ export default function GameCanvas() {
       )}
 
       <div style={{ position: 'relative', width: '100vw', height: '100vh', backgroundColor: '#000000' }}>
-        <div style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 100 }}>
+        <div style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 100, display: 'flex', gap: '10px', flexDirection: 'column' }}>
           <button
             onClick={() => generateNewDungeon()}
             style={{
@@ -831,6 +918,49 @@ export default function GameCanvas() {
           >
             Neuen Dungeon generieren
           </button>
+          {username && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ color: 'white', fontSize: '14px', backgroundColor: 'rgba(0,0,0,0.7)', padding: '5px 10px', borderRadius: '4px' }}>
+                  {username}
+                </span>
+              </div>
+              <button
+                onClick={handleOpenSkills}
+                style={{
+                  padding: '8px 20px',
+                  fontSize: '14px',
+                  backgroundColor: '#2196F3',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  opacity: 0.8
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.opacity = '1'; }}
+                onMouseOut={(e) => { e.currentTarget.style.opacity = '0.8'; }}
+              >
+                Skills
+              </button>
+              <button
+                onClick={handleLogout}
+                style={{
+                  padding: '5px 15px',
+                  fontSize: '14px',
+                  backgroundColor: '#f44336',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  opacity: 0.8
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.opacity = '1'; }}
+                onMouseOut={(e) => { e.currentTarget.style.opacity = '0.8'; }}
+              >
+                Logout
+              </button>
+            </>
+          )}
         </div>
 
         <canvas
@@ -925,6 +1055,10 @@ export default function GameCanvas() {
               </div>
             )}
           </div>
+        )}
+
+        {showSkillDashboard && userId && (
+          <SkillDashboard userId={userId} onClose={handleCloseSkills} />
         )}
       </div>
     </>

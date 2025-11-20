@@ -16,21 +16,48 @@ export function getDatabase(): Database.Database {
 }
 
 function initializeDatabase(database: Database.Database) {
-  // Create questions table if it doesn't exist
+  // Create users table
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT UNIQUE NOT NULL COLLATE NOCASE,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      last_login DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Create questions table (migrate old schema to new)
   database.exec(`
     CREATE TABLE IF NOT EXISTS questions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       subject_key TEXT NOT NULL,
       subject_name TEXT NOT NULL,
       question TEXT NOT NULL,
-      answer_0 TEXT NOT NULL,
-      answer_1 TEXT NOT NULL,
-      answer_2 TEXT NOT NULL,
-      answer_3 TEXT NOT NULL,
+      answers TEXT NOT NULL,
       correct_index INTEGER NOT NULL,
+      difficulty INTEGER DEFAULT 5,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // Create answer_log table
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS answer_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      answered_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      question_id INTEGER NOT NULL,
+      selected_answer_index INTEGER NOT NULL,
+      is_correct BOOLEAN NOT NULL,
+      answer_time_ms INTEGER,
+      timeout_occurred BOOLEAN DEFAULT 0,
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      FOREIGN KEY (question_id) REFERENCES questions(id)
+    )
+  `);
+
+  // Check if we need to migrate old questions format
+  migrateQuestionsIfNeeded(database);
 
   // Check if we need to seed the database
   const count = database.prepare('SELECT COUNT(*) as count FROM questions').get() as { count: number };
@@ -40,11 +67,57 @@ function initializeDatabase(database: Database.Database) {
   }
 }
 
+function migrateQuestionsIfNeeded(database: Database.Database) {
+  // Check if old schema exists (has answer_0 column)
+  const tableInfo = database.pragma('table_info(questions)') as Array<{ name: string }>;
+  const hasOldSchema = tableInfo.some((col) => col.name === 'answer_0');
+
+  if (hasOldSchema) {
+    console.log('Migrating questions table to new schema...');
+
+    // Get all old questions
+    const oldQuestions = database.prepare('SELECT * FROM questions').all() as any[];
+
+    // Drop old table
+    database.exec('DROP TABLE questions');
+
+    // Create new table
+    database.exec(`
+      CREATE TABLE questions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        subject_key TEXT NOT NULL,
+        subject_name TEXT NOT NULL,
+        question TEXT NOT NULL,
+        answers TEXT NOT NULL,
+        correct_index INTEGER NOT NULL,
+        difficulty INTEGER DEFAULT 5,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Migrate data
+    const insert = database.prepare(`
+      INSERT INTO questions (id, subject_key, subject_name, question, answers, correct_index, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const migrate = database.transaction((questions: any[]) => {
+      for (const q of questions) {
+        const answers = JSON.stringify([q.answer_0, q.answer_1, q.answer_2, q.answer_3]);
+        insert.run(q.id, q.subject_key, q.subject_name, q.question, answers, q.correct_index, q.created_at);
+      }
+    });
+
+    migrate(oldQuestions);
+    console.log(`Migrated ${oldQuestions.length} questions to new schema`);
+  }
+}
+
 function seedQuestions(database: Database.Database) {
   // Prepare insert statement
   const insert = database.prepare(`
-    INSERT INTO questions (subject_key, subject_name, question, answer_0, answer_1, answer_2, answer_3, correct_index)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO questions (subject_key, subject_name, question, answers, correct_index, difficulty)
+    VALUES (?, ?, ?, ?, ?, ?)
   `);
 
   // Seed data from original questions
@@ -89,15 +162,14 @@ function seedQuestions(database: Database.Database) {
   // Insert all questions in a transaction
   const insertMany = database.transaction((questions) => {
     for (const q of questions) {
+      const answersJson = JSON.stringify(q.answers);
       insert.run(
         q.subjectKey,
         q.subjectName,
         q.question,
-        q.answers[0],
-        q.answers[1],
-        q.answers[2],
-        q.answers[3],
-        q.correct
+        answersJson,
+        q.correct,
+        5 // default difficulty
       );
     }
   });
@@ -111,15 +183,14 @@ export interface QuestionRow {
   subject_key: string;
   subject_name: string;
   question: string;
-  answer_0: string;
-  answer_1: string;
-  answer_2: string;
-  answer_3: string;
+  answers: string; // JSON string
   correct_index: number;
+  difficulty: number;
   created_at: string;
 }
 
 export interface QuestionDTO {
+  id: number;
   question: string;
   answers: string[];
   correct: number;
@@ -134,6 +205,63 @@ export interface QuestionDatabaseDTO {
   [key: string]: SubjectDTO;
 }
 
+export interface User {
+  id: number;
+  username: string;
+  created_at: string;
+  last_login: string;
+}
+
+export interface AnswerLogEntry {
+  user_id: number;
+  question_id: number;
+  selected_answer_index: number;
+  is_correct: boolean;
+  answer_time_ms?: number;
+  timeout_occurred?: boolean;
+}
+
+// User functions
+export function loginUser(username: string): User {
+  const db = getDatabase();
+
+  // Try to find existing user (case-insensitive)
+  let user = db.prepare('SELECT * FROM users WHERE username = ? COLLATE NOCASE').get(username) as User | undefined;
+
+  if (!user) {
+    // Create new user
+    const result = db.prepare('INSERT INTO users (username) VALUES (?)').run(username);
+    user = db.prepare('SELECT * FROM users WHERE id = ?').get(result.lastInsertRowid) as User;
+  } else {
+    // Update last_login
+    db.prepare('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?').run(user.id);
+  }
+
+  return user;
+}
+
+export function getUserById(id: number): User | undefined {
+  const db = getDatabase();
+  return db.prepare('SELECT * FROM users WHERE id = ?').get(id) as User | undefined;
+}
+
+// Answer tracking functions
+export function logAnswer(entry: AnswerLogEntry): void {
+  const db = getDatabase();
+  db.prepare(`
+    INSERT INTO answer_log (user_id, question_id, selected_answer_index, is_correct, answer_time_ms, timeout_occurred)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(
+    entry.user_id,
+    entry.question_id,
+    entry.selected_answer_index,
+    entry.is_correct ? 1 : 0,
+    entry.answer_time_ms || null,
+    entry.timeout_occurred ? 1 : 0
+  );
+}
+
+// Question functions
 export function getAllQuestions(): QuestionDatabaseDTO {
   const db = getDatabase();
   const rows = db.prepare('SELECT * FROM questions ORDER BY id').all() as QuestionRow[];
@@ -150,11 +278,17 @@ export function getAllQuestions(): QuestionDatabaseDTO {
     }
 
     result[row.subject_key].questions.push({
+      id: row.id,
       question: row.question,
-      answers: [row.answer_0, row.answer_1, row.answer_2, row.answer_3],
+      answers: JSON.parse(row.answers),
       correct: row.correct_index
     });
   }
 
   return result;
+}
+
+export function getQuestionById(id: number): QuestionRow | undefined {
+  const db = getDatabase();
+  return db.prepare('SELECT * FROM questions WHERE id = ?').get(id) as QuestionRow | undefined;
 }

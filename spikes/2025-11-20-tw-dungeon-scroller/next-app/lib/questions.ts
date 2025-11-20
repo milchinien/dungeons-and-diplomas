@@ -1,5 +1,6 @@
 // Question database types - data now loaded from SQLite via API
 export interface Question {
+  id: number;
   question: string;
   answers: string[];
   correct: number;
@@ -14,8 +15,24 @@ export interface QuestionDatabase {
   [key: string]: Subject;
 }
 
+// Legacy Question type without ID (for backward compatibility)
+interface LegacyQuestion {
+  question: string;
+  answers: string[];
+  correct: number;
+}
+
+interface LegacySubject {
+  subject: string;
+  questions: LegacyQuestion[];
+}
+
+interface LegacyQuestionDatabase {
+  [key: string]: LegacySubject;
+}
+
 // Legacy embedded database - keeping for reference but will be replaced by API
-export const QUESTION_DATABASE_LEGACY: QuestionDatabase = {
+export const QUESTION_DATABASE_LEGACY: LegacyQuestionDatabase = {
   mathe: {
     subject: "Mathematik",
     questions: [
