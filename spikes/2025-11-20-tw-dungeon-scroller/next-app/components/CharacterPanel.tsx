@@ -11,6 +11,10 @@ interface SubjectScore {
 interface CharacterPanelProps {
   username: string;
   scores: SubjectScore[];
+  level: number;
+  currentXp: number;
+  xpForCurrentLevel: number;
+  xpForNextLevel: number;
   onLogout: () => void;
   onRestart: () => void;
   onSkills: () => void;
@@ -19,6 +23,10 @@ interface CharacterPanelProps {
 export default function CharacterPanel({
   username,
   scores,
+  level,
+  currentXp,
+  xpForCurrentLevel,
+  xpForNextLevel,
   onLogout,
   onRestart,
   onSkills
@@ -39,6 +47,11 @@ export default function CharacterPanel({
   const gainColor = '#00ff00'; // Bright green for improvements
   const lossColor = '#ff4444'; // Bright red for losses
 
+  // Calculate XP progress
+  const xpIntoLevel = currentXp - xpForCurrentLevel;
+  const xpNeededForNextLevel = xpForNextLevel - xpForCurrentLevel;
+  const progressPercent = (xpIntoLevel / xpNeededForNextLevel) * 100;
+
   return (
     <div style={{
       position: 'absolute',
@@ -57,13 +70,65 @@ export default function CharacterPanel({
         fontSize: '20px',
         fontWeight: 'bold',
         color: '#4CAF50',
-        marginBottom: '12px',
-        paddingBottom: '10px',
+        marginBottom: '8px',
+        paddingBottom: '8px',
         borderBottom: '1px solid rgba(76, 175, 80, 0.3)',
         textAlign: 'center',
         textShadow: '0 0 10px rgba(76, 175, 80, 0.5)'
       }}>
         {username}
+      </div>
+
+      {/* Level Display */}
+      <div style={{
+        fontSize: '16px',
+        fontWeight: 'bold',
+        color: '#FFD700',
+        marginBottom: '6px',
+        textAlign: 'center',
+        textShadow: '0 0 8px rgba(255, 215, 0, 0.6)'
+      }}>
+        Level {level}
+      </div>
+
+      {/* XP Progress Bar */}
+      <div style={{
+        marginBottom: '12px',
+        paddingBottom: '12px',
+        borderBottom: '1px solid rgba(76, 175, 80, 0.2)'
+      }}>
+        {/* XP Numbers */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          fontSize: '10px',
+          color: '#aaa',
+          marginBottom: '4px'
+        }}>
+          <span>{xpIntoLevel} XP</span>
+          <span>{xpNeededForNextLevel} XP</span>
+        </div>
+
+        {/* Progress Bar Background */}
+        <div style={{
+          width: '100%',
+          height: '12px',
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          borderRadius: '6px',
+          overflow: 'hidden',
+          border: '1px solid rgba(255, 215, 0, 0.3)',
+          position: 'relative'
+        }}>
+          {/* Progress Bar Fill */}
+          <div style={{
+            width: `${progressPercent}%`,
+            height: '100%',
+            backgroundColor: '#FFD700',
+            boxShadow: '0 0 10px rgba(255, 215, 0, 0.8)',
+            transition: 'width 0.5s ease',
+            borderRadius: '6px'
+          }} />
+        </div>
       </div>
 
       {/* Scores Section */}

@@ -4,6 +4,7 @@ import type { Player } from '@/lib/Enemy';
 import type { Question, QuestionDatabase } from '@/lib/questions';
 import { COMBAT_TIME_LIMIT, COMBAT_FEEDBACK_DELAY, DAMAGE_CORRECT, DAMAGE_WRONG, PLAYER_MAX_HP } from '@/lib/constants';
 import { selectQuestion } from '@/lib/combat/QuestionSelector';
+import { calculateEnemyXpReward } from '@/lib/scoring/LevelCalculator';
 
 interface UseCombatProps {
   questionDatabase: QuestionDatabase | null;
@@ -12,6 +13,7 @@ interface UseCombatProps {
   onUpdateSessionScores: (subjectKey: string) => void;
   onPlayerHpUpdate: (hp: number) => void;
   onGameRestart: () => void;
+  onXpGained?: (amount: number) => void;
 }
 
 export function useCombat({
@@ -20,7 +22,8 @@ export function useCombat({
   playerRef,
   onUpdateSessionScores,
   onPlayerHpUpdate,
-  onGameRestart
+  onGameRestart,
+  onXpGained
 }: UseCombatProps) {
   const [inCombat, setInCombat] = useState(false);
   const inCombatRef = useRef(false);
@@ -153,10 +156,35 @@ export function useCombat({
     }
   };
 
-  const endCombat = () => {
+  const endCombat = async () => {
     if (combatTimerIntervalRef.current) {
       clearInterval(combatTimerIntervalRef.current);
       combatTimerIntervalRef.current = null;
+    }
+
+    // Award XP if enemy was defeated
+    const enemy = currentEnemyRef.current;
+    if (enemy && !enemy.alive && userId) {
+      const xpReward = calculateEnemyXpReward(enemy.level);
+
+      try {
+        await fetch('/api/xp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: userId,
+            xp_amount: xpReward,
+            reason: 'enemy_defeated',
+            enemy_level: enemy.level
+          })
+        });
+
+        if (onXpGained) {
+          onXpGained(xpReward);
+        }
+      } catch (error) {
+        console.error('Failed to award XP:', error);
+      }
     }
 
     setInCombat(false);

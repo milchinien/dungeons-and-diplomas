@@ -23,6 +23,7 @@ function initializeDatabase(database: Database.Database) {
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT UNIQUE NOT NULL COLLATE NOCASE,
+      xp INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       last_login DATETIME DEFAULT CURRENT_TIMESTAMP
     )
@@ -58,14 +59,41 @@ function initializeDatabase(database: Database.Database) {
     )
   `);
 
+  // Create xp_log table
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS xp_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      gained_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      xp_amount INTEGER NOT NULL,
+      reason TEXT NOT NULL,
+      enemy_level INTEGER,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `);
+
   // Check if we need to migrate old questions format
   migrateQuestionsIfNeeded(database);
+
+  // Check if we need to add XP column to existing users table
+  migrateUserXpIfNeeded(database);
 
   // Check if we need to seed the database
   const count = database.prepare('SELECT COUNT(*) as count FROM questions').get() as { count: number };
 
   if (count.count === 0) {
     seedQuestions(database);
+  }
+}
+
+function migrateUserXpIfNeeded(database: Database.Database) {
+  // Check if users table has xp column
+  const tableInfo = database.pragma('table_info(users)') as Array<{ name: string }>;
+  const hasXpColumn = tableInfo.some((col) => col.name === 'xp');
+
+  if (!hasXpColumn) {
+    console.log('Adding XP column to users table...');
+    database.exec('ALTER TABLE users ADD COLUMN xp INTEGER DEFAULT 0');
   }
 }
 
@@ -176,6 +204,7 @@ export interface QuestionDatabaseDTO {
 export interface User {
   id: number;
   username: string;
+  xp: number;
   created_at: string;
   last_login: string;
 }
@@ -187,6 +216,13 @@ export interface AnswerLogEntry {
   is_correct: boolean;
   answer_time_ms?: number;
   timeout_occurred?: boolean;
+}
+
+export interface XpLogEntry {
+  user_id: number;
+  xp_amount: number;
+  reason: string;
+  enemy_level?: number;
 }
 
 // User functions
@@ -211,6 +247,27 @@ export function loginUser(username: string): User {
 export function getUserById(id: number): User | undefined {
   const db = getDatabase();
   return db.prepare('SELECT * FROM users WHERE id = ?').get(id) as User | undefined;
+}
+
+// XP functions
+export function addXp(entry: XpLogEntry): void {
+  const db = getDatabase();
+
+  // Log the XP gain
+  db.prepare(`
+    INSERT INTO xp_log (user_id, xp_amount, reason, enemy_level)
+    VALUES (?, ?, ?, ?)
+  `).run(
+    entry.user_id,
+    entry.xp_amount,
+    entry.reason,
+    entry.enemy_level || null
+  );
+
+  // Update user's total XP
+  db.prepare(`
+    UPDATE users SET xp = xp + ? WHERE id = ?
+  `).run(entry.xp_amount, entry.user_id);
 }
 
 // Answer tracking functions

@@ -11,12 +11,14 @@ import { useAuth } from '@/hooks/useAuth';
 import { useScoring } from '@/hooks/useScoring';
 import { useCombat } from '@/hooks/useCombat';
 import { useGameState } from '@/hooks/useGameState';
+import { getLevelInfo } from '@/lib/scoring/LevelCalculator';
 
 export default function GameCanvas() {
   const [questionDatabase, setQuestionDatabase] = useState<QuestionDatabase | null>(null);
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
   const [showSkillDashboard, setShowSkillDashboard] = useState(false);
   const [playerHp, setPlayerHp] = useState(PLAYER_MAX_HP);
+  const [playerXp, setPlayerXp] = useState(0);
 
   // Auth
   const { userId, username, showLogin, handleLogin, handleLogout } = useAuth();
@@ -50,12 +52,34 @@ export default function GameCanvas() {
     loadData();
   }, []);
 
-  // Load session ELOs when user logs in
+  // Load session ELOs and user XP when user logs in
   useEffect(() => {
     if (userId) {
       loadSessionElos(userId);
+      loadUserXp(userId);
     }
   }, [userId]);
+
+  const loadUserXp = async (id: number) => {
+    try {
+      const response = await fetch(`/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: username })
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        setPlayerXp(userData.xp || 0);
+      }
+    } catch (error) {
+      console.error('Failed to load user XP:', error);
+    }
+  };
+
+  const handleXpGained = (amount: number) => {
+    setPlayerXp(prev => prev + amount);
+  };
 
   // Game state
   const gameState = useGameState({
@@ -72,7 +96,8 @@ export default function GameCanvas() {
     playerRef: gameState.playerRef,
     onUpdateSessionScores: updateSessionScores,
     onPlayerHpUpdate: setPlayerHp,
-    onGameRestart: gameState.generateNewDungeon
+    onGameRestart: gameState.generateNewDungeon,
+    onXpGained: handleXpGained
   });
 
   // Wire combat into game state
@@ -94,7 +119,11 @@ export default function GameCanvas() {
   const handleLoginWithElo = async (id: number, name: string) => {
     await handleLogin(id, name);
     await loadSessionElos(id);
+    await loadUserXp(id);
   };
+
+  // Calculate level info from current XP
+  const levelInfo = getLevelInfo(playerXp);
 
   return (
     <>
@@ -140,6 +169,10 @@ export default function GameCanvas() {
           <CharacterPanel
             username={username}
             scores={sessionScores}
+            level={levelInfo.level}
+            currentXp={levelInfo.currentXp}
+            xpForCurrentLevel={levelInfo.xpForCurrentLevel}
+            xpForNextLevel={levelInfo.xpForNextLevel}
             onLogout={handleLogout}
             onRestart={gameState.generateNewDungeon}
             onSkills={handleOpenSkills}
