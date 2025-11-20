@@ -5,8 +5,7 @@ import { SpriteSheetLoader } from '@/lib/SpriteSheetLoader';
 import { Enemy } from '@/lib/Enemy';
 import type { Player } from '@/lib/Enemy';
 import { createEmptyDungeon, generateTileVariants, generateRooms, connectRooms, addWalls } from '@/lib/dungeon/generation';
-import { QUESTION_DATABASE } from '@/lib/questions';
-import type { Question } from '@/lib/questions';
+import type { Question, QuestionDatabase } from '@/lib/questions';
 import {
   DUNGEON_WIDTH,
   DUNGEON_HEIGHT,
@@ -28,6 +27,7 @@ export default function GameCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const minimapRef = useRef<HTMLCanvasElement>(null);
   const [gameInitialized, setGameInitialized] = useState(false);
+  const [questionDatabase, setQuestionDatabase] = useState<QuestionDatabase | null>(null);
 
   // Combat state
   const [inCombat, setInCombat] = useState(false);
@@ -76,6 +76,24 @@ export default function GameCanvas() {
   const isInitializingRef = useRef(false);
   const isMountedRef = useRef(true);
 
+  // Load questions from API
+  useEffect(() => {
+    const loadQuestions = async () => {
+      try {
+        const response = await fetch('/api/questions');
+        if (!response.ok) {
+          throw new Error('Failed to load questions');
+        }
+        const data = await response.json();
+        setQuestionDatabase(data);
+      } catch (error) {
+        console.error('Error loading questions:', error);
+      }
+    };
+
+    loadQuestions();
+  }, []);
+
   useEffect(() => {
     isMountedRef.current = true;
 
@@ -84,6 +102,13 @@ export default function GameCanvas() {
         console.log('Init blocked - mounted:', isMountedRef.current, 'isInitializing:', isInitializingRef.current);
         return;
       }
+
+      // Wait for questions to be loaded before initializing game
+      if (!questionDatabase) {
+        console.log('Waiting for questions to load...');
+        return;
+      }
+
       isInitializingRef.current = true;
       console.log('Init starting...');
 
@@ -163,7 +188,7 @@ export default function GameCanvas() {
         cancelAnimationFrame(gameLoopIdRef.current);
       }
     };
-  }, []);
+  }, [questionDatabase]); // Re-run when questions are loaded
 
   const generateNewDungeon = async () => {
     console.log('===== GENERATE NEW DUNGEON CALLED =====');
@@ -290,14 +315,19 @@ export default function GameCanvas() {
   };
 
   const startCombat = (enemy: Enemy) => {
+    if (!questionDatabase) {
+      console.error('Question database not loaded yet');
+      return;
+    }
+
     setInCombat(true);
     inCombatRef.current = true;
     currentEnemyRef.current = enemy;
 
-    const subjects = Object.keys(QUESTION_DATABASE);
+    const subjects = Object.keys(questionDatabase);
     const subject = subjects[Math.floor(Math.random() * subjects.length)];
     currentSubjectRef.current = subject;
-    setCombatSubject(QUESTION_DATABASE[subject].subject);
+    setCombatSubject(questionDatabase[subject].subject);
 
     askQuestion();
   };
@@ -308,7 +338,13 @@ export default function GameCanvas() {
       return;
     }
 
-    const questionPool = QUESTION_DATABASE[currentSubjectRef.current].questions;
+    if (!questionDatabase) {
+      console.error('Question database not loaded');
+      endCombat();
+      return;
+    }
+
+    const questionPool = questionDatabase[currentSubjectRef.current].questions;
     const questionData = questionPool[Math.floor(Math.random() * questionPool.length)];
 
     // Shuffle answers
@@ -756,6 +792,25 @@ export default function GameCanvas() {
           background-color: #000000;
         }
       `}</style>
+
+      {!questionDatabase && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: '#000000',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          color: 'white',
+          fontSize: '24px',
+          zIndex: 9999
+        }}>
+          Loading questions...
+        </div>
+      )}
 
       <div style={{ position: 'relative', width: '100vw', height: '100vh', backgroundColor: '#000000' }}>
         <div style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 100 }}>

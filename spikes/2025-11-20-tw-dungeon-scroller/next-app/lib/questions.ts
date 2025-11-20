@@ -1,4 +1,4 @@
-// Question database - embedded to avoid CORS issues
+// Question database types - data now loaded from SQLite via API
 export interface Question {
   question: string;
   answers: string[];
@@ -14,7 +14,8 @@ export interface QuestionDatabase {
   [key: string]: Subject;
 }
 
-export const QUESTION_DATABASE: QuestionDatabase = {
+// Legacy embedded database - keeping for reference but will be replaced by API
+export const QUESTION_DATABASE_LEGACY: QuestionDatabase = {
   mathe: {
     subject: "Mathematik",
     questions: [
