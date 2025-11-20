@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
-import { calculateEloOrNull, type AnswerRecord } from './scoring/EloCalculator';
+import { calculateEloOrNull, calculateProgressiveElo, type AnswerRecord } from './scoring/EloCalculator';
 
 // Database path
 const DB_PATH = path.join(process.cwd(), 'data', 'game.db');
@@ -420,11 +420,12 @@ export function getSessionEloScores(userId: number): SubjectEloScore[] {
     }
 
     const answers = answersByQuestion.get(q.id) || [];
-    const elo = calculateEloOrNull(answers) ?? 5; // Default to 5 if never answered
+    // Use unrounded progressive ELO for accurate averaging
+    const elo = answers.length > 0 ? calculateProgressiveElo(answers) : 5;
     subjectElos[q.subject_key].elos.push(elo);
   }
 
-  // Calculate average ELO per subject
+  // Calculate average ELO per subject (average first, then round)
   return Object.entries(subjectElos).map(([key, data]) => {
     const avg = data.elos.reduce((sum, elo) => sum + elo, 0) / data.elos.length;
     return {

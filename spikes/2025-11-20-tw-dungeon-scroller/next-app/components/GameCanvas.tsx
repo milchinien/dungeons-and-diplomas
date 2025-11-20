@@ -61,6 +61,7 @@ export default function GameCanvas() {
   const gameState = useGameState({
     questionDatabase,
     availableSubjects,
+    userId,
     onPlayerHpUpdate: setPlayerHp
   });
 

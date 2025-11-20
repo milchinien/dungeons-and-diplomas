@@ -67,3 +67,35 @@ export function calculateEloOrNull(answers: AnswerRecord[], startingElo: number 
   }
   return calculateRoundedElo(answers, startingElo);
 }
+
+/**
+ * Calculate average ELO across multiple questions
+ *
+ * This method calculates the ELO for each question individually,
+ * then averages the results and rounds at the end.
+ * This is more accurate than rounding individual ELOs first.
+ *
+ * @param questionAnswers Array of answer record arrays (one per question)
+ * @param startingElo Initial ELO for questions with no answers (default: 5)
+ * @returns Average ELO rounded to nearest integer
+ */
+export function calculateAverageElo(
+  questionAnswers: AnswerRecord[][],
+  startingElo: number = 5
+): number {
+  if (questionAnswers.length === 0) {
+    return startingElo;
+  }
+
+  // Calculate ELO for each question (use startingElo if never answered)
+  const elos = questionAnswers.map(answers => {
+    if (answers.length === 0) {
+      return startingElo;
+    }
+    return calculateProgressiveElo(answers, startingElo);
+  });
+
+  // Average first, then round (more accurate)
+  const average = elos.reduce((sum, elo) => sum + elo, 0) / elos.length;
+  return Math.round(average);
+}

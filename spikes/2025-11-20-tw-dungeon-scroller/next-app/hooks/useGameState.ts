@@ -11,12 +11,14 @@ import { MinimapRenderer } from '@/lib/rendering/MinimapRenderer';
 interface UseGameStateProps {
   questionDatabase: QuestionDatabase | null;
   availableSubjects: string[];
+  userId: number | null;
   onPlayerHpUpdate: (hp: number) => void;
 }
 
 export function useGameState({
   questionDatabase,
   availableSubjects,
+  userId,
   onPlayerHpUpdate
 }: UseGameStateProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -57,7 +59,7 @@ export function useGameState({
 
   const generateNewDungeon = async () => {
     if (!dungeonManagerRef.current) return;
-    await dungeonManagerRef.current.generateNewDungeon(availableSubjects);
+    await dungeonManagerRef.current.generateNewDungeon(availableSubjects, userId);
     playerRef.current.hp = PLAYER_MAX_HP;
     onPlayerHpUpdate(PLAYER_MAX_HP);
   };
@@ -209,7 +211,7 @@ export function useGameState({
         cancelAnimationFrame(gameLoopIdRef.current);
       }
     };
-  }, [questionDatabase, availableSubjects]);
+  }, [questionDatabase, availableSubjects, userId]);
 
   return {
     canvasRef,

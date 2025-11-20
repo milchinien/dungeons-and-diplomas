@@ -23,6 +23,26 @@ export default function CombatModal({
   combatFeedback,
   onAnswerQuestion
 }: CombatModalProps) {
+  // Determine difficulty color based on enemy level
+  let borderColor = '#4CAF50'; // Green (Level 1-3)
+  let glowEffect = 'none';
+
+  if (currentEnemy) {
+    if (currentEnemy.level >= 8) {
+      // Red for hard enemies (Level 8-10)
+      borderColor = '#FF4444';
+      // Strong red glow for hard enemies
+      glowEffect = '0 0 30px rgba(255, 68, 68, 0.8), 0 0 60px rgba(255, 68, 68, 0.5), inset 0 0 20px rgba(255, 68, 68, 0.3)';
+    } else if (currentEnemy.level >= 4) {
+      // Yellow for medium enemies (Level 4-7)
+      borderColor = '#FFC107';
+      glowEffect = '0 0 20px rgba(255, 193, 7, 0.5)';
+    } else {
+      // Green for easy enemies (Level 1-3)
+      glowEffect = '0 0 15px rgba(76, 175, 80, 0.5)';
+    }
+  }
+
   return (
     <div style={{
       display: 'block',
@@ -31,15 +51,40 @@ export default function CombatModal({
       left: '50%',
       transform: 'translate(-50%, -50%)',
       background: 'rgba(0, 0, 0, 0.95)',
-      border: '4px solid #4CAF50',
+      border: `4px solid ${borderColor}`,
       borderRadius: '12px',
       padding: '30px',
       maxWidth: '600px',
       zIndex: 200,
       color: 'white',
-      fontFamily: 'Arial, sans-serif'
+      fontFamily: 'Arial, sans-serif',
+      boxShadow: glowEffect
     }}>
-      <h2 style={{ textAlign: 'center', color: '#4CAF50', marginTop: 0 }}>Kampf: {combatSubject}</h2>
+      <h2 style={{ textAlign: 'center', color: borderColor, marginTop: 0 }}>Kampf: {combatSubject}</h2>
+
+      {/* Enemy Level Display */}
+      {currentEnemy && (
+        <div style={{
+          textAlign: 'center',
+          marginBottom: '15px',
+          fontSize: '16px',
+          padding: '8px 16px',
+          backgroundColor: `${borderColor}20`,
+          borderRadius: '8px',
+          border: `2px solid ${borderColor}`,
+          display: 'inline-block',
+          width: '100%',
+          boxSizing: 'border-box'
+        }}>
+          <span style={{ color: borderColor, fontWeight: 'bold', fontSize: '18px' }}>
+            Gegner Level: {currentEnemy.level}
+          </span>
+          <span style={{ color: '#aaa', marginLeft: '10px', fontSize: '14px' }}>
+            ({currentEnemy.level <= 3 ? 'Leicht' : currentEnemy.level <= 7 ? 'Mittel' : 'Schwer'})
+          </span>
+        </div>
+      )}
+
       <div style={{ marginBottom: '20px', fontSize: '18px' }}>
         <div>Deine HP: <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{playerHp}</span>/{PLAYER_MAX_HP}</div>
         <div>Gegner HP: <span style={{ color: '#FF4444', fontWeight: 'bold' }}>{enemyHp}</span>/{currentEnemy?.maxHp ?? 0}</div>

@@ -59,6 +59,27 @@ export class Enemy {
     return Math.sqrt(dx * dx + dy * dy) / tileSize; // Return distance in tiles
   }
 
+  updateRoomId(tileSize: number, roomMap: number[][]) {
+    // Update room ID based on current tile position
+    const tileX = Math.floor((this.x + tileSize / 2) / tileSize);
+    const tileY = Math.floor((this.y + tileSize / 2) / tileSize);
+
+    if (tileX >= 0 && tileX < DUNGEON_WIDTH && tileY >= 0 && tileY < DUNGEON_HEIGHT) {
+      const currentRoomId = roomMap[tileY][tileX];
+      // Only update if standing on a valid room tile (not wall/door)
+      if (currentRoomId >= 0) {
+        this.roomId = currentRoomId;
+      }
+    }
+  }
+
+  getSpeedMultiplier(): number {
+    // Level-based speed scaling
+    // Level 1: 0.75x (75%, -25%), Level 5: 1.0x (100%), Level 10: 1.25x (125%, +25%)
+    // Formula: speedMultiplier = 1.0 + (level - 5) * 0.05
+    return 1.0 + (this.level - 5) * 0.05;
+  }
+
   pickRandomWaypoint(rooms: Room[], dungeon: TileType[][], roomMap: number[][], tileSize: number) {
     // Get all floor tiles in this enemy's room
     const room = rooms[this.roomId];
@@ -97,6 +118,12 @@ export class Enemy {
 
     // Skip AI if dead
     if (!this.alive) return;
+
+    // Freeze enemy AI during combat (just like player movement)
+    if (inCombat) return;
+
+    // Update room ID based on current position
+    this.updateRoomId(tileSize, roomMap);
 
     // AI Logic
     const distanceToPlayer = this.getDistanceToPlayer(player, tileSize);
@@ -146,8 +173,9 @@ export class Enemy {
         this.waypoint = null;
         this.sprite.playAnimation(this.direction, ANIMATION.IDLE);
       } else {
-        // Move towards waypoint
-        const speed = ENEMY_SPEED_TILES * tileSize * dt;
+        // Move towards waypoint (with level-based speed scaling)
+        const speedMultiplier = this.getSpeedMultiplier();
+        const speed = ENEMY_SPEED_TILES * tileSize * dt * speedMultiplier;
         const moveX = (dx / distance) * speed;
         const moveY = (dy / distance) * speed;
 
@@ -175,8 +203,9 @@ export class Enemy {
       const distance = Math.sqrt(dx * dx + dy * dy);
 
       if (distance > tileSize * COMBAT_TRIGGER_DISTANCE) {
-        // Move towards player
-        const speed = ENEMY_SPEED_TILES * tileSize * dt;
+        // Move towards player (with level-based speed scaling)
+        const speedMultiplier = this.getSpeedMultiplier();
+        const speed = ENEMY_SPEED_TILES * tileSize * dt * speedMultiplier;
         const moveX = (dx / distance) * speed;
         const moveY = (dy / distance) * speed;
 
@@ -197,7 +226,8 @@ export class Enemy {
         this.sprite.playAnimation(this.direction, ANIMATION.RUN);
       } else {
         // Close enough - start combat!
-        if (!inCombat) {
+        // Only start combat if enemy is alive and not already in combat
+        if (!inCombat && this.alive) {
           onCombatStart(this);
         }
         this.sprite.playAnimation(this.direction, ANIMATION.IDLE);
@@ -223,7 +253,8 @@ export class Enemy {
   }
 
   checkCollision(x: number, y: number, tileSize: number, dungeon: TileType[][]): boolean {
-    return CollisionDetector.checkCollision(x, y, tileSize, dungeon);
+    // Enemies use special collision that includes doors
+    return CollisionDetector.checkEnemyCollision(x, y, tileSize, dungeon);
   }
 
   draw(ctx: CanvasRenderingContext2D, rooms: Room[], tileSize: number) {
@@ -234,47 +265,65 @@ export class Enemy {
       return;
     }
 
-    // Draw alive or dead (corpse)
-    this.sprite.draw(ctx, this.x, this.y, tileSize, tileSize);
+    // Calculate level-based scale
+    // Level 1: 0.5x (50%), Level 5: 1.0x (100%), Level 10: 1.5x (150%)
+    // Formula: scale = 1.0 + (level - 5) * 0.1
+    const scale = 1.0 + (this.level - 5) * 0.1;
+    const scaledSize = tileSize * scale;
 
-    // Draw status bar (only if alive)
-    if (this.alive) {
-      const statusText = `${this.subject} | Lvl ${this.level} | HP ${this.hp}`;
+    // Center the scaled sprite on the enemy's position
+    const offsetX = this.x + (tileSize - scaledSize) / 2;
+    const offsetY = this.y + (tileSize - scaledSize) / 2;
 
-      // Color based on level: 1-3 green, 4-7 yellow, 8-10 red
-      let borderColor = '#4CAF50'; // green
-      if (this.level >= 8) {
-        borderColor = '#FF4444'; // red
-      } else if (this.level >= 4) {
-        borderColor = '#FFC107'; // yellow
-      }
+    // Draw alive or dead (corpse) with level-based scaling
+    this.sprite.draw(ctx, offsetX, offsetY, scaledSize, scaledSize);
 
-      ctx.save();
-      ctx.font = '12px Arial';
-      ctx.textAlign = 'center';
+    // Draw status bar (alive or dead)
+    // Show status even for corpses so player can see what level enemy was defeated
+    const statusText = this.alive
+      ? `${this.subject} | Lvl ${this.level} | HP ${this.hp}`
+      : `${this.subject} | Lvl ${this.level} | BESIEGT`;
 
-      // Measure text width
-      const textWidth = ctx.measureText(statusText).width;
-      const padding = 6;
-      const barWidth = textWidth + padding * 2;
-      const barHeight = 20;
-      const barX = this.x + tileSize / 2 - barWidth / 2;
-      const barY = this.y - barHeight - 4;
-
-      // Draw background
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-      ctx.fillRect(barX, barY, barWidth, barHeight);
-
-      // Draw border with level-based color
-      ctx.strokeStyle = borderColor;
-      ctx.lineWidth = 1;
-      ctx.strokeRect(barX, barY, barWidth, barHeight);
-
-      // Draw text with level-based color
-      ctx.fillStyle = borderColor;
-      ctx.fillText(statusText, this.x + tileSize / 2, barY + 14);
-
-      ctx.restore();
+    // Color based on level: 1-3 green, 4-7 yellow, 8-10 red
+    let borderColor = '#4CAF50'; // green
+    if (this.level >= 8) {
+      borderColor = '#FF4444'; // red
+    } else if (this.level >= 4) {
+      borderColor = '#FFC107'; // yellow
     }
+
+    // Dim colors for dead enemies
+    if (!this.alive) {
+      borderColor = '#888888'; // Gray for defeated enemies
+    }
+
+    ctx.save();
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'center';
+
+    // Measure text width
+    const textWidth = ctx.measureText(statusText).width;
+    const padding = 6;
+    const barWidth = textWidth + padding * 2;
+    const barHeight = 20;
+
+    // Position bar above the scaled sprite (centered on tile, but above scaled height)
+    const barX = this.x + tileSize / 2 - barWidth / 2;
+    const barY = offsetY - barHeight - 4;
+
+    // Draw background
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(barX, barY, barWidth, barHeight);
+
+    // Draw border with level-based color
+    ctx.strokeStyle = borderColor;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(barX, barY, barWidth, barHeight);
+
+    // Draw text with level-based color
+    ctx.fillStyle = borderColor;
+    ctx.fillText(statusText, this.x + tileSize / 2, barY + 14);
+
+    ctx.restore();
   }
 }

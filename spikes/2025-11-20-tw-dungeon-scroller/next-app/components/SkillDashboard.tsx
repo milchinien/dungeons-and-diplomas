@@ -19,7 +19,15 @@ interface SubjectStats {
 
 // Helper function to get mastery level
 function getMasteryLevel(elo: number): { label: string; color: string; icon: string; bgColor: string } {
-  if (elo >= 8) {
+  // Perfect mastery: 9.5+ rounds to 10, display as gold
+  if (Math.round(elo) >= 10) {
+    return {
+      label: '👑 Perfekt',
+      color: '#FFD700',
+      icon: '👑',
+      bgColor: 'rgba(255, 215, 0, 0.1)'
+    };
+  } else if (elo >= 8) {
     return {
       label: '⚔️ Meister',
       color: '#4CAF50',
@@ -247,7 +255,7 @@ export default function SkillDashboard({ userId, onClose }: SkillDashboardProps)
                       <tbody>
                         {subjectData.questions.map((q) => {
                           const questionMastery = getMasteryLevel(q.elo);
-                          const isPerfect = q.elo === 10;
+                          const isPerfect = Math.round(q.elo) >= 10;
                           return (
                             <tr
                               key={q.id}

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/db';
-import { calculateRoundedElo, type AnswerRecord } from '@/lib/scoring/EloCalculator';
+import { calculateRoundedElo, calculateProgressiveElo, type AnswerRecord } from '@/lib/scoring/EloCalculator';
 
 export const dynamic = 'force-dynamic';
 
@@ -94,13 +94,13 @@ export async function GET(request: Request) {
         bySubject[stats.subject_key] = {
           subject_name: stats.subject_name,
           questions: [],
-          total_elo: 0,
-          question_count: 0
+          question_elos: [] // Store unrounded ELOs for accurate averaging
         };
       }
 
       // Calculate ELO using progressive algorithm
-      const elo = calculateRoundedElo(stats.answers);
+      const roundedElo = calculateRoundedElo(stats.answers);
+      const progressiveElo = calculateProgressiveElo(stats.answers);
 
       bySubject[stats.subject_key].questions.push({
         id: stats.id,
@@ -108,21 +108,20 @@ export async function GET(request: Request) {
         correct: stats.correct,
         wrong: stats.wrong,
         timeout: stats.timeout,
-        elo: elo
+        elo: roundedElo
       });
 
-      // Accumulate for average
-      bySubject[stats.subject_key].total_elo += elo;
-      bySubject[stats.subject_key].question_count += 1;
+      // Store unrounded ELO for accurate averaging
+      bySubject[stats.subject_key].question_elos.push(progressiveElo);
     });
 
-    // Calculate average ELO for each subject
+    // Calculate average ELO for each subject (average first, then round)
     Object.keys(bySubject).forEach(key => {
       const subject = bySubject[key];
-      subject.average_elo = Math.round(subject.total_elo / subject.question_count);
-      // Clean up temp fields
-      delete subject.total_elo;
-      delete subject.question_count;
+      const average = subject.question_elos.reduce((sum: number, elo: number) => sum + elo, 0) / subject.question_elos.length;
+      subject.average_elo = Math.round(average);
+      // Clean up temp field
+      delete subject.question_elos;
     });
 
     return NextResponse.json(bySubject);

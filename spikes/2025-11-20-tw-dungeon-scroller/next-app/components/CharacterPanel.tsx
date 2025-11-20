@@ -23,8 +23,19 @@ export default function CharacterPanel({
   onRestart,
   onSkills
 }: CharacterPanelProps) {
-  // Unified color scheme for cleaner look
-  const primaryColor = '#4CAF50'; // Green for all subjects
+  // Helper function to get mastery level color based on ELO
+  const getMasteryColor = (elo: number): string => {
+    if (Math.round(elo) >= 10) {
+      return '#FFD700'; // Gold for perfect
+    } else if (elo >= 8) {
+      return '#4CAF50'; // Green for master
+    } else if (elo >= 5) {
+      return '#2196F3'; // Blue for advanced
+    } else {
+      return '#ff9800'; // Orange for beginner
+    }
+  };
+
   const gainColor = '#00ff00'; // Bright green for improvements
   const lossColor = '#ff4444'; // Bright red for losses
 
@@ -75,6 +86,8 @@ export default function CharacterPanel({
           </div>
         ) : (
           scores.map((score) => {
+          const masteryColor = getMasteryColor(score.currentElo);
+          const isPerfect = Math.round(score.currentElo) >= 10;
           return (
             <div
               key={score.subjectKey}
@@ -83,18 +96,25 @@ export default function CharacterPanel({
                 alignItems: 'center',
                 gap: '8px',
                 padding: '6px 8px',
-                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                backgroundColor: isPerfect
+                  ? 'rgba(255, 215, 0, 0.15)'
+                  : 'rgba(255, 255, 255, 0.05)',
                 borderRadius: '6px',
-                border: `1px solid ${primaryColor}30`
+                border: `1px solid ${masteryColor}30`,
+                boxShadow: isPerfect
+                  ? '0 0 15px rgba(255, 215, 0, 0.5)'
+                  : 'none'
               }}
             >
               {/* Subject Name */}
               <div style={{
                 fontSize: '11px',
                 fontWeight: 'bold',
-                color: primaryColor,
+                color: masteryColor,
                 minWidth: '55px',
-                textShadow: `0 0 4px ${primaryColor}80`
+                textShadow: isPerfect
+                  ? '0 0 10px rgba(255, 215, 0, 0.8)'
+                  : `0 0 4px ${masteryColor}80`
               }}>
                 {score.subjectName}
               </div>
@@ -115,11 +135,14 @@ export default function CharacterPanel({
                   let glowColor = 'none';
 
                   if (isFilled) {
-                    circleColor = primaryColor;
+                    // Use mastery color for filled circles
+                    circleColor = isPerfect ? '#FFD700' : masteryColor;
 
                     // Check if this is a gained point - stronger glow
                     if (index > score.startElo) {
                       glowColor = `0 0 8px ${gainColor}, 0 0 12px ${gainColor}`;
+                    } else if (isPerfect) {
+                      glowColor = `0 0 8px rgba(255, 215, 0, 0.8)`;
                     }
                   } else if (wasAtStart && !isFilled) {
                     // Lost point - stronger glow
