@@ -12,14 +12,201 @@ import { Enemy } from '../Enemy';
 
 export class GameRenderer {
   private tilesetImage: HTMLImageElement | null = null;
+  private tilesetBrightImage: HTMLImageElement | null = null;
 
   async loadTileset() {
+    // Load dark tileset
     const tilesetImage = new Image();
     await new Promise<void>((resolve) => {
       tilesetImage.onload = () => resolve();
       tilesetImage.src = '/Assets/Castle-Dungeon2_Tiles/Tileset.png';
     });
     this.tilesetImage = tilesetImage;
+
+    // Load bright tileset
+    const tilesetBrightImage = new Image();
+    await new Promise<void>((resolve) => {
+      tilesetBrightImage.onload = () => resolve();
+      tilesetBrightImage.src = '/Assets/Castle-Dungeon2_Tiles/Tileset_Bright.png';
+    });
+    this.tilesetBrightImage = tilesetBrightImage;
+  }
+
+  /**
+   * Check if a room has living enemies in it
+   */
+  private hasEnemiesInRoom(roomId: number, enemies: Enemy[]): boolean {
+    if (roomId < 0) return false;
+
+    return enemies.some(enemy => enemy.roomId === roomId && enemy.alive);
+  }
+
+  /**
+   * Get all spatially adjacent room IDs (rooms that share a border)
+   * This checks the actual roomMap to find all neighboring rooms,
+   * regardless of whether there's a door connection.
+   */
+  private getSpatialNeighbors(roomId: number, rooms: Room[], roomMap: number[][]): Set<number> {
+    const neighbors = new Set<number>();
+    const room = rooms[roomId];
+    if (!room) return neighbors;
+
+    // Scan all floor tiles of the room
+    for (let y = room.y; y < room.y + room.height; y++) {
+      for (let x = room.x; x < room.x + room.width; x++) {
+        // Check all 4 cardinal directions from this floor tile
+        const directions = [
+          { dx: 0, dy: -1 }, // up
+          { dx: 0, dy: 1 },  // down
+          { dx: -1, dy: 0 }, // left
+          { dx: 1, dy: 0 }   // right
+        ];
+
+        for (const { dx, dy } of directions) {
+          const nx = x + dx;
+          const ny = y + dy;
+
+          if (ny >= 0 && ny < DUNGEON_HEIGHT && nx >= 0 && nx < DUNGEON_WIDTH) {
+            const neighborRoomId = roomMap[ny][nx];
+            // Add if it's a valid room ID and different from current room
+            if (neighborRoomId >= 0 && neighborRoomId !== roomId) {
+              neighbors.add(neighborRoomId);
+            }
+          }
+        }
+      }
+    }
+
+    // Debug
+    if (roomId === 34 && Math.random() < 0.01) {
+      console.log(`Room ${roomId} (${room.x},${room.y} ${room.width}x${room.height}) neighbors:`, Array.from(neighbors));
+    }
+
+    return neighbors;
+  }
+
+  /**
+   * Check if a room is "clear" - meaning neither the room itself nor any of its
+   * spatially neighboring rooms contain living enemies.
+   * This prevents "half bright" walls and makes the visual state clearer.
+   */
+  private isRoomClear(roomId: number, rooms: Room[], roomMap: number[][], enemies: Enemy[]): boolean {
+    if (roomId < 0) return false;
+
+    // Check if the room itself has enemies
+    if (this.hasEnemiesInRoom(roomId, enemies)) {
+      return false;
+    }
+
+    // Check if any spatially neighboring room has enemies
+    const neighbors = this.getSpatialNeighbors(roomId, rooms, roomMap);
+
+    // Debug: Log clearance check
+    if (Math.random() < 0.005) {
+      const neighborArray = Array.from(neighbors);
+      const enemiesInNeighbors = neighborArray.filter(n => this.hasEnemiesInRoom(n, enemies));
+      console.log(`isRoomClear(${roomId}): neighbors=${neighborArray.length > 0 ? neighborArray : 'NONE'}, enemiesInNeighbors=${enemiesInNeighbors}`);
+    }
+
+    for (const neighborId of neighbors) {
+      if (this.hasEnemiesInRoom(neighborId, enemies)) {
+        return false;
+      }
+    }
+
+    return true; // Room and all spatial neighbors are clear
+  }
+
+  /**
+   * Determine if bright tileset should be used for a tile
+   * - Floor tiles: use bright if room is "clear" (no enemies in room or neighbors)
+   * - Wall/Door/Corner tiles: use bright if ANY adjacent room is "clear"
+   */
+  private shouldUseBrightTileset(
+    x: number,
+    y: number,
+    tile: TileType,
+    roomMap: number[][],
+    rooms: Room[],
+    enemies: Enemy[]
+  ): boolean {
+    // TILE.FLOOR = 1
+    if (tile === 1) {
+      const roomId = roomMap[y][x];
+
+      // Special case: Floor tiles with invalid roomId (e.g., converted doors with roomId=-2)
+      // Treat them like walls/doors and check adjacent rooms
+      if (roomId < 0) {
+        const adjacentRoomIds = new Set<number>();
+        const directions = [
+          { dx: 0, dy: -1 }, { dx: 0, dy: 1 },
+          { dx: -1, dy: 0 }, { dx: 1, dy: 0 }
+        ];
+
+        for (const { dx, dy } of directions) {
+          const nx = x + dx;
+          const ny = y + dy;
+          if (ny >= 0 && ny < DUNGEON_HEIGHT && nx >= 0 && nx < DUNGEON_WIDTH) {
+            const neighborRoomId = roomMap[ny][nx];
+            if (neighborRoomId >= 0) {
+              adjacentRoomIds.add(neighborRoomId);
+            }
+          }
+        }
+
+        if (adjacentRoomIds.size === 0) return false;
+
+        // Use bright if ANY adjacent room is clear
+        for (const adjRoomId of adjacentRoomIds) {
+          if (this.isRoomClear(adjRoomId, rooms, roomMap, enemies)) {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      // Normal floor tile with valid roomId
+      return this.isRoomClear(roomId, rooms, roomMap, enemies);
+    }
+
+    // TILE.DOOR = 3, TILE.WALL = 2, TILE.CORNER = 4
+    // Doors, walls, and corners: use bright if any adjacent room is clear
+    if (tile === 2 || tile === 3 || tile === 4) {
+      const adjacentRoomIds = new Set<number>();
+
+      // Check all 4 cardinal directions for adjacent rooms
+      const directions = [
+        { dx: 0, dy: -1 }, // up
+        { dx: 0, dy: 1 },  // down
+        { dx: -1, dy: 0 }, // left
+        { dx: 1, dy: 0 }   // right
+      ];
+
+      for (const { dx, dy } of directions) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (ny >= 0 && ny < DUNGEON_HEIGHT && nx >= 0 && nx < DUNGEON_WIDTH) {
+          const neighborRoomId = roomMap[ny][nx];
+          if (neighborRoomId >= 0) {
+            adjacentRoomIds.add(neighborRoomId);
+          }
+        }
+      }
+
+      // If no adjacent rooms found, use dark (default)
+      if (adjacentRoomIds.size === 0) return false;
+
+      // Use bright if ANY adjacent room is clear
+      for (const roomId of adjacentRoomIds) {
+        if (this.isRoomClear(roomId, rooms, roomMap, enemies)) {
+          return true;
+        }
+      }
+
+      return false; // Use dark if no adjacent room is clear
+    }
+
+    return false; // Default to dark for other tile types
   }
 
   private getTileCoords(
@@ -152,13 +339,18 @@ export class GameRenderer {
             const srcX = coords.x * TILE_SOURCE_SIZE;
             const srcY = coords.y * TILE_SOURCE_SIZE;
 
+            // Select tileset based on enemy presence
+            const useBright = this.shouldUseBrightTileset(x, y, tile, roomMap, rooms, enemies);
+            const selectedTileset = useBright ? this.tilesetBrightImage : this.tilesetImage;
+
             ctx.drawImage(
-              this.tilesetImage,
+              selectedTileset!,
               srcX, srcY, TILE_SOURCE_SIZE, TILE_SOURCE_SIZE,
               x * tileSize, y * tileSize, tileSize, tileSize
             );
           }
         } else {
+          // Tiles outside dungeon bounds - always use dark tileset
           const wallCoords = TILESET_COORDS.WALL_TOP;
           const srcX = wallCoords.x * TILE_SOURCE_SIZE;
           const srcY = wallCoords.y * TILE_SOURCE_SIZE;
