@@ -72,6 +72,30 @@ function initializeDatabase(database: Database.Database) {
     )
   `);
 
+  // Create editor_levels table
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS editor_levels (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      structure_seed INTEGER NOT NULL,
+      decoration_seed INTEGER NOT NULL,
+      spawn_seed INTEGER NOT NULL,
+      created_by INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      notes TEXT,
+      FOREIGN KEY (created_by) REFERENCES users(id)
+    )
+  `);
+
+  // Create indices for editor_levels
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_editor_levels_created_by ON editor_levels(created_by)
+  `);
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_editor_levels_name ON editor_levels(name)
+  `);
+
   // Check if we need to migrate old questions format
   migrateQuestionsIfNeeded(database);
 
@@ -491,4 +515,120 @@ export function getSessionEloScores(userId: number): SubjectEloScore[] {
       averageElo: Math.round(avg)
     };
   });
+}
+
+// Editor Levels
+export interface EditorLevel {
+  id?: number;
+  name: string;
+  structure_seed: number;
+  decoration_seed: number;
+  spawn_seed: number;
+  created_by?: number;
+  created_at?: string;
+  updated_at?: string;
+  notes?: string;
+}
+
+/**
+ * Save a new editor level
+ */
+export function saveEditorLevel(level: EditorLevel): number {
+  const db = getDatabase();
+  const stmt = db.prepare(`
+    INSERT INTO editor_levels (name, structure_seed, decoration_seed, spawn_seed, created_by, notes)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `);
+
+  const result = stmt.run(
+    level.name,
+    level.structure_seed,
+    level.decoration_seed,
+    level.spawn_seed,
+    level.created_by || null,
+    level.notes || null
+  );
+
+  return result.lastInsertRowid as number;
+}
+
+/**
+ * Get all editor levels (optionally filtered by user)
+ */
+export function getEditorLevels(userId?: number): EditorLevel[] {
+  const db = getDatabase();
+
+  let query = 'SELECT * FROM editor_levels';
+  const params: any[] = [];
+
+  if (userId) {
+    query += ' WHERE created_by = ?';
+    params.push(userId);
+  }
+
+  query += ' ORDER BY updated_at DESC';
+
+  const stmt = db.prepare(query);
+  return stmt.all(...params) as EditorLevel[];
+}
+
+/**
+ * Get a single editor level by ID
+ */
+export function getEditorLevel(id: number): EditorLevel | null {
+  const db = getDatabase();
+  const stmt = db.prepare('SELECT * FROM editor_levels WHERE id = ?');
+  const result = stmt.get(id);
+  return result ? (result as EditorLevel) : null;
+}
+
+/**
+ * Update an existing editor level
+ */
+export function updateEditorLevel(id: number, updates: Partial<EditorLevel>): void {
+  const db = getDatabase();
+
+  const fields: string[] = [];
+  const values: any[] = [];
+
+  if (updates.name !== undefined) {
+    fields.push('name = ?');
+    values.push(updates.name);
+  }
+  if (updates.structure_seed !== undefined) {
+    fields.push('structure_seed = ?');
+    values.push(updates.structure_seed);
+  }
+  if (updates.decoration_seed !== undefined) {
+    fields.push('decoration_seed = ?');
+    values.push(updates.decoration_seed);
+  }
+  if (updates.spawn_seed !== undefined) {
+    fields.push('spawn_seed = ?');
+    values.push(updates.spawn_seed);
+  }
+  if (updates.notes !== undefined) {
+    fields.push('notes = ?');
+    values.push(updates.notes);
+  }
+
+  fields.push('updated_at = CURRENT_TIMESTAMP');
+  values.push(id);
+
+  const stmt = db.prepare(`
+    UPDATE editor_levels
+    SET ${fields.join(', ')}
+    WHERE id = ?
+  `);
+
+  stmt.run(...values);
+}
+
+/**
+ * Delete an editor level
+ */
+export function deleteEditorLevel(id: number): void {
+  const db = getDatabase();
+  const stmt = db.prepare('DELETE FROM editor_levels WHERE id = ?');
+  stmt.run(id);
 }

@@ -16,9 +16,9 @@
 import { SeededRandom } from './SeededRandom';
 
 // Default seeds (will be overwritten when generateNewDungeon is called)
-let structureRng = new SeededRandom(12345);
-let decorationRng = new SeededRandom(67890);
-let spawnRng = new SeededRandom(11111);
+let structureRng = new SeededRandom(1);
+let decorationRng = new SeededRandom(1);
+let spawnRng = new SeededRandom(1);
 
 /**
  * Initialize all RNG instances with new seeds

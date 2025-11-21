@@ -574,9 +574,9 @@ export function useEditorState({ availableSubjects }: UseEditorStateProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Seeds
-  const [structureSeed, setStructureSeed] = useState<number>(12345);
-  const [decorationSeed, setDecorationSeed] = useState<number>(67890);
-  const [spawnSeed, setSpawnSeed] = useState<number>(11111);
+  const [structureSeed, setStructureSeed] = useState<number>(1);
+  const [decorationSeed, setDecorationSeed] = useState<number>(1);
+  const [spawnSeed, setSpawnSeed] = useState<number>(1);
 
   // Camera
   const [camera, setCamera] = useState<EditorCamera>({
@@ -1468,7 +1468,7 @@ export default function EditorPage() {
 ### Erweiterte Seed-Verwaltung
 - [ ] Random Seed Generator (Button)
 - [ ] Copy Seeds to Clipboard
-- [ ] Seed URL-Parameter (`/editor?seeds=12345,67890,11111`)
+- [ ] Seed URL-Parameter (`/editor?seeds=1,1,1`)
 
 ### Grid & Debugging-Overlays
 - [ ] Grid-Overlay (Tile-Grenzen anzeigen)

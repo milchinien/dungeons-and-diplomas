@@ -24,9 +24,9 @@ await dungeonManager.generateNewDungeon(availableSubjects, userId);
 await dungeonManager.generateNewDungeon(
   availableSubjects,
   userId,
-  12345,  // structureSeed
-  67890,  // decorationSeed
-  11111   // spawnSeed
+  1,  // structureSeed
+  1,  // decorationSeed
+  1   // spawnSeed
 );
 ```
 
@@ -132,7 +132,7 @@ await dungeonManager.generateNewDungeon(
 Seeds werden automatisch in der Console geloggt:
 
 ```
-Dungeon Seeds - Structure: 12345, Decoration: 67890, Spawn: 11111
+Dungeon Seeds - Structure: 1, Decoration: 1, Spawn: 1
 ```
 
 **Verwendung**:
@@ -231,9 +231,9 @@ interface SavedDungeon {
 const favoriteDungeons: SavedDungeon[] = [
   {
     name: "Perfect Layout",
-    structureSeed: 12345,
-    decorationSeed: 67890,
-    spawnSeed: 11111,
+    structureSeed: 1,
+    decorationSeed: 1,
+    spawnSeed: 1,
     timestamp: Date.now()
   }
 ];
