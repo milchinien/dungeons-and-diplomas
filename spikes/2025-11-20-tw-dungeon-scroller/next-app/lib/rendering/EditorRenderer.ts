@@ -107,7 +107,8 @@ export class EditorRenderer {
     camera: EditorCamera,
     baseTileSize: number,
     treasures?: Set<string>,
-    playerSpawnPos?: { x: number; y: number }
+    playerSpawnPos?: { x: number; y: number },
+    showGrid?: boolean
   ) {
     const ctx = canvas.getContext('2d');
     if (!ctx || !this.tilesetImage) return;
@@ -173,6 +174,42 @@ export class EditorRenderer {
     // Optional: Render player spawn position
     if (playerSpawnPos) {
       this.renderPlayerSpawn(ctx, playerSpawnPos, baseTileSize);
+    }
+
+    // Render grid overlay
+    if (showGrid) {
+      this.renderGrid(ctx, baseTileSize, startCol, endCol, startRow, endRow);
+    }
+
+    ctx.restore();
+  }
+
+  private renderGrid(
+    ctx: CanvasRenderingContext2D,
+    tileSize: number,
+    startCol: number,
+    endCol: number,
+    startRow: number,
+    endRow: number
+  ) {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.lineWidth = 1;
+
+    // Vertical lines
+    for (let x = Math.max(0, startCol); x <= Math.min(DUNGEON_WIDTH, endCol); x++) {
+      ctx.beginPath();
+      ctx.moveTo(x * tileSize, Math.max(0, startRow) * tileSize);
+      ctx.lineTo(x * tileSize, Math.min(DUNGEON_HEIGHT, endRow) * tileSize);
+      ctx.stroke();
+    }
+
+    // Horizontal lines
+    for (let y = Math.max(0, startRow); y <= Math.min(DUNGEON_HEIGHT, endRow); y++) {
+      ctx.beginPath();
+      ctx.moveTo(Math.max(0, startCol) * tileSize, y * tileSize);
+      ctx.lineTo(Math.min(DUNGEON_WIDTH, endCol) * tileSize, y * tileSize);
+      ctx.stroke();
     }
 
     ctx.restore();

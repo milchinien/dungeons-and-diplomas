@@ -17,6 +17,14 @@ export default function SeedInputPanel({
   onSpawnSeedChange,
   onGenerate
 }: SeedInputPanelProps) {
+  const generateRandomSeed = () => Math.floor(Math.random() * 1000000);
+
+  const randomizeAll = () => {
+    onStructureSeedChange(generateRandomSeed());
+    onDecorationSeedChange(generateRandomSeed());
+    onSpawnSeedChange(generateRandomSeed());
+  };
+
   return (
     <div style={{
       position: 'absolute',
@@ -37,60 +45,129 @@ export default function SeedInputPanel({
         <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>
           Structure Seed
         </label>
-        <input
-          type="number"
-          value={structureSeed}
-          onChange={(e) => onStructureSeedChange(parseInt(e.target.value, 10) || 0)}
-          style={{
-            width: '100%',
-            padding: '8px',
-            backgroundColor: '#2a2a2a',
-            border: '1px solid #4CAF50',
-            borderRadius: '4px',
-            color: 'white',
-            fontSize: '14px'
-          }}
-        />
+        <div style={{ display: 'flex', gap: '5px' }}>
+          <input
+            type="number"
+            value={structureSeed}
+            onChange={(e) => onStructureSeedChange(parseInt(e.target.value, 10) || 0)}
+            style={{
+              flex: 1,
+              padding: '8px',
+              backgroundColor: '#2a2a2a',
+              border: '1px solid #4CAF50',
+              borderRadius: '4px',
+              color: 'white',
+              fontSize: '14px'
+            }}
+          />
+          <button
+            onClick={() => onStructureSeedChange(generateRandomSeed())}
+            style={{
+              padding: '8px 12px',
+              backgroundColor: '#2196F3',
+              border: 'none',
+              borderRadius: '4px',
+              color: 'white',
+              fontSize: '12px',
+              cursor: 'pointer'
+            }}
+            title="Random seed"
+          >
+            🎲
+          </button>
+        </div>
       </div>
 
       <div style={{ marginBottom: '10px' }}>
         <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>
           Decoration Seed
         </label>
-        <input
-          type="number"
-          value={decorationSeed}
-          onChange={(e) => onDecorationSeedChange(parseInt(e.target.value, 10) || 0)}
-          style={{
-            width: '100%',
-            padding: '8px',
-            backgroundColor: '#2a2a2a',
-            border: '1px solid #4CAF50',
-            borderRadius: '4px',
-            color: 'white',
-            fontSize: '14px'
-          }}
-        />
+        <div style={{ display: 'flex', gap: '5px' }}>
+          <input
+            type="number"
+            value={decorationSeed}
+            onChange={(e) => onDecorationSeedChange(parseInt(e.target.value, 10) || 0)}
+            style={{
+              flex: 1,
+              padding: '8px',
+              backgroundColor: '#2a2a2a',
+              border: '1px solid #4CAF50',
+              borderRadius: '4px',
+              color: 'white',
+              fontSize: '14px'
+            }}
+          />
+          <button
+            onClick={() => onDecorationSeedChange(generateRandomSeed())}
+            style={{
+              padding: '8px 12px',
+              backgroundColor: '#2196F3',
+              border: 'none',
+              borderRadius: '4px',
+              color: 'white',
+              fontSize: '12px',
+              cursor: 'pointer'
+            }}
+            title="Random seed"
+          >
+            🎲
+          </button>
+        </div>
       </div>
 
       <div style={{ marginBottom: '15px' }}>
         <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>
           Spawn Seed
         </label>
-        <input
-          type="number"
-          value={spawnSeed}
-          onChange={(e) => onSpawnSeedChange(parseInt(e.target.value, 10) || 0)}
+        <div style={{ display: 'flex', gap: '5px' }}>
+          <input
+            type="number"
+            value={spawnSeed}
+            onChange={(e) => onSpawnSeedChange(parseInt(e.target.value, 10) || 0)}
+            style={{
+              flex: 1,
+              padding: '8px',
+              backgroundColor: '#2a2a2a',
+              border: '1px solid #4CAF50',
+              borderRadius: '4px',
+              color: 'white',
+              fontSize: '14px'
+            }}
+          />
+          <button
+            onClick={() => onSpawnSeedChange(generateRandomSeed())}
+            style={{
+              padding: '8px 12px',
+              backgroundColor: '#2196F3',
+              border: 'none',
+              borderRadius: '4px',
+              color: 'white',
+              fontSize: '12px',
+              cursor: 'pointer'
+            }}
+            title="Random seed"
+          >
+            🎲
+          </button>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: '5px', marginBottom: '10px' }}>
+        <button
+          onClick={randomizeAll}
           style={{
-            width: '100%',
+            flex: 1,
             padding: '8px',
-            backgroundColor: '#2a2a2a',
-            border: '1px solid #4CAF50',
+            backgroundColor: '#9C27B0',
+            border: 'none',
             borderRadius: '4px',
             color: 'white',
-            fontSize: '14px'
+            fontSize: '14px',
+            cursor: 'pointer'
           }}
-        />
+        >
+          🎲 Randomize All
+        </button>
       </div>
 
       <button

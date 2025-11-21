@@ -2,16 +2,26 @@ interface EditorToolbarProps {
   zoom: number;
   onZoomIn: () => void;
   onZoomOut: () => void;
+  onZoomReset: () => void;
   onSave: () => void;
+  onLoad: () => void;
+  onScreenshot: () => void;
+  onToggleGrid: () => void;
   dungeonGenerated: boolean;
+  showGrid: boolean;
 }
 
 export default function EditorToolbar({
   zoom,
   onZoomIn,
   onZoomOut,
+  onZoomReset,
   onSave,
-  dungeonGenerated
+  onLoad,
+  onScreenshot,
+  onToggleGrid,
+  dungeonGenerated,
+  showGrid
 }: EditorToolbarProps) {
   return (
     <div style={{
@@ -64,21 +74,92 @@ export default function EditorToolbar({
       </button>
 
       <button
-        onClick={onSave}
-        disabled={!dungeonGenerated}
+        onClick={onZoomReset}
         style={{
           padding: '8px',
-          backgroundColor: dungeonGenerated ? '#2196F3' : '#666',
+          backgroundColor: '#607D8B',
           border: 'none',
           borderRadius: '4px',
           color: 'white',
-          cursor: dungeonGenerated ? 'pointer' : 'not-allowed',
-          fontSize: '14px',
-          marginTop: '10px'
+          cursor: 'pointer',
+          fontSize: '14px'
         }}
       >
-        Save Level
+        Zoom 100%
       </button>
+
+      <div style={{ borderTop: '1px solid #444', marginTop: '5px', paddingTop: '10px' }}>
+        <button
+          onClick={onLoad}
+          style={{
+            width: '100%',
+            padding: '8px',
+            backgroundColor: '#FF9800',
+            border: 'none',
+            borderRadius: '4px',
+            color: 'white',
+            cursor: 'pointer',
+            fontSize: '14px',
+            marginBottom: '5px'
+          }}
+        >
+          📁 Load Level
+        </button>
+
+        <button
+          onClick={onSave}
+          disabled={!dungeonGenerated}
+          style={{
+            width: '100%',
+            padding: '8px',
+            backgroundColor: dungeonGenerated ? '#2196F3' : '#666',
+            border: 'none',
+            borderRadius: '4px',
+            color: 'white',
+            cursor: dungeonGenerated ? 'pointer' : 'not-allowed',
+            fontSize: '14px'
+          }}
+        >
+          💾 Save Level
+        </button>
+      </div>
+
+      <div style={{ borderTop: '1px solid #444', marginTop: '5px', paddingTop: '10px' }}>
+        <button
+          onClick={onScreenshot}
+          disabled={!dungeonGenerated}
+          style={{
+            width: '100%',
+            padding: '8px',
+            backgroundColor: dungeonGenerated ? '#9C27B0' : '#666',
+            border: 'none',
+            borderRadius: '4px',
+            color: 'white',
+            cursor: dungeonGenerated ? 'pointer' : 'not-allowed',
+            fontSize: '14px',
+            marginBottom: '5px'
+          }}
+        >
+          📷 Screenshot
+        </button>
+
+        <button
+          onClick={onToggleGrid}
+          disabled={!dungeonGenerated}
+          style={{
+            width: '100%',
+            padding: '8px',
+            backgroundColor: dungeonGenerated ? (showGrid ? '#4CAF50' : '#666') : '#444',
+            border: 'none',
+            borderRadius: '4px',
+            color: 'white',
+            cursor: dungeonGenerated ? 'pointer' : 'not-allowed',
+            fontSize: '14px'
+          }}
+        >
+          {showGrid ? '✓' : '☐'} Grid Overlay
+        </button>
+      </div>
 
       <div style={{
         fontSize: '12px',

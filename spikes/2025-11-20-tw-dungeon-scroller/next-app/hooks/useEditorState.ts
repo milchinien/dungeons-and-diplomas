@@ -23,6 +23,9 @@ export function useEditorState({ availableSubjects }: UseEditorStateProps) {
     zoom: 0.5
   });
 
+  // Grid state
+  const [showGrid, setShowGrid] = useState(false);
+
   // Dungeon state
   const dungeonManagerRef = useRef<DungeonManager | null>(null);
   const editorRendererRef = useRef<EditorRenderer>(new EditorRenderer());
@@ -107,9 +110,10 @@ export function useEditorState({ availableSubjects }: UseEditorStateProps) {
       {
         x: Math.floor(fakePlayerRef.current.x / manager.tileSize),
         y: Math.floor(fakePlayerRef.current.y / manager.tileSize)
-      }
+      },
+      showGrid
     );
-  }, [camera, dungeonGenerated]);
+  }, [camera, dungeonGenerated, showGrid]);
 
   // Camera controls
   const zoomIn = useCallback(() => {
@@ -126,6 +130,10 @@ export function useEditorState({ availableSubjects }: UseEditorStateProps) {
     });
   }, []);
 
+  const zoomReset = useCallback(() => {
+    setCamera(prev => ({ ...prev, zoom: 1.0 }));
+  }, []);
+
   const pan = useCallback((dx: number, dy: number) => {
     setCamera(prev => ({
       ...prev,
@@ -134,12 +142,12 @@ export function useEditorState({ availableSubjects }: UseEditorStateProps) {
     }));
   }, []);
 
-  // Trigger render on camera change
+  // Trigger render on camera or showGrid change
   useEffect(() => {
     if (isInitialized && dungeonGenerated) {
       render();
     }
-  }, [camera, dungeonGenerated, isInitialized, render]);
+  }, [camera, dungeonGenerated, isInitialized, render, showGrid]);
 
   return {
     canvasRef,
@@ -154,8 +162,11 @@ export function useEditorState({ availableSubjects }: UseEditorStateProps) {
     camera,
     zoomIn,
     zoomOut,
+    zoomReset,
     pan,
     render,
-    isInitialized
+    isInitialized,
+    showGrid,
+    setShowGrid
   };
 }

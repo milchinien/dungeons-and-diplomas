@@ -5,6 +5,7 @@ import { useEditorState } from '@/hooks/useEditorState';
 import SeedInputPanel from './editor/SeedInputPanel';
 import EditorToolbar from './editor/EditorToolbar';
 import SaveLevelModal from './editor/SaveLevelModal';
+import LevelBrowserModal from './editor/LevelBrowserModal';
 
 interface EditorCanvasProps {
   availableSubjects: string[];
@@ -13,8 +14,17 @@ interface EditorCanvasProps {
 export default function EditorCanvas({ availableSubjects }: EditorCanvasProps) {
   const editorState = useEditorState({ availableSubjects });
   const [showSaveModal, setShowSaveModal] = useState(false);
+  const [showLoadModal, setShowLoadModal] = useState(false);
 
   const canvasRef = editorState.canvasRef;
+
+  // Prevent browser scrolling
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
 
   // Mouse drag for panning
   const [isDragging, setIsDragging] = useState(false);
@@ -53,6 +63,16 @@ export default function EditorCanvas({ availableSubjects }: EditorCanvasProps) {
   // Keyboard controls (WASD for panning)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore keyboard shortcuts if user is typing in an input field
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
       const panSpeed = 50;
 
       switch (e.key) {
@@ -106,9 +126,32 @@ export default function EditorCanvas({ availableSubjects }: EditorCanvasProps) {
     return () => window.removeEventListener('resize', handleResize);
   }, [canvasRef, editorState]);
 
+
+  const handleLoadLevel = (level: any) => {
+    editorState.setStructureSeed(level.structure_seed);
+    editorState.setDecorationSeed(level.decoration_seed);
+    editorState.setSpawnSeed(level.spawn_seed);
+
+    // Trigger generation after a short delay to ensure state is updated
+    setTimeout(() => {
+      editorState.generateDungeon();
+    }, 100);
+  };
+
+  const handleScreenshot = () => {
+    if (!canvasRef.current) return;
+
+    // Create a temporary canvas for the screenshot (without UI overlays)
+    const canvas = canvasRef.current;
+    const link = document.createElement('a');
+    link.download = `dungeon-${Date.now()}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  };
+
   return (
     <>
-      <div style={{ position: 'relative', width: '100vw', height: '100vh', backgroundColor: '#1a1a1a' }}>
+      <div style={{ position: 'relative', width: '100vw', height: '100vh', backgroundColor: '#1a1a1a', overflow: 'hidden' }}>
         {/* Seed Input Panel */}
         <SeedInputPanel
           structureSeed={editorState.structureSeed}
@@ -125,8 +168,13 @@ export default function EditorCanvas({ availableSubjects }: EditorCanvasProps) {
           zoom={editorState.camera.zoom}
           onZoomIn={editorState.zoomIn}
           onZoomOut={editorState.zoomOut}
+          onZoomReset={editorState.zoomReset}
           onSave={() => setShowSaveModal(true)}
+          onLoad={() => setShowLoadModal(true)}
+          onScreenshot={handleScreenshot}
+          onToggleGrid={() => editorState.setShowGrid(!editorState.showGrid)}
           dungeonGenerated={editorState.dungeonGenerated}
+          showGrid={editorState.showGrid}
         />
 
         {/* Canvas */}
@@ -153,8 +201,15 @@ export default function EditorCanvas({ availableSubjects }: EditorCanvasProps) {
             onClose={() => setShowSaveModal(false)}
             onSave={() => {
               setShowSaveModal(false);
-              // Reload levels list if needed
             }}
+          />
+        )}
+
+        {/* Load Modal */}
+        {showLoadModal && (
+          <LevelBrowserModal
+            onClose={() => setShowLoadModal(false)}
+            onLoad={handleLoadLevel}
           />
         )}
       </div>
