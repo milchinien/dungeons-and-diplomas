@@ -43,46 +43,15 @@ export class GameRenderer {
 
   /**
    * Get all spatially adjacent room IDs (rooms that share a border)
-   * This checks the actual roomMap to find all neighboring rooms,
-   * regardless of whether there's a door connection.
+   * Uses the pre-computed spatialNeighbors array from dungeon generation
    */
   private getSpatialNeighbors(roomId: number, rooms: Room[], roomMap: number[][]): Set<number> {
-    const neighbors = new Set<number>();
     const room = rooms[roomId];
-    if (!room) return neighbors;
+    if (!room) return new Set<number>();
 
-    // Scan all floor tiles of the room
-    for (let y = room.y; y < room.y + room.height; y++) {
-      for (let x = room.x; x < room.x + room.width; x++) {
-        // Check all 4 cardinal directions from this floor tile
-        const directions = [
-          { dx: 0, dy: -1 }, // up
-          { dx: 0, dy: 1 },  // down
-          { dx: -1, dy: 0 }, // left
-          { dx: 1, dy: 0 }   // right
-        ];
-
-        for (const { dx, dy } of directions) {
-          const nx = x + dx;
-          const ny = y + dy;
-
-          if (ny >= 0 && ny < DUNGEON_HEIGHT && nx >= 0 && nx < DUNGEON_WIDTH) {
-            const neighborRoomId = roomMap[ny][nx];
-            // Add if it's a valid room ID and different from current room
-            if (neighborRoomId >= 0 && neighborRoomId !== roomId) {
-              neighbors.add(neighborRoomId);
-            }
-          }
-        }
-      }
-    }
-
-    // Debug
-    if (roomId === 34 && Math.random() < 0.01) {
-      console.log(`Room ${roomId} (${room.x},${room.y} ${room.width}x${room.height}) neighbors:`, Array.from(neighbors));
-    }
-
-    return neighbors;
+    // Use the pre-computed spatial neighbors from calculateSpatialNeighbors()
+    const spatialNeighbors = (room as any).spatialNeighbors || [];
+    return new Set(spatialNeighbors);
   }
 
   /**
@@ -100,13 +69,6 @@ export class GameRenderer {
 
     // Check if any spatially neighboring room has enemies
     const neighbors = this.getSpatialNeighbors(roomId, rooms, roomMap);
-
-    // Debug: Log clearance check
-    if (Math.random() < 0.005) {
-      const neighborArray = Array.from(neighbors);
-      const enemiesInNeighbors = neighborArray.filter(n => this.hasEnemiesInRoom(n, enemies));
-      console.log(`isRoomClear(${roomId}): neighbors=${neighborArray.length > 0 ? neighborArray : 'NONE'}, enemiesInNeighbors=${enemiesInNeighbors}`);
-    }
 
     for (const neighborId of neighbors) {
       if (this.hasEnemiesInRoom(neighborId, enemies)) {

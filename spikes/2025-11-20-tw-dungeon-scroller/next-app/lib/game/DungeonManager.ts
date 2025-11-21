@@ -13,6 +13,7 @@ import {
   generateTileVariants,
   generateRooms,
   connectRooms,
+  calculateSpatialNeighbors,
   addWalls
 } from '../dungeon/generation';
 import { SpriteSheetLoader } from '../SpriteSheetLoader';
@@ -65,6 +66,7 @@ export class DungeonManager {
 
     this.rooms = generateRooms(this.dungeon, this.roomMap);
     connectRooms(this.dungeon, this.roomMap, this.rooms);
+    calculateSpatialNeighbors(this.dungeon, this.roomMap, this.rooms);
     addWalls(this.dungeon);
 
     this.spawnPlayer();

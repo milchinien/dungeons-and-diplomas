@@ -80,6 +80,49 @@ interface Connection {
   orientation: 'horizontal' | 'vertical';
 }
 
+/**
+ * Calculate all spatial neighbors for each room (rooms that share a wall)
+ * This includes ALL adjacent rooms, not just those connected by doors
+ */
+export function calculateSpatialNeighbors(dungeon: TileType[][], roomMap: number[][], rooms: Room[]) {
+  // Create a Set for each room to store unique neighbor IDs
+  const spatialNeighbors: Set<number>[] = rooms.map(() => new Set<number>());
+
+  // Scan all walls to find adjacent rooms
+  for (let y = 0; y < DUNGEON_HEIGHT; y++) {
+    for (let x = 0; x < DUNGEON_WIDTH; x++) {
+      if (dungeon[y][x] === TILE.WALL) {
+        // Check vertical neighbors (Room Above <-> Room Below)
+        if (y > 0 && y < DUNGEON_HEIGHT - 1) {
+          const roomAbove = roomMap[y - 1][x];
+          const roomBelow = roomMap[y + 1][x];
+
+          if (roomAbove >= 0 && roomBelow >= 0 && roomAbove !== roomBelow) {
+            spatialNeighbors[roomAbove].add(roomBelow);
+            spatialNeighbors[roomBelow].add(roomAbove);
+          }
+        }
+
+        // Check horizontal neighbors (Room Left <-> Room Right)
+        if (x > 0 && x < DUNGEON_WIDTH - 1) {
+          const roomLeft = roomMap[y][x - 1];
+          const roomRight = roomMap[y][x + 1];
+
+          if (roomLeft >= 0 && roomRight >= 0 && roomLeft !== roomRight) {
+            spatialNeighbors[roomLeft].add(roomRight);
+            spatialNeighbors[roomRight].add(roomLeft);
+          }
+        }
+      }
+    }
+  }
+
+  // Store spatial neighbors in each room's spatialNeighbors array
+  for (let i = 0; i < rooms.length; i++) {
+    (rooms[i] as any).spatialNeighbors = Array.from(spatialNeighbors[i]);
+  }
+}
+
 export function connectRooms(dungeon: TileType[][], roomMap: number[][], rooms: Room[]) {
   // 1. Identify all possible connections (adjacent rooms)
   const possibleConnections: Connection[] = [];
