@@ -3,16 +3,27 @@ import { createClient } from "@supabase/supabase-js";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 
-if (!supabaseUrl || !supabaseAnonKey) {
+// Create a dummy client if credentials are missing to prevent initialization errors
+const isValidUrl = supabaseUrl && supabaseUrl.startsWith('http');
+const hasValidCredentials = isValidUrl && supabaseAnonKey && supabaseAnonKey !== 'your-anon-key-here';
+
+if (!hasValidCredentials) {
   console.warn(
-    "Supabase environment variables are not set. Please configure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local"
+    "⚠️ Supabase environment variables are not set. Please configure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local"
   );
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = hasValidCredentials
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : createClient('https://placeholder.supabase.co', 'placeholder-key');
 
 // Test connection function - queries app_metadata table to verify DB is accessible
 export async function testSupabaseConnection(): Promise<boolean> {
+  if (!hasValidCredentials) {
+    console.warn("⚠️ Skipping Supabase connection test - credentials not configured");
+    return false;
+  }
+
   try {
     const { data, error } = await supabase
       .from("app_metadata")

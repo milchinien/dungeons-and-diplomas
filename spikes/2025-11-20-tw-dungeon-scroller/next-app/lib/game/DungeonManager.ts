@@ -197,7 +197,7 @@ export class DungeonManager {
 
       // Determine enemy count and level generation based on room type
       let enemyCount = 0;
-      let levelGenerator: (index: number) => number;
+      let levelGenerator: (index: number) => number = () => 1; // Default level generator
 
       switch (room.type) {
         case 'treasure':
