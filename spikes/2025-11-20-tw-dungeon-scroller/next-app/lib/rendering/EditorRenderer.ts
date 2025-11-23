@@ -1,8 +1,8 @@
-import { GameRenderer } from './GameRenderer';
-import type { TileType, TileVariant, Room } from '../constants';
-import { TILE, TILE_SOURCE_SIZE, TILESET_COORDS } from '../constants';
-import type { Player } from '../Enemy';
+import type { TileType, Room } from '../constants';
+import { TILE, TILE_SOURCE_SIZE } from '../constants';
 import { Enemy } from '../Enemy';
+import type { RenderMap } from '../tiletheme/types';
+import { getThemeRenderer } from '../tiletheme/ThemeRenderer';
 
 export interface EditorCamera {
   x: number;         // Camera world position X
@@ -11,85 +11,6 @@ export interface EditorCamera {
 }
 
 export class EditorRenderer {
-  private gameRenderer: GameRenderer;
-  private tilesetImage: HTMLImageElement | null = null;
-
-  constructor() {
-    this.gameRenderer = new GameRenderer();
-  }
-
-  async loadTileset() {
-    await this.gameRenderer.loadTileset();
-
-    // Load tileset for editor-specific rendering
-    const tilesetImage = new Image();
-    await new Promise<void>((resolve) => {
-      tilesetImage.onload = () => resolve();
-      tilesetImage.src = '/Assets/Castle-Dungeon2_Tiles/Tileset.png';
-    });
-    this.tilesetImage = tilesetImage;
-  }
-
-  private getTileCoords(
-    x: number,
-    y: number,
-    tile: TileType,
-    tileVariants: TileVariant[][],
-    roomMap: number[][],
-    rooms: Room[],
-    dungeon: TileType[][]
-  ): { x: number; y: number } | null {
-    const dungeonWidth = dungeon[0]?.length ?? 0;
-    const dungeonHeight = dungeon.length;
-
-    if (tile === 0) {
-      return null;
-    }
-
-    if (tile === 1) {
-      const roomId = roomMap[y][x];
-      if (roomId >= 0 && rooms[roomId]) {
-        const roomType = rooms[roomId].type;
-
-        if (roomType === 'treasure') {
-          return { x: 18, y: 11 };
-        } else if (roomType === 'combat') {
-          return { x: 7, y: 12 };
-        }
-      }
-
-      return tileVariants[y][x].floor;
-    }
-
-    if (tile === 3) {
-      const hasWallLeft = x > 0 && dungeon[y][x - 1] === 2;
-      const hasWallRight = x < dungeonWidth - 1 && dungeon[y][x + 1] === 2;
-      const hasWallAbove = y > 0 && dungeon[y - 1][x] === 2;
-      const hasWallBelow = y < dungeonHeight - 1 && dungeon[y + 1][x] === 2;
-
-      if (hasWallLeft || hasWallRight) {
-        return TILESET_COORDS.DOOR_VERTICAL;
-      } else if (hasWallAbove || hasWallBelow) {
-        return TILESET_COORDS.DOOR_HORIZONTAL;
-      } else {
-        const hasFloorLeft = x > 0 && dungeon[y][x - 1] === 1;
-        const hasFloorRight = x < dungeonWidth - 1 && dungeon[y][x + 1] === 1;
-
-        if (hasFloorLeft && hasFloorRight) {
-          return TILESET_COORDS.DOOR_HORIZONTAL;
-        } else {
-          return TILESET_COORDS.DOOR_VERTICAL;
-        }
-      }
-    }
-
-    if (tile === 2 || tile === 4) {
-      return tileVariants[y][x].wall;
-    }
-
-    return tileVariants[y][x].floor;
-  }
-
   /**
    * Render dungeon from editor camera perspective
    *
@@ -99,22 +20,24 @@ export class EditorRenderer {
    * - Zoom is applied to canvas transform
    * - All rooms are visible (no fog of war)
    * - Enemies are rendered statically (no animation)
+   * - No bright/dark tileset switching (always uses dark theme)
    */
   render(
     canvas: HTMLCanvasElement,
     dungeon: TileType[][],
-    tileVariants: TileVariant[][],
     roomMap: number[][],
     rooms: Room[],
     enemies: Enemy[],
     camera: EditorCamera,
     baseTileSize: number,
-    treasures?: Set<string>,
+    renderMap: RenderMap,
     playerSpawnPos?: { x: number; y: number },
     showGrid?: boolean
   ) {
     const ctx = canvas.getContext('2d');
-    if (!ctx || !this.tilesetImage) return;
+    if (!ctx) return;
+
+    const themeRenderer = getThemeRenderer();
 
     // Clear canvas
     ctx.fillStyle = '#000000';
@@ -126,9 +49,9 @@ export class EditorRenderer {
     ctx.translate(-camera.x, -camera.y);
     ctx.scale(camera.zoom, camera.zoom);
 
-    // Get dungeon dimensions from the actual arrays
-    const dungeonWidth = dungeon[0]?.length ?? 0;
-    const dungeonHeight = dungeon.length;
+    // Get dungeon dimensions from renderMap
+    const dungeonWidth = renderMap.width;
+    const dungeonHeight = renderMap.height;
 
     // Calculate viewport in tile coordinates
     const startCol = Math.floor(camera.x / (baseTileSize * camera.zoom));
@@ -136,42 +59,35 @@ export class EditorRenderer {
     const startRow = Math.floor(camera.y / (baseTileSize * camera.zoom));
     const endRow = startRow + Math.ceil(canvas.height / (baseTileSize * camera.zoom)) + 1;
 
-    // Render tiles
+    // Render tiles using RenderMap (same as GameRenderer)
     for (let y = Math.max(0, startRow); y < Math.min(dungeonHeight, endRow); y++) {
       for (let x = Math.max(0, startCol); x < Math.min(dungeonWidth, endCol); x++) {
         const tile = dungeon[y][x];
 
         if (tile === TILE.EMPTY) continue;
 
-        const coords = this.getTileCoords(x, y, tile, tileVariants, roomMap, rooms, dungeon);
-        if (coords) {
-          const srcX = coords.x * TILE_SOURCE_SIZE;
-          const srcY = coords.y * TILE_SOURCE_SIZE;
+        // Get pre-computed render tile
+        const renderTile = renderMap.tiles[y]?.[x];
+        if (!renderTile) continue;
 
+        // Editor always uses dark tileset (no bright/dark switching)
+        const tilesetId = renderTile.darkTilesetId;
+        const srcX = renderTile.darkSrcX;
+        const srcY = renderTile.darkSrcY;
+
+        const tileset = themeRenderer.getTilesetImage(tilesetId);
+
+        if (tileset) {
           ctx.drawImage(
-            this.tilesetImage!,
+            tileset,
             srcX, srcY, TILE_SOURCE_SIZE, TILE_SOURCE_SIZE,
             x * baseTileSize, y * baseTileSize, baseTileSize, baseTileSize
           );
+        } else {
+          // Missing tileset - pink placeholder
+          ctx.fillStyle = '#FF00FF';
+          ctx.fillRect(x * baseTileSize, y * baseTileSize, baseTileSize, baseTileSize);
         }
-      }
-    }
-
-    // Draw treasures
-    if (treasures) {
-      for (const treasureKey of treasures) {
-        const [tx, ty] = treasureKey.split(',').map(Number);
-
-        // Draw treasure chest sprite (10, 12)
-        const treasureCoords = { x: 10, y: 12 };
-        const srcX = treasureCoords.x * TILE_SOURCE_SIZE;
-        const srcY = treasureCoords.y * TILE_SOURCE_SIZE;
-
-        ctx.drawImage(
-          this.tilesetImage!,
-          srcX, srcY, TILE_SOURCE_SIZE, TILE_SOURCE_SIZE,
-          tx * baseTileSize, ty * baseTileSize, baseTileSize, baseTileSize
-        );
       }
     }
 

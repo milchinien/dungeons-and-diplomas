@@ -161,18 +161,19 @@ export function useGameState({
 
     const manager = dungeonManagerRef.current;
 
-    gameRendererRef.current.render(
-      canvas,
-      playerRef.current,
-      manager.dungeon,
-      manager.tileVariants,
-      manager.roomMap,
-      manager.rooms,
-      manager.enemies,
-      manager.playerSprite,
-      manager.tileSize,
-      manager.treasures
-    );
+    if (manager.renderMap) {
+      gameRendererRef.current.render(
+        canvas,
+        playerRef.current,
+        manager.dungeon,
+        manager.roomMap,
+        manager.rooms,
+        manager.enemies,
+        manager.playerSprite,
+        manager.tileSize,
+        manager.renderMap
+      );
+    }
 
     minimapRendererRef.current.render(
       minimap,
@@ -216,10 +217,7 @@ export function useGameState({
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
 
-      // Load tileset
-      await gameRendererRef.current.loadTileset();
-
-      // Initialize dungeon manager
+      // Initialize dungeon manager (tilesets are loaded there via ThemeRenderer)
       const dungeonManager = new DungeonManager(playerRef.current);
       await dungeonManager.initialize(availableSubjects);
       dungeonManagerRef.current = dungeonManager;

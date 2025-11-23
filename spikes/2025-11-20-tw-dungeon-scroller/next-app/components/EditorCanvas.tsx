@@ -51,16 +51,24 @@ export default function EditorCanvas({ availableSubjects }: EditorCanvasProps) {
     setIsDragging(false);
   };
 
-  // Mouse wheel for zooming
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
+  // Mouse wheel for zooming - use native event listener with passive: false
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-    if (e.deltaY < 0) {
-      editorState.zoomIn();
-    } else {
-      editorState.zoomOut();
-    }
-  };
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+
+      if (e.deltaY < 0) {
+        editorState.zoomIn();
+      } else {
+        editorState.zoomOut();
+      }
+    };
+
+    canvas.addEventListener('wheel', handleWheel, { passive: false });
+    return () => canvas.removeEventListener('wheel', handleWheel);
+  }, [canvasRef, editorState]);
 
   // Keyboard controls (WASD for panning)
   useEffect(() => {
@@ -200,7 +208,6 @@ export default function EditorCanvas({ availableSubjects }: EditorCanvasProps) {
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
-          onWheel={handleWheel}
         />
 
         {/* Save Modal */}

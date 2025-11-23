@@ -53,8 +53,7 @@ export function useEditorState({ availableSubjects }: UseEditorStateProps) {
   // Initialize
   useEffect(() => {
     const init = async () => {
-      await editorRendererRef.current.loadTileset();
-
+      // Tilesets are loaded in DungeonManager.initialize() via ThemeRenderer
       const dungeonManager = new DungeonManager(fakePlayerRef.current);
       await dungeonManager.initialize(availableSubjects);
       dungeonManagerRef.current = dungeonManager;
@@ -108,16 +107,17 @@ export function useEditorState({ availableSubjects }: UseEditorStateProps) {
 
     const manager = dungeonManagerRef.current;
 
+    if (!manager.renderMap) return;
+
     editorRendererRef.current.render(
       canvas,
       manager.dungeon,
-      manager.tileVariants,
       manager.roomMap,
       manager.rooms,
       manager.enemies,
       camera,
       manager.tileSize,
-      manager.treasures,
+      manager.renderMap,
       {
         x: Math.floor(fakePlayerRef.current.x / manager.tileSize),
         y: Math.floor(fakePlayerRef.current.y / manager.tileSize)

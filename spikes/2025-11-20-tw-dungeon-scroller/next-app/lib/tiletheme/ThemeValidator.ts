@@ -7,6 +7,9 @@ import {
   WALL_TYPE,
   WallType
 } from './types';
+
+// Re-export ValidationResult for convenience
+export type { ValidationResult } from './types';
 import { WALL_TYPE_FALLBACKS } from './WallTypeDetector';
 
 /**

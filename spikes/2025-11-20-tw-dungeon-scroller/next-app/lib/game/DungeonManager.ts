@@ -17,7 +17,7 @@ import {
   calculateSpatialNeighbors,
   addWalls
 } from '../dungeon/generation';
-import { initializeDungeonRNG, generateRandomSeed, getSpawnRng } from '../dungeon/DungeonRNG';
+import { initializeDungeonRNG, generateRandomSeed, getSpawnRng, getDecorationRng } from '../dungeon/DungeonRNG';
 import { SpriteSheetLoader } from '../SpriteSheetLoader';
 import { Enemy } from '../Enemy';
 import {
@@ -26,6 +26,9 @@ import {
   calculateSubjectWeights,
   selectWeightedSubject
 } from '../spawning/LevelDistribution';
+import type { TileTheme, ImportedTileset, RenderMap } from '../tiletheme/types';
+import { generateRenderMap } from '../tiletheme/RenderMapGenerator';
+import { getThemeRenderer } from '../tiletheme/ThemeRenderer';
 
 export class DungeonManager {
   public dungeon: TileType[][] = [];
@@ -38,6 +41,12 @@ export class DungeonManager {
   public tileSize: number = 64;
   public treasures: Set<string> = new Set(); // Store treasure positions as "x,y" strings
   public config: DungeonConfig = { ...DEFAULT_DUNGEON_CONFIG };
+
+  // Theme-based rendering
+  public darkTheme: TileTheme | null = null;
+  public lightTheme: TileTheme | null = null;
+  public tilesets: ImportedTileset[] = [];
+  public renderMap: RenderMap | null = null;
 
   constructor(player: Player) {
     this.player = player;
@@ -58,8 +67,42 @@ export class DungeonManager {
     playerSprite.playAnimation(DIRECTION.DOWN, ANIMATION.IDLE);
     this.playerSprite = playerSprite;
 
+    // Load theme (default to Theme 1)
+    await this.loadTheme(1);
+
     // Generate initial dungeon
     await this.generateNewDungeon(availableSubjects);
+  }
+
+  /**
+   * Load a tile theme and its tilesets
+   */
+  async loadTheme(themeId: number): Promise<boolean> {
+    try {
+      const response = await fetch(`/api/theme/${themeId}`);
+      if (!response.ok) {
+        console.warn(`Failed to load theme ${themeId}, using fallback rendering`);
+        return false;
+      }
+
+      const data = await response.json();
+      this.darkTheme = data.theme;
+      this.tilesets = data.tilesets;
+
+      // Load all tilesets into ThemeRenderer
+      const renderer = getThemeRenderer();
+      for (const tileset of this.tilesets) {
+        if (!renderer.isTilesetLoaded(tileset.id)) {
+          await renderer.loadTileset(tileset.id, tileset.path);
+        }
+      }
+
+      console.log(`Loaded theme: ${this.darkTheme?.name}`);
+      return true;
+    } catch (error) {
+      console.error('Error loading theme:', error);
+      return false;
+    }
   }
 
   async generateNewDungeon(
@@ -103,6 +146,15 @@ export class DungeonManager {
     connectRooms(this.dungeon, this.roomMap, this.rooms, this.config);
     calculateSpatialNeighbors(this.dungeon, this.roomMap, this.rooms, this.config);
     addWalls(this.dungeon, this.config);
+
+    // Generate RenderMap if theme is loaded
+    if (this.darkTheme) {
+      // Use decoration seed for consistent tile variant selection
+      const decorRng = getDecorationRng();
+      const renderSeed = decorRng.nextInt(0, 1000000);
+      this.renderMap = generateRenderMap(this.dungeon, this.darkTheme, this.lightTheme, renderSeed);
+      console.log(`Generated RenderMap: ${this.renderMap.width}x${this.renderMap.height}`);
+    }
 
     this.spawnPlayer();
     await this.spawnEnemies(availableSubjects, userId);
