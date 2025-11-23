@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import type { QuestionDatabase } from '@/lib/questions';
-import { PLAYER_MAX_HP } from '@/lib/constants';
+import { PLAYER_MAX_HP, DIRECTION } from '@/lib/constants';
+import type { Player } from '@/lib/enemy';
 import LoginModal from './LoginModal';
 import SkillDashboard from './SkillDashboard';
 import CharacterPanel from './CharacterPanel';
@@ -15,17 +16,18 @@ import { useScoring } from '@/hooks/useScoring';
 import { useCombat } from '@/hooks/useCombat';
 import { useGameState } from '@/hooks/useGameState';
 import { getLevelInfo } from '@/lib/scoring/LevelCalculator';
+import { api } from '@/lib/api';
+import { COLORS } from '@/lib/ui/colors';
 
 export default function GameCanvas() {
   const [questionDatabase, setQuestionDatabase] = useState<QuestionDatabase | null>(null);
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
   const [showSkillDashboard, setShowSkillDashboard] = useState(false);
   const [playerHp, setPlayerHp] = useState(PLAYER_MAX_HP);
-  const [playerXp, setPlayerXp] = useState(0);
   const [treasureBubbles, setTreasureBubbles] = useState<Array<{ id: number; x: number; y: number; xp: number }>>([]);
 
-  // Auth
-  const { userId, username, showLogin, handleLogin, handleLogout } = useAuth();
+  // Auth (includes XP state)
+  const { userId, username, userXp, setUserXp, showLogin, handleLogin, handleLogout } = useAuth();
 
   // Scoring
   const { sessionScores, loadSessionElos, updateSessionScores } = useScoring(userId);
@@ -34,17 +36,10 @@ export default function GameCanvas() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [questionsResponse, subjectsResponse] = await Promise.all([
-          fetch('/api/questions'),
-          fetch('/api/subjects')
+        const [questions, subjects] = await Promise.all([
+          api.questions.getAllQuestions(),
+          api.questions.getSubjects()
         ]);
-
-        if (!questionsResponse.ok || !subjectsResponse.ok) {
-          throw new Error('Failed to load game data');
-        }
-
-        const questions = await questionsResponse.json();
-        const subjects = await subjectsResponse.json();
 
         setQuestionDatabase(questions);
         setAvailableSubjects(subjects);
@@ -56,33 +51,15 @@ export default function GameCanvas() {
     loadData();
   }, []);
 
-  // Load session ELOs and user XP when user logs in
+  // Load session ELOs when user logs in (XP is handled by useAuth)
   useEffect(() => {
     if (userId) {
       loadSessionElos(userId);
-      loadUserXp(userId);
     }
   }, [userId]);
 
-  const loadUserXp = async (id: number) => {
-    try {
-      const response = await fetch(`/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: username })
-      });
-
-      if (response.ok) {
-        const userData = await response.json();
-        setPlayerXp(userData.xp || 0);
-      }
-    } catch (error) {
-      console.error('Failed to load user XP:', error);
-    }
-  };
-
   const handleXpGained = (amount: number) => {
-    setPlayerXp(prev => prev + amount);
+    setUserXp(prev => prev + amount);
   };
 
   const handleTreasureCollected = (screenX: number, screenY: number, xpAmount: number) => {
@@ -94,32 +71,41 @@ export default function GameCanvas() {
     setTreasureBubbles(prev => prev.filter(b => b.id !== id));
   };
 
-  // Game state
+  // Shared player reference (owned by GameCanvas, used by both hooks)
+  const playerRef = useRef<Player>({
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0,
+    direction: DIRECTION.DOWN,
+    isMoving: false,
+    hp: PLAYER_MAX_HP,
+    maxHp: PLAYER_MAX_HP
+  });
+
+  // Combat - initialized first so we have inCombatRef and startCombat
+  const combat = useCombat({
+    questionDatabase,
+    userId,
+    playerRef,
+    onUpdateSessionScores: updateSessionScores,
+    onPlayerHpUpdate: setPlayerHp,
+    onGameRestart: () => gameState.generateNewDungeon(),
+    onXpGained: handleXpGained
+  });
+
+  // Game state - receives combat refs via props
   const gameState = useGameState({
     questionDatabase,
     availableSubjects,
     userId,
     onPlayerHpUpdate: setPlayerHp,
     onXpGained: handleXpGained,
-    onTreasureCollected: handleTreasureCollected
+    onTreasureCollected: handleTreasureCollected,
+    inCombatRef: combat.inCombatRef,
+    onStartCombat: combat.startCombat,
+    playerRef
   });
-
-  // Combat
-  const combat = useCombat({
-    questionDatabase,
-    userId,
-    playerRef: gameState.playerRef,
-    onUpdateSessionScores: updateSessionScores,
-    onPlayerHpUpdate: setPlayerHp,
-    onGameRestart: gameState.generateNewDungeon,
-    onXpGained: handleXpGained
-  });
-
-  // Wire combat into game state
-  useEffect(() => {
-    gameState.inCombatRef.current = combat.inCombatRef.current;
-    gameState.startCombatRef.current = combat.startCombat;
-  }, [combat.inCombatRef.current, combat.startCombat]);
 
   const handleOpenSkills = () => {
     gameState.gamePausedRef.current = true;
@@ -131,14 +117,13 @@ export default function GameCanvas() {
     setShowSkillDashboard(false);
   };
 
-  const handleLoginWithElo = async (id: number, name: string) => {
-    await handleLogin(id, name);
+  const handleLoginWithElo = async (id: number, name: string, xp?: number) => {
+    await handleLogin(id, name, xp);
     await loadSessionElos(id);
-    await loadUserXp(id);
   };
 
   // Calculate level info from current XP
-  const levelInfo = getLevelInfo(playerXp);
+  const levelInfo = getLevelInfo(userXp);
 
   return (
     <>
@@ -210,7 +195,7 @@ export default function GameCanvas() {
             position: 'absolute',
             top: '10px',
             right: '10px',
-            border: '3px solid #4CAF50',
+            border: `3px solid ${COLORS.success}`,
             borderRadius: '4px',
             backgroundColor: 'rgba(0, 0, 0, 0.7)',
             zIndex: 100,
@@ -228,6 +213,14 @@ export default function GameCanvas() {
             combatQuestion={combat.combatQuestion}
             combatFeedback={combat.combatFeedback}
             onAnswerQuestion={combat.answerQuestion}
+            player={playerRef.current}
+            dungeon={gameState.dungeonManagerRef.current?.dungeon}
+            roomMap={gameState.dungeonManagerRef.current?.roomMap}
+            rooms={gameState.dungeonManagerRef.current?.rooms}
+            renderMap={gameState.dungeonManagerRef.current?.renderMap}
+            doorStates={gameState.dungeonManagerRef.current?.doorStates}
+            darkTheme={gameState.dungeonManagerRef.current?.darkTheme}
+            tileSize={gameState.dungeonManagerRef.current?.tileSize}
           />
         )}
 

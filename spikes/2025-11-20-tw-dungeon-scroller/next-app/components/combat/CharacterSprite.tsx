@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { SpriteSheetLoader } from '@/lib/SpriteSheetLoader';
 import { DIRECTION, ANIMATION } from '@/lib/constants';
+import { getContext2D } from '@/lib/rendering/canvasUtils';
 
 interface CharacterSpriteProps {
   isPlayer: boolean;
@@ -45,20 +46,24 @@ export default function CharacterSprite({ isPlayer, isAttacking, isHurt, isDead 
     if (!loaded || !spriteRef.current) return;
 
     if (isDead) {
-      // Death animation - play once and stop on last frame
+      // Death animation - play ALL frames and stop on last frame
       spriteRef.current.stopOnLastFrame = true;
+      spriteRef.current.maxFrame = null; // Use all frames for death
       spriteRef.current.playAnimation(DIRECTION.DOWN, ANIMATION.HURT);
     } else if (isAttacking) {
       // Combat animation - use SLASH for attack
       spriteRef.current.stopOnLastFrame = false;
+      spriteRef.current.maxFrame = null;
       spriteRef.current.playAnimation(isPlayer ? DIRECTION.RIGHT : DIRECTION.LEFT, ANIMATION.SLASH);
     } else if (isHurt) {
-      // Damage animation - use HURT
+      // Damage animation - use HURT but skip last 2 frames (death frames)
       spriteRef.current.stopOnLastFrame = false;
+      spriteRef.current.maxFrame = 4; // Only play first 4 frames (hurt has 6, last 2 are death)
       spriteRef.current.playAnimation(DIRECTION.DOWN, ANIMATION.HURT);
     } else {
       // Idle animation
       spriteRef.current.stopOnLastFrame = false;
+      spriteRef.current.maxFrame = null;
       spriteRef.current.playAnimation(DIRECTION.DOWN, ANIMATION.IDLE);
     }
   }, [isAttacking, isHurt, isDead, loaded, isPlayer]);
@@ -68,7 +73,7 @@ export default function CharacterSprite({ isPlayer, isAttacking, isHurt, isDead 
     if (!loaded || !spriteRef.current || !canvasRef.current) return;
 
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
+    const ctx = getContext2D(canvas);
     if (!ctx) return;
 
     let lastTime = 0;
@@ -100,44 +105,62 @@ export default function CharacterSprite({ isPlayer, isAttacking, isHurt, isDead 
   }, [loaded]);
 
   // Calculate animation styles
+  // Attacker moves to the edge of the defender's sprite box, then retreats
+  // Sprite box is 320px wide, so attacker needs to close the gap until boxes almost touch
   const getAnimationStyle = () => {
-    if (isDead) {
-      return {
-        opacity: 1,
-        transition: 'opacity 0.5s ease'
-      };
-    }
-
     if (isPlayer) {
-      if (isAttacking) {
+      if (isDead) {
+        // Move to combat position for death animation
         return {
-          transform: 'translateX(30px)',
-          transition: 'transform 0.3s ease'
+          transform: 'translateX(calc(-50% + 15vw - 170px))',
+          opacity: 1,
+          transition: 'transform 0.2s ease-out, opacity 0.5s ease'
+        };
+      }
+      if (isAttacking) {
+        // Move right until sprite boxes almost touch
+        // Gap is 30vw, sprites are 320px each, leave 20px gap
+        return {
+          transform: 'translateX(calc(-50% + 30vw - 340px))',
+          transition: 'transform 0.2s ease-out'
         };
       } else if (isHurt) {
+        // Move toward attacker (half the distance)
         return {
-          animation: 'playerHurt 0.4s ease'
+          transform: 'translateX(calc(-50% + 15vw - 170px))',
+          transition: 'transform 0.2s ease-out'
         };
       }
       return {
-        transform: 'translateX(0)',
-        transition: 'transform 0.3s ease'
+        transform: 'translateX(-50%)',
+        transition: 'transform 0.25s ease-out'
       };
     } else {
-      // Enemy (Goblin)
-      if (isAttacking) {
+      if (isDead) {
+        // Move to combat position for death animation
         return {
-          transform: 'translateX(-30px)',
-          transition: 'transform 0.3s ease'
+          transform: 'translateX(calc(50% - 15vw + 170px))',
+          opacity: 1,
+          transition: 'transform 0.2s ease-out, opacity 0.5s ease'
+        };
+      }
+      if (isAttacking) {
+        // Move left until sprite boxes almost touch
+        // Gap is 30vw, sprites are 320px each, leave 20px gap
+        return {
+          transform: 'translateX(calc(50% - 30vw + 340px))',
+          transition: 'transform 0.2s ease-out'
         };
       } else if (isHurt) {
+        // Move toward attacker (half the distance)
         return {
-          animation: 'enemyHurt 0.4s ease'
+          transform: 'translateX(calc(50% - 15vw + 170px))',
+          transition: 'transform 0.2s ease-out'
         };
       }
       return {
-        transform: 'translateX(0)',
-        transition: 'transform 0.3s ease'
+        transform: 'translateX(50%)',
+        transition: 'transform 0.25s ease-out'
       };
     }
   };
@@ -152,7 +175,8 @@ export default function CharacterSprite({ isPlayer, isAttacking, isHurt, isDead 
         justifyContent: 'center',
         position: 'absolute',
         bottom: '180px',
-        ...(isPlayer ? { left: '120px' } : { right: '120px' }),
+        // Position characters at 35% from each side (closer together)
+        ...(isPlayer ? { left: '35%' } : { right: '35%' }),
         filter: 'drop-shadow(6px 6px 12px rgba(0, 0, 0, 0.6))',
         zIndex: 10,
         ...getAnimationStyle()
@@ -171,19 +195,21 @@ export default function CharacterSprite({ isPlayer, isAttacking, isHurt, isDead 
 
       <style jsx>{`
         @keyframes enemyHurt {
-          0% { transform: translateX(0) scale(1); }
-          25% { transform: translateX(-15px) scale(0.95); }
-          50% { transform: translateX(15px) scale(0.95); }
-          75% { transform: translateX(-15px) scale(1); }
-          100% { transform: translateX(0) scale(1); }
+          0% { transform: translateX(50%) scale(1); }
+          20% { transform: translateX(calc(50% + 5px)) scale(0.98); }
+          40% { transform: translateX(calc(50% - 5px)) scale(0.98); }
+          60% { transform: translateX(calc(50% + 3px)) scale(0.99); }
+          80% { transform: translateX(calc(50% - 3px)) scale(1); }
+          100% { transform: translateX(50%) scale(1); }
         }
 
         @keyframes playerHurt {
-          0% { transform: translateX(0) scale(1); }
-          25% { transform: translateX(15px) scale(0.95); }
-          50% { transform: translateX(-15px) scale(0.95); }
-          75% { transform: translateX(15px) scale(1); }
-          100% { transform: translateX(0) scale(1); }
+          0% { transform: translateX(-50%) scale(1); }
+          20% { transform: translateX(calc(-50% - 5px)) scale(0.98); }
+          40% { transform: translateX(calc(-50% + 5px)) scale(0.98); }
+          60% { transform: translateX(calc(-50% - 3px)) scale(0.99); }
+          80% { transform: translateX(calc(-50% + 3px)) scale(1); }
+          100% { transform: translateX(-50%) scale(1); }
         }
       `}</style>
     </>

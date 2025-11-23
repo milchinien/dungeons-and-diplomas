@@ -1,5 +1,6 @@
-import { MIN_ROOM_SIZE, MAX_ROOM_SIZE, TILE, DUNGEON_HEIGHT, DUNGEON_WIDTH } from '../constants';
-import type { TileType, Room } from '../constants';
+import { MIN_ROOM_SIZE, MAX_ROOM_SIZE, TILE } from '../constants';
+import type { TileType, Room, DungeonConfig } from '../constants';
+import { getStructureRng } from './DungeonRNG';
 
 export class BSPNode {
   x: number;
@@ -11,59 +12,70 @@ export class BSPNode {
   splitDirection: 'horizontal' | 'vertical' | null = null;
   splitPosition: number | null = null;
   roomId: number | null = null;
+  config?: Partial<DungeonConfig>;
 
-  constructor(x: number, y: number, width: number, height: number) {
+  constructor(x: number, y: number, width: number, height: number, config?: Partial<DungeonConfig>) {
     this.x = x;
     this.y = y;
     this.width = width;
     this.height = height;
+    this.config = config;
+  }
+
+  private get minRoomSize(): number {
+    return this.config?.minRoomSize ?? MIN_ROOM_SIZE;
+  }
+
+  private get maxRoomSize(): number {
+    return this.config?.maxRoomSize ?? MAX_ROOM_SIZE;
   }
 
   split() {
     // Stop splitting if too small
-    if (this.width < MIN_ROOM_SIZE * 2 + 1 || this.height < MIN_ROOM_SIZE * 2 + 1) {
+    if (this.width < this.minRoomSize * 2 + 1 || this.height < this.minRoomSize * 2 + 1) {
       return;
     }
 
     // Randomly stop splitting to create varied room sizes
-    if (this.width <= MAX_ROOM_SIZE && this.height <= MAX_ROOM_SIZE && Math.random() < 0.25) {
+    const rng = getStructureRng();
+    if (this.width <= this.maxRoomSize && this.height <= this.maxRoomSize && rng.nextBoolean(0.25)) {
       return;
     }
 
     // Decide split direction based on dimensions
     let splitHorizontally: boolean;
-    if (this.height < MIN_ROOM_SIZE * 2 + 1) {
+    if (this.height < this.minRoomSize * 2 + 1) {
       splitHorizontally = false;
-    } else if (this.width < MIN_ROOM_SIZE * 2 + 1) {
+    } else if (this.width < this.minRoomSize * 2 + 1) {
       splitHorizontally = true;
     } else if (this.height > this.width * 1.25) {
       splitHorizontally = true;
     } else if (this.width > this.height * 1.25) {
       splitHorizontally = false;
     } else {
-      splitHorizontally = Math.random() > 0.5;
+      splitHorizontally = rng.nextBoolean(0.5);
     }
 
     if (splitHorizontally) {
-      const minSplit = MIN_ROOM_SIZE;
-      const maxSplit = this.height - MIN_ROOM_SIZE - 1;
-      const splitPos = Math.floor(Math.random() * (maxSplit - minSplit) + minSplit);
+      const minSplit = this.minRoomSize;
+      const maxSplit = this.height - this.minRoomSize - 1;
+      const splitPos = rng.nextInt(minSplit, maxSplit + 1);
 
       this.splitDirection = 'horizontal';
       this.splitPosition = splitPos;
 
-      this.leftChild = new BSPNode(this.x, this.y, this.width, splitPos);
-      this.rightChild = new BSPNode(this.x, this.y + splitPos + 1, this.width, this.height - splitPos - 1);
+      this.leftChild = new BSPNode(this.x, this.y, this.width, splitPos, this.config);
+      this.rightChild = new BSPNode(this.x, this.y + splitPos + 1, this.width, this.height - splitPos - 1, this.config);
     } else {
-      const minSplit = MIN_ROOM_SIZE;
-      const maxSplit = this.width - MIN_ROOM_SIZE - 1;
-      const splitPos = Math.floor(Math.random() * (maxSplit - minSplit) + minSplit);
+      const minSplit = this.minRoomSize;
+      const maxSplit = this.width - this.minRoomSize - 1;
+      const splitPos = rng.nextInt(minSplit, maxSplit + 1);
 
       this.splitDirection = 'vertical';
       this.splitPosition = splitPos;
 
-      this.leftChild = new BSPNode(this.x, this.y, splitPos, this.height);
-      this.rightChild = new BSPNode(this.x + splitPos + 1, this.y, this.width - splitPos - 1, this.height);
+      this.leftChild = new BSPNode(this.x, this.y, splitPos, this.height, this.config);
+      this.rightChild = new BSPNode(this.x + splitPos + 1, this.y, this.width - splitPos - 1, this.height, this.config);
     }
 
     // Recursively split children
@@ -77,7 +89,8 @@ export class BSPNode {
       this.roomId = rooms.length;
 
       // Assign room type with weighted random selection
-      const typeRoll = Math.random() * 10;
+      const rng = getStructureRng();
+      const typeRoll = rng.next() * 10;
       let roomType: 'empty' | 'treasure' | 'combat';
       if (typeRoll < 2) {
         roomType = 'treasure';

@@ -4,7 +4,10 @@ import {
   TILE
 } from '../constants';
 import type { TileType, Room } from '../constants';
-import type { Player } from '../Enemy';
+import type { Player } from '../enemy';
+import { getEntityTilePosition } from '../physics/TileCoordinates';
+import { getContext2D, clearCanvas } from './canvasUtils';
+import { RENDER_COLORS } from '../ui/colors';
 
 export class MinimapRenderer {
   render(
@@ -15,11 +18,10 @@ export class MinimapRenderer {
     rooms: Room[],
     tileSize: number
   ) {
-    const ctx = canvas.getContext('2d');
+    const ctx = getContext2D(canvas);
     if (!ctx) return;
 
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    clearCanvas(ctx);
 
     const scaleX = canvas.width / DUNGEON_WIDTH;
     const scaleY = canvas.height / DUNGEON_HEIGHT;
@@ -60,19 +62,19 @@ export class MinimapRenderer {
           if (roomId >= 0 && rooms[roomId]) {
             const roomType = rooms[roomId].type;
             if (roomType === 'treasure') {
-              ctx.fillStyle = '#FFD700';
+              ctx.fillStyle = RENDER_COLORS.minimap.treasure;
             } else if (roomType === 'combat') {
-              ctx.fillStyle = '#FF4444';
+              ctx.fillStyle = RENDER_COLORS.minimap.combat;
             } else {
-              ctx.fillStyle = '#888888';
+              ctx.fillStyle = RENDER_COLORS.minimap.empty;
             }
           } else {
-            ctx.fillStyle = '#888888';
+            ctx.fillStyle = RENDER_COLORS.minimap.empty;
           }
         } else if (tile === TILE.WALL) {
-          ctx.fillStyle = '#444444';
+          ctx.fillStyle = RENDER_COLORS.minimap.wall;
         } else if (tile === TILE.DOOR) {
-          ctx.fillStyle = '#4CAF50';
+          ctx.fillStyle = RENDER_COLORS.minimap.door;
         } else {
           continue;
         }
@@ -86,10 +88,9 @@ export class MinimapRenderer {
       }
     }
 
-    const playerTileX = Math.floor((player.x + tileSize / 2) / tileSize);
-    const playerTileY = Math.floor((player.y + tileSize / 2) / tileSize);
+    const { tx: playerTileX, ty: playerTileY } = getEntityTilePosition(player, tileSize);
 
-    ctx.fillStyle = '#00FFFF';
+    ctx.fillStyle = RENDER_COLORS.minimap.player;
     ctx.fillRect(
       offsetX + playerTileX * scale - scale,
       offsetY + playerTileY * scale - scale,

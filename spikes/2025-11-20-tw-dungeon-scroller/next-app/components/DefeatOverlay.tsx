@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import GameOverlay, { OVERLAY_STYLES } from './GameOverlay';
 
 interface DefeatOverlayProps {
   onRestart: () => void;
@@ -17,15 +18,9 @@ export default function DefeatOverlay({ onRestart }: DefeatOverlayProps) {
   };
 
   return (
-    <div
+    <GameOverlay
+      backgroundColor="rgba(0, 0, 0, 0.95)"
       style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100vw',
-        height: '100vh',
-        backgroundColor: 'rgba(0, 0, 0, 0.95)',
-        zIndex: 2000,
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
@@ -36,13 +31,10 @@ export default function DefeatOverlay({ onRestart }: DefeatOverlayProps) {
       {/* Defeat Text */}
       <div
         style={{
-          fontSize: '120px',
-          fontWeight: 900,
+          ...OVERLAY_STYLES.title,
           color: '#FF4444',
           textShadow: '0 0 20px rgba(255, 68, 68, 0.8), 0 0 40px rgba(255, 68, 68, 0.5), 4px 4px 8px rgba(0, 0, 0, 0.9)',
           animation: 'defeatShake 0.6s ease-out',
-          userSelect: 'none',
-          letterSpacing: '10px',
           marginBottom: '40px'
         }}
       >
@@ -52,11 +44,8 @@ export default function DefeatOverlay({ onRestart }: DefeatOverlayProps) {
       {/* Try Again Text */}
       <div
         style={{
-          fontSize: '36px',
-          fontWeight: 600,
-          color: '#CCCCCC',
+          ...OVERLAY_STYLES.subtitle,
           marginBottom: '60px',
-          userSelect: 'none'
         }}
       >
         Du wurdest besiegt!
@@ -118,6 +107,6 @@ export default function DefeatOverlay({ onRestart }: DefeatOverlayProps) {
           }
         }
       `}</style>
-    </div>
+    </GameOverlay>
   );
 }

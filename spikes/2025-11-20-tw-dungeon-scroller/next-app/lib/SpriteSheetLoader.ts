@@ -12,6 +12,7 @@ export class SpriteSheetLoader {
   animTimer: number = 0;
   animSpeed: number = ANIM_SPEEDS.default;
   stopOnLastFrame: boolean = false; // For death animations
+  maxFrame: number | null = null; // Limit animation to specific frame count (null = all frames)
 
   constructor(spritesheetName: string) {
     this.spritesheetName = spritesheetName;
@@ -59,14 +60,19 @@ export class SpriteSheetLoader {
     const anim = this.config.animations.find((a: any) => a.name === this.currentAnimation);
     if (!anim) return;
 
+    // Determine effective frame count (limited by maxFrame if set)
+    const effectiveFrameCount = this.maxFrame !== null
+      ? Math.min(this.maxFrame, anim.animcount)
+      : anim.animcount;
+
     if (this.animTimer >= this.animSpeed) {
       this.animTimer = 0;
 
-      if (this.stopOnLastFrame && this.currentFrame >= anim.animcount - 1) {
+      if (this.stopOnLastFrame && this.currentFrame >= effectiveFrameCount - 1) {
         // Stay on last frame
-        this.currentFrame = anim.animcount - 1;
+        this.currentFrame = effectiveFrameCount - 1;
       } else {
-        this.currentFrame = (this.currentFrame + 1) % anim.animcount;
+        this.currentFrame = (this.currentFrame + 1) % effectiveFrameCount;
       }
     }
   }

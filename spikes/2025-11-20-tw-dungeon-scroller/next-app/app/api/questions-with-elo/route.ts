@@ -1,26 +1,17 @@
 import { NextResponse } from 'next/server';
 import { getQuestionsWithEloBySubject } from '@/lib/db';
+import { withErrorHandler } from '@/lib/api/errorHandler';
+import { getSearchParams, getRequiredStringParam, getRequiredIntParam } from '@/lib/api/validation';
 
-export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const subject = searchParams.get('subject');
-    const userId = searchParams.get('userId');
+export const GET = withErrorHandler(async (request: Request) => {
+  const searchParams = getSearchParams(request);
 
-    if (!subject || !userId) {
-      return NextResponse.json(
-        { error: 'Missing subject or userId parameter' },
-        { status: 400 }
-      );
-    }
+  const subjectResult = getRequiredStringParam(searchParams, 'subject');
+  if (!subjectResult.success) return subjectResult.error;
 
-    const questions = getQuestionsWithEloBySubject(subject, parseInt(userId, 10));
-    return NextResponse.json(questions);
-  } catch (error) {
-    console.error('Error fetching questions with ELO:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch questions' },
-      { status: 500 }
-    );
-  }
-}
+  const userIdResult = getRequiredIntParam(searchParams, 'userId');
+  if (!userIdResult.success) return userIdResult.error;
+
+  const questions = getQuestionsWithEloBySubject(subjectResult.value, userIdResult.value);
+  return NextResponse.json(questions);
+}, 'fetch questions with ELO');

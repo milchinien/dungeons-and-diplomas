@@ -1,12 +1,16 @@
 'use client';
 
 import { useState } from 'react';
+import { api } from '@/lib/api';
+import { type StorageService, defaultStorage } from '@/lib/storage';
 
 interface LoginModalProps {
-  onLogin: (userId: number, username: string) => void;
+  onLogin: (userId: number, username: string, xp?: number) => void;
+  /** Storage service for persistence (defaults to localStorage). Allows testing with mock storage. */
+  storage?: StorageService;
 }
 
-export default function LoginModal({ onLogin }: LoginModalProps) {
+export default function LoginModal({ onLogin, storage = defaultStorage }: LoginModalProps) {
   const [username, setUsername] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -23,26 +27,14 @@ export default function LoginModal({ onLogin }: LoginModalProps) {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username: username.trim() }),
-      });
+      const data = await api.auth.login(username.trim());
 
-      if (!response.ok) {
-        throw new Error('Login fehlgeschlagen');
-      }
+      // Store in storage
+      storage.set('userId', data.id.toString());
+      storage.set('username', data.username);
 
-      const data = await response.json();
-
-      // Store in localStorage
-      localStorage.setItem('userId', data.id.toString());
-      localStorage.setItem('username', data.username);
-
-      // Call parent callback
-      onLogin(data.id, data.username);
+      // Call parent callback with XP
+      onLogin(data.id, data.username, data.xp);
     } catch (err) {
       setError('Login fehlgeschlagen. Bitte versuche es erneut.');
       console.error('Login error:', err);

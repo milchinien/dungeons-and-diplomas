@@ -1,4 +1,6 @@
 import { useState, useRef } from 'react';
+import { loadAllEloScores } from '@/lib/scoring/EloService';
+import { logHookError } from '@/lib/hooks';
 
 interface SubjectScore {
   subjectKey: string;
@@ -14,28 +16,25 @@ export function useScoring(userId: number | null) {
 
   const loadSessionElos = async (id: number) => {
     try {
-      const response = await fetch(`/api/session-elo?userId=${id}`);
-      if (response.ok) {
-        const eloScores = await response.json();
-        const startElos: { [key: string]: number } = {};
-        const scores: SubjectScore[] = [];
+      const eloScores = await loadAllEloScores(id);
+      const startElos: { [key: string]: number } = {};
+      const scores: SubjectScore[] = [];
 
-        for (const score of eloScores) {
-          startElos[score.subjectKey] = score.averageElo;
-          scores.push({
-            subjectKey: score.subjectKey,
-            subjectName: score.subjectName,
-            startElo: score.averageElo,
-            currentElo: score.averageElo,
-            questionsAnswered: 0
-          });
-        }
-
-        sessionStartEloRef.current = startElos;
-        setSessionScores(scores);
+      for (const score of eloScores) {
+        startElos[score.subjectKey] = score.averageElo;
+        scores.push({
+          subjectKey: score.subjectKey,
+          subjectName: score.subjectName,
+          startElo: score.averageElo,
+          currentElo: score.averageElo,
+          questionsAnswered: 0
+        });
       }
+
+      sessionStartEloRef.current = startElos;
+      setSessionScores(scores);
     } catch (error) {
-      console.error('Error loading session ELO:', error);
+      logHookError('useScoring', error, 'Failed to load session ELO');
     }
   };
 
@@ -43,14 +42,11 @@ export function useScoring(userId: number | null) {
     if (!userId) return;
 
     try {
-      const response = await fetch(`/api/session-elo?userId=${userId}`);
-      if (!response.ok) return;
-
-      const eloScores = await response.json();
+      const eloScores = await loadAllEloScores(userId);
 
       setSessionScores(prevScores => {
         return prevScores.map(score => {
-          const updated = eloScores.find((s: any) => s.subjectKey === score.subjectKey);
+          const updated = eloScores.find((s) => s.subjectKey === score.subjectKey);
           if (!updated) return score;
 
           return {
@@ -63,7 +59,7 @@ export function useScoring(userId: number | null) {
         });
       });
     } catch (error) {
-      console.error('Failed to update session scores:', error);
+      logHookError('useScoring', error, 'Failed to update session scores');
     }
   };
 

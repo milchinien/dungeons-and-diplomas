@@ -1,0 +1,1 @@
+export { VisibilityCalculator } from './VisibilityCalculator';

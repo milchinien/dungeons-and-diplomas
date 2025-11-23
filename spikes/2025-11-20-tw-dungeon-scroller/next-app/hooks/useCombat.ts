@@ -1,11 +1,17 @@
-import { useState, useRef } from 'react';
-import type { Enemy } from '@/lib/Enemy';
-import type { Player } from '@/lib/Enemy';
-import type { Question, QuestionDatabase } from '@/lib/questions';
-import { COMBAT_TIME_LIMIT, COMBAT_FEEDBACK_DELAY, DAMAGE_CORRECT, DAMAGE_WRONG, PLAYER_MAX_HP } from '@/lib/constants';
-import { selectQuestion } from '@/lib/combat/QuestionSelector';
+import { useReducer, useRef, useCallback, useEffect } from 'react';
+import type { Enemy } from '@/lib/enemy';
+import type { Player } from '@/lib/enemy';
+import type { QuestionDatabase } from '@/lib/questions';
+import { COMBAT_FEEDBACK_DELAY, PLAYER_MAX_HP } from '@/lib/constants';
+import { selectQuestionFromPool } from '@/lib/combat/QuestionSelector';
 import { calculateEnemyXpReward } from '@/lib/scoring/LevelCalculator';
-import { calculatePlayerDamage, calculateEnemyDamage } from '@/lib/combat/DamageCalculator';
+import { CombatEngine } from '@/lib/combat/CombatEngine';
+import { combatReducer, initialCombatState, isInCombat } from '@/lib/combat/combatReducer';
+import { api } from '@/lib/api';
+import { loadSubjectElo, findSubjectElo, DEFAULT_ELO } from '@/lib/scoring/EloService';
+import { useTimer } from './useTimer';
+import { type Clock, defaultClock } from '@/lib/time';
+import { logHookError } from '@/lib/hooks';
 
 interface UseCombatProps {
   questionDatabase: QuestionDatabase | null;
@@ -15,6 +21,7 @@ interface UseCombatProps {
   onPlayerHpUpdate: (hp: number) => void;
   onGameRestart: () => void;
   onXpGained?: (amount: number) => void;
+  clock?: Clock;
 }
 
 export function useCombat({
@@ -24,252 +31,241 @@ export function useCombat({
   onUpdateSessionScores,
   onPlayerHpUpdate,
   onGameRestart,
-  onXpGained
+  onXpGained,
+  clock = defaultClock
 }: UseCombatProps) {
-  const [inCombat, setInCombat] = useState(false);
+  const [state, dispatch] = useReducer(combatReducer, initialCombatState);
+
+  // Ref to track current inCombat state for synchronous access in game loop
   const inCombatRef = useRef(false);
-  const [combatSubject, setCombatSubject] = useState('');
-  const [combatQuestion, setCombatQuestion] = useState<Question & { shuffledAnswers: string[]; correctIndex: number; elo: number | null } | null>(null);
-  const [combatTimer, setCombatTimer] = useState(COMBAT_TIME_LIMIT);
-  const [combatFeedback, setCombatFeedback] = useState('');
-  const [enemyHp, setEnemyHp] = useState(0);
-  const [showVictory, setShowVictory] = useState(false);
-  const [victoryXp, setVictoryXp] = useState(0);
-  const [showDefeat, setShowDefeat] = useState(false);
 
-  const currentEnemyRef = useRef<Enemy | null>(null);
-  const combatTimerIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const currentSubjectRef = useRef('');
-  const questionStartTimeRef = useRef<number>(0);
-  const askedQuestionsRef = useRef<Set<number>>(new Set());
-  const currentPlayerEloRef = useRef<number>(5); // Default to middle ELO
+  // Keep inCombatRef in sync with reducer state
+  useEffect(() => {
+    inCombatRef.current = isInCombat(state);
+  }, [state.phase]);
 
-  const startCombat = async (enemy: Enemy) => {
-    if (!questionDatabase || !userId) {
-      console.error('Question database or user not loaded yet');
-      return;
-    }
+  // Timeout handler ref for timer callback
+  const handleTimeoutRef = useRef<() => void>(() => {});
 
-    setInCombat(true);
-    inCombatRef.current = true;
-    currentEnemyRef.current = enemy;
+  // Timer hook
+  const { timeRemaining: combatTimer, start: startTimer, stop: stopTimer } = useTimer({
+    initialDuration: 10,
+    onExpire: () => handleTimeoutRef.current()
+  });
 
-    currentSubjectRef.current = enemy.subject;
-    setCombatSubject(questionDatabase[enemy.subject]?.subject || enemy.subject);
-
-    askedQuestionsRef.current = new Set();
-
-    // Load current player ELO for this subject
-    await loadPlayerElo(enemy.subject);
-
-    askQuestion();
-  };
-
-  const loadPlayerElo = async (subjectKey: string) => {
+  const loadPlayerElo = useCallback(async (subjectKey: string) => {
     if (!userId) return;
 
-    try {
-      const response = await fetch(`/api/session-elo?userId=${userId}`);
-      if (response.ok) {
-        const eloScores = await response.json();
-        const subjectElo = eloScores.find((s: any) => s.subjectKey === subjectKey);
-        currentPlayerEloRef.current = subjectElo?.averageElo || 5;
-      }
-    } catch (error) {
-      console.error('Failed to load player ELO:', error);
-      currentPlayerEloRef.current = 5; // Default fallback
-    }
-  };
+    const elo = await loadSubjectElo(userId, subjectKey);
+    dispatch({ type: 'SET_PLAYER_ELO', elo });
+  }, [userId]);
 
-  const askQuestion = async () => {
-    if (!currentEnemyRef.current?.alive || playerRef.current.hp <= 0) {
-      endCombat();
-      return;
-    }
+  const endCombat = useCallback(async () => {
+    stopTimer();
 
-    if (!questionDatabase || !userId) {
-      console.error('Question database or user not loaded');
-      endCombat();
-      return;
-    }
-
-    const enemy = currentEnemyRef.current;
-
-    try {
-      const question = await selectQuestion(enemy, userId, askedQuestionsRef.current);
-
-      // Calculate dynamic time limit based on enemy level vs question difficulty
-      // Question level = 11 - ELO (lower ELO = harder question = higher level)
-      const questionLevel = question.elo !== null ? 11 - question.elo : 6; // Default to middle if no ELO
-      const enemyLevel = enemy.level;
-      const levelDifference = enemyLevel - questionLevel;
-      const dynamicTimeLimit = Math.max(3, Math.min(25, 13 - levelDifference)); // Clamp between 3 and 25 seconds
-
-      setCombatQuestion(question);
-      setCombatFeedback('');
-      setCombatTimer(dynamicTimeLimit);
-      setEnemyHp(enemy.hp);
-
-      questionStartTimeRef.current = Date.now();
-
-      if (combatTimerIntervalRef.current) clearInterval(combatTimerIntervalRef.current);
-      combatTimerIntervalRef.current = setInterval(() => {
-        setCombatTimer(prev => {
-          if (prev <= 1) {
-            if (combatTimerIntervalRef.current) clearInterval(combatTimerIntervalRef.current);
-            answerQuestion(-1);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } catch (error) {
-      console.error('Error fetching questions:', error);
-      endCombat();
-    }
-  };
-
-  const answerQuestion = async (selectedIndex: number) => {
-    if (combatTimerIntervalRef.current) {
-      clearInterval(combatTimerIntervalRef.current);
-      combatTimerIntervalRef.current = null;
-    }
-
-    if (!combatQuestion || !currentEnemyRef.current) return;
-
-    const answerTimeMs = Date.now() - questionStartTimeRef.current;
-    const isTimeout = selectedIndex === -1;
-    const isCorrect = selectedIndex === combatQuestion.correctIndex;
-
-    // Track answer in database
-    if (userId && combatQuestion.id) {
-      try {
-        await fetch('/api/answers', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            user_id: userId,
-            question_id: combatQuestion.id,
-            selected_answer_index: isTimeout ? -1 : selectedIndex,
-            is_correct: isCorrect,
-            answer_time_ms: answerTimeMs,
-            timeout_occurred: isTimeout
-          })
-        });
-
-        onUpdateSessionScores(currentSubjectRef.current);
-
-        // Reload player ELO after answer to update damage calculations
-        await loadPlayerElo(currentSubjectRef.current);
-      } catch (error) {
-        console.error('Failed to track answer:', error);
-      }
-    }
-
-    // Calculate dynamic damage based on player ELO vs enemy level
-    const playerElo = currentPlayerEloRef.current;
-    const enemyLevel = currentEnemyRef.current.level;
-
-    if (isCorrect) {
-      const playerDamage = calculatePlayerDamage(playerElo, enemyLevel);
-      setCombatFeedback(`✓ Richtig! ${playerDamage} Schaden!`);
-      currentEnemyRef.current.takeDamage(playerDamage);
-    } else {
-      const enemyDamage = calculateEnemyDamage(playerElo, enemyLevel);
-      const correctAnswerText = combatQuestion.shuffledAnswers[combatQuestion.correctIndex];
-      setCombatFeedback(
-        isTimeout
-          ? `✗ Zeit abgelaufen! Richtige Antwort: ${correctAnswerText} (-${enemyDamage} HP)`
-          : `✗ Falsch! Richtige Antwort: ${correctAnswerText} (-${enemyDamage} HP)`
-      );
-      playerRef.current.hp -= enemyDamage;
-      if (playerRef.current.hp < 0) playerRef.current.hp = 0;
-      onPlayerHpUpdate(playerRef.current.hp);
-    }
-
-    setEnemyHp(currentEnemyRef.current.hp);
-
-    if (!currentEnemyRef.current.alive || playerRef.current.hp <= 0) {
-      setTimeout(() => endCombat(), COMBAT_FEEDBACK_DELAY);
-    } else {
-      setTimeout(() => askQuestion(), COMBAT_FEEDBACK_DELAY);
-    }
-  };
-
-  const endCombat = async () => {
-    if (combatTimerIntervalRef.current) {
-      clearInterval(combatTimerIntervalRef.current);
-      combatTimerIntervalRef.current = null;
-    }
-
-    // Award XP if enemy was defeated
-    const enemy = currentEnemyRef.current;
+    const enemy = state.enemy;
     if (enemy && !enemy.alive && userId) {
-      const playerElo = currentPlayerEloRef.current;
-      const xpReward = calculateEnemyXpReward(enemy.level, playerElo);
+      const xpReward = calculateEnemyXpReward(enemy.level, state.playerElo);
 
       try {
-        await fetch('/api/xp', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            user_id: userId,
-            xp_amount: xpReward,
-            reason: 'enemy_defeated',
-            enemy_level: enemy.level
-          })
+        await api.xp.addXp({
+          user_id: userId,
+          xp_amount: xpReward,
+          reason: 'enemy_defeated',
+          enemy_level: enemy.level
         });
 
         if (onXpGained) {
           onXpGained(xpReward);
         }
 
-        // Show victory overlay
-        setVictoryXp(xpReward);
-        setShowVictory(true);
+        dispatch({ type: 'SHOW_VICTORY', xp: xpReward });
+        return;
       } catch (error) {
-        console.error('Failed to award XP:', error);
+        logHookError('useCombat', error, 'Failed to award XP');
       }
     }
 
-    setInCombat(false);
-    inCombatRef.current = false;
-    setCombatQuestion(null);
-    setCombatFeedback('');
-
     if (playerRef.current.hp <= 0) {
-      // Show defeat overlay instead of alert
-      setShowDefeat(true);
+      dispatch({ type: 'SHOW_DEFEAT' });
+    } else {
+      dispatch({ type: 'END_COMBAT' });
+    }
+  }, [state.enemy, state.playerElo, userId, onXpGained, stopTimer, playerRef]);
+
+  const askQuestion = useCallback(async () => {
+    const enemy = state.enemy;
+    if (!enemy?.alive || playerRef.current.hp <= 0) {
+      endCombat();
+      return;
     }
 
-    currentEnemyRef.current = null;
-  };
+    if (!questionDatabase || !userId) {
+      logHookError('useCombat', new Error('Question database or user not loaded'), 'Combat prerequisites not met');
+      dispatch({ type: 'END_COMBAT' });
+      return;
+    }
 
-  const handleVictoryComplete = () => {
-    setShowVictory(false);
-    setVictoryXp(0);
-  };
+    try {
+      const questionsWithElo = await api.questions.getQuestionsWithElo(enemy.subject, userId);
+      const question = selectQuestionFromPool(questionsWithElo, enemy.level, state.askedQuestionIds);
 
-  const handleDefeatRestart = () => {
-    setShowDefeat(false);
+      if (!question) {
+        logHookError('useCombat', new Error('No questions available for combat'), 'Question pool exhausted');
+        dispatch({ type: 'END_COMBAT' });
+        return;
+      }
+
+      const dynamicTimeLimit = CombatEngine.calculateDynamicTimeLimit(enemy.level, question.elo);
+
+      dispatch({
+        type: 'ASK_QUESTION',
+        question,
+        questionStartTime: clock.now()
+      });
+
+      handleTimeoutRef.current = () => answerQuestion(-1);
+      startTimer(dynamicTimeLimit);
+    } catch (error) {
+      logHookError('useCombat', error, 'Failed to fetch questions');
+      dispatch({ type: 'END_COMBAT' });
+    }
+  }, [state.enemy, state.askedQuestionIds, questionDatabase, userId, playerRef, clock, startTimer, endCombat]);
+
+  const answerQuestion = useCallback(async (selectedIndex: number) => {
+    stopTimer();
+
+    const question = state.question;
+    const enemy = state.enemy;
+    if (!question || !enemy) return;
+
+    const answerTimeMs = clock.now() - state.questionStartTime;
+    const isTimeout = selectedIndex === -1;
+
+    const result = CombatEngine.processAnswer(selectedIndex, question, state.playerElo, enemy.level);
+
+    // Track answer in database
+    if (userId && question.id) {
+      try {
+        await api.answers.logAnswer({
+          user_id: userId,
+          question_id: question.id,
+          selected_answer_index: isTimeout ? -1 : selectedIndex,
+          is_correct: result.isCorrect,
+          answer_time_ms: answerTimeMs,
+          timeout_occurred: result.isTimeout
+        });
+
+        onUpdateSessionScores(state.subject);
+        await loadPlayerElo(state.subject);
+      } catch (error) {
+        logHookError('useCombat', error, 'Failed to track answer');
+      }
+    }
+
+    // Apply damage
+    if (result.targetedPlayer) {
+      playerRef.current.hp -= result.damage;
+      if (playerRef.current.hp < 0) playerRef.current.hp = 0;
+      onPlayerHpUpdate(playerRef.current.hp);
+    } else {
+      enemy.takeDamage(result.damage);
+    }
+
+    dispatch({
+      type: 'SHOW_FEEDBACK',
+      feedback: result.feedbackMessage,
+      enemyHp: enemy.hp
+    });
+
+    // Check combat outcome
+    if (CombatEngine.shouldEndCombat(enemy.alive, playerRef.current.hp)) {
+      setTimeout(() => endCombat(), COMBAT_FEEDBACK_DELAY);
+    } else {
+      setTimeout(() => askQuestion(), COMBAT_FEEDBACK_DELAY);
+    }
+  }, [state.question, state.enemy, state.questionStartTime, state.subject, state.playerElo, userId, clock, stopTimer, loadPlayerElo, onUpdateSessionScores, onPlayerHpUpdate, playerRef, endCombat, askQuestion]);
+
+  // Update timeout ref when answerQuestion changes
+  useEffect(() => {
+    if (state.phase === 'active') {
+      handleTimeoutRef.current = () => answerQuestion(-1);
+    }
+  }, [state.phase, answerQuestion]);
+
+  const startCombat = useCallback(async (enemy: Enemy) => {
+    if (!questionDatabase || !userId) {
+      logHookError('useCombat', new Error('Question database or user not loaded yet'), 'Cannot start combat');
+      return;
+    }
+
+    const subjectDisplay = questionDatabase[enemy.subject]?.subject || enemy.subject;
+    dispatch({ type: 'START_COMBAT', enemy, subjectDisplay });
+
+    // Load ELO then ask first question
+    const elo = await loadSubjectElo(userId, enemy.subject);
+    dispatch({ type: 'SET_PLAYER_ELO', elo });
+
+    // Need to ask question after state is updated - use immediate invocation
+    setTimeout(async () => {
+      if (!enemy.alive || playerRef.current.hp <= 0) return;
+
+      try {
+        const questionsWithElo = await api.questions.getQuestionsWithElo(enemy.subject, userId);
+        const question = selectQuestionFromPool(questionsWithElo, enemy.level, new Set());
+
+        if (!question) {
+          logHookError('useCombat', new Error('No questions available for initial combat'), 'Question pool exhausted');
+          dispatch({ type: 'END_COMBAT' });
+          return;
+        }
+
+        const dynamicTimeLimit = CombatEngine.calculateDynamicTimeLimit(enemy.level, question.elo);
+
+        dispatch({
+          type: 'ASK_QUESTION',
+          question,
+          questionStartTime: clock.now()
+        });
+
+        handleTimeoutRef.current = () => answerQuestion(-1);
+        startTimer(dynamicTimeLimit);
+      } catch (error) {
+        logHookError('useCombat', error, 'Failed to start combat');
+        dispatch({ type: 'END_COMBAT' });
+      }
+    }, 0);
+  }, [questionDatabase, userId, playerRef, clock, startTimer, answerQuestion]);
+
+  const handleVictoryComplete = useCallback(() => {
+    dispatch({ type: 'DISMISS_VICTORY' });
+  }, []);
+
+  const handleDefeatRestart = useCallback(() => {
+    dispatch({ type: 'DISMISS_DEFEAT' });
     playerRef.current.hp = PLAYER_MAX_HP;
     onPlayerHpUpdate(PLAYER_MAX_HP);
     onGameRestart();
-  };
+  }, [playerRef, onPlayerHpUpdate, onGameRestart]);
+
+  // Derived state for backwards compatibility
+  const inCombat = isInCombat(state);
+  const showVictory = state.phase === 'victory';
+  const showDefeat = state.phase === 'defeat';
 
   return {
     inCombat,
     inCombatRef,
-    combatSubject,
-    combatQuestion,
+    combatSubject: state.subjectDisplay,
+    combatQuestion: state.question,
     combatTimer,
-    combatFeedback,
-    enemyHp,
-    currentEnemyRef,
+    combatFeedback: state.feedback,
+    enemyHp: state.enemyHp,
+    currentEnemyRef: { current: state.enemy } as React.MutableRefObject<Enemy | null>,
     startCombat,
     answerQuestion,
     showVictory,
-    victoryXp,
+    victoryXp: state.victoryXp,
     showDefeat,
     handleVictoryComplete,
     handleDefeatRestart

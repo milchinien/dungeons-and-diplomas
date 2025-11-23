@@ -1,59 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-
-interface QuestionStats {
-  id: number;
-  question: string;
-  correct: number;
-  wrong: number;
-  timeout: number;
-  elo: number;
-}
-
-interface SubjectStats {
-  subject_name: string;
-  average_elo: number;
-  questions: QuestionStats[];
-}
-
-// Helper function to get mastery level
-function getMasteryLevel(elo: number): { label: string; color: string; icon: string; bgColor: string } {
-  // Perfect mastery: 9.5+ rounds to 10, display as gold
-  if (Math.round(elo) >= 10) {
-    return {
-      label: '👑 Perfekt',
-      color: '#FFD700',
-      icon: '👑',
-      bgColor: 'rgba(255, 215, 0, 0.1)'
-    };
-  } else if (elo >= 8) {
-    return {
-      label: '⚔️ Meister',
-      color: '#4CAF50',
-      icon: '⚔️',
-      bgColor: 'rgba(76, 175, 80, 0.1)'
-    };
-  } else if (elo >= 5) {
-    return {
-      label: '🛡️ Fortgeschritten',
-      color: '#2196F3',
-      icon: '🛡️',
-      bgColor: 'rgba(33, 150, 243, 0.1)'
-    };
-  } else {
-    return {
-      label: '⚠️ Anfänger',
-      color: '#ff9800',
-      icon: '⚠️',
-      bgColor: 'rgba(255, 152, 0, 0.1)'
-    };
-  }
-}
-
-interface StatsData {
-  [key: string]: SubjectStats;
-}
+import { useDashboardData } from '@/hooks/useDashboardData';
+import SubjectStatCard from './dashboard/SubjectStatCard';
+import QuestionStatsList from './dashboard/QuestionStatsList';
 
 interface SkillDashboardProps {
   userId: number;
@@ -61,31 +10,7 @@ interface SkillDashboardProps {
 }
 
 export default function SkillDashboard({ userId, onClose }: SkillDashboardProps) {
-  const [stats, setStats] = useState<StatsData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const response = await fetch(`/api/stats?userId=${userId}`);
-        if (!response.ok) {
-          throw new Error('Failed to load stats');
-        }
-        const data = await response.json();
-        setStats(data);
-      } catch (err) {
-        setError('Fehler beim Laden der Statistiken');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStats();
-  }, [userId]);
-
-  const hasData = stats && Object.keys(stats).length > 0;
+  const { stats, loading, error, hasData } = useDashboardData(userId);
 
   return (
     <div style={{
@@ -159,171 +84,17 @@ export default function SkillDashboard({ userId, onClose }: SkillDashboardProps)
             </p>
           )}
 
-          {!loading && !error && hasData && (
+          {!loading && !error && hasData && stats && (
             <div>
-              {Object.entries(stats).map(([subjectKey, subjectData]) => {
-                const subjectMastery = getMasteryLevel(subjectData.average_elo);
-                return (
-                  <div key={subjectKey} style={{ marginBottom: '30px' }}>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '15px',
-                      marginBottom: '15px',
-                      padding: '10px',
-                      backgroundColor: subjectMastery.bgColor,
-                      borderRadius: '8px',
-                      border: `2px solid ${subjectMastery.color}`
-                    }}>
-                      <h3 style={{
-                        color: '#fff',
-                        margin: 0,
-                        fontSize: '20px',
-                        flex: 1
-                      }}>
-                        {subjectData.subject_name}
-                      </h3>
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        padding: '6px 12px',
-                        backgroundColor: subjectMastery.color,
-                        borderRadius: '6px',
-                        fontSize: '16px',
-                        fontWeight: 'bold',
-                        color: '#000'
-                      }}>
-                        <span style={{ fontSize: '20px' }}>{subjectMastery.icon}</span>
-                        <span>{subjectMastery.label}</span>
-                        <span style={{
-                          marginLeft: '5px',
-                          padding: '2px 8px',
-                          backgroundColor: 'rgba(0,0,0,0.2)',
-                          borderRadius: '4px',
-                          color: '#fff'
-                        }}>
-                          Ø {subjectData.average_elo}
-                        </span>
-                      </div>
-                    </div>
-
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={{
-                      width: '100%',
-                      borderCollapse: 'collapse',
-                      fontSize: '14px'
-                    }}>
-                      <thead>
-                        <tr style={{ borderBottom: '2px solid #333' }}>
-                          <th style={{
-                            textAlign: 'left',
-                            padding: '10px',
-                            color: '#aaa',
-                            fontWeight: 'normal'
-                          }}>Frage</th>
-                          <th style={{
-                            textAlign: 'center',
-                            padding: '10px',
-                            color: '#aaa',
-                            fontWeight: 'normal',
-                            minWidth: '80px'
-                          }}>Richtig</th>
-                          <th style={{
-                            textAlign: 'center',
-                            padding: '10px',
-                            color: '#aaa',
-                            fontWeight: 'normal',
-                            minWidth: '80px'
-                          }}>Falsch</th>
-                          <th style={{
-                            textAlign: 'center',
-                            padding: '10px',
-                            color: '#aaa',
-                            fontWeight: 'normal',
-                            minWidth: '80px'
-                          }}>Timeout</th>
-                          <th style={{
-                            textAlign: 'center',
-                            padding: '10px',
-                            color: '#aaa',
-                            fontWeight: 'normal',
-                            minWidth: '80px'
-                          }}>ELO</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {subjectData.questions.map((q) => {
-                          const questionMastery = getMasteryLevel(q.elo);
-                          const isPerfect = Math.round(q.elo) >= 10;
-                          return (
-                            <tr
-                              key={q.id}
-                              style={{
-                                borderBottom: '1px solid #2a2a2a',
-                                backgroundColor: isPerfect
-                                  ? 'rgba(255, 215, 0, 0.15)'
-                                  : questionMastery.bgColor,
-                                position: 'relative',
-                                boxShadow: isPerfect
-                                  ? '0 0 20px rgba(255, 215, 0, 0.5), inset 0 0 20px rgba(255, 215, 0, 0.1)'
-                                  : 'none'
-                              }}
-                            >
-                              <td style={{
-                                padding: '4px 10px',
-                                color: isPerfect ? '#FFD700' : '#ddd',
-                                fontWeight: isPerfect ? 'bold' : 'normal'
-                              }}>{q.question}</td>
-                              <td style={{
-                                padding: '4px 10px',
-                                textAlign: 'center',
-                                color: '#4CAF50',
-                                fontWeight: 'bold'
-                              }}>{q.correct}</td>
-                              <td style={{
-                                padding: '4px 10px',
-                                textAlign: 'center',
-                                color: '#f44336',
-                                fontWeight: 'bold'
-                              }}>{q.wrong}</td>
-                              <td style={{
-                                padding: '4px 10px',
-                                textAlign: 'center',
-                                color: '#ff9800',
-                                fontWeight: 'bold'
-                              }}>{q.timeout}</td>
-                              <td style={{
-                                padding: '4px 10px',
-                                textAlign: 'center'
-                              }}>
-                                <div style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '6px',
-                                  padding: '4px 10px',
-                                  backgroundColor: isPerfect ? '#FFD700' : questionMastery.color,
-                                  borderRadius: '6px',
-                                  fontSize: '14px',
-                                  fontWeight: 'bold',
-                                  color: '#000',
-                                  boxShadow: isPerfect ? '0 0 10px rgba(255, 215, 0, 0.8)' : 'none'
-                                }}>
-                                  <span style={{ fontSize: '16px' }}>
-                                    {isPerfect ? '👑' : questionMastery.icon}
-                                  </span>
-                                  <span>{q.elo}</span>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              );
-              })}
+              {Object.entries(stats).map(([subjectKey, subjectData]) => (
+                <SubjectStatCard
+                  key={subjectKey}
+                  subjectName={subjectData.subject_name}
+                  averageElo={subjectData.average_elo}
+                >
+                  <QuestionStatsList questions={subjectData.questions} />
+                </SubjectStatCard>
+              ))}
             </div>
           )}
         </div>

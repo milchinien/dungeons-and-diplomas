@@ -1,12 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
-import type { Player } from '@/lib/Enemy';
+import type { Player } from '@/lib/enemy';
 import type { QuestionDatabase } from '@/lib/questions';
 import { DIRECTION, PLAYER_MAX_HP } from '@/lib/constants';
-import type { KeyboardState } from '@/lib/constants';
-import { DungeonManager } from '@/lib/game/DungeonManager';
-import { GameEngine } from '@/lib/game/GameEngine';
-import { GameRenderer } from '@/lib/rendering/GameRenderer';
-import { MinimapRenderer } from '@/lib/rendering/MinimapRenderer';
+import type { GameStateConfig } from '@/lib/types/gameState';
+import { resolveConfig } from '@/lib/types/gameState';
+import type { DungeonManager } from '@/lib/game/DungeonManager';
+import type { GameEngine } from '@/lib/game/GameEngine';
+import type { GameRenderer } from '@/lib/rendering/GameRenderer';
+import type { MinimapRenderer } from '@/lib/rendering/MinimapRenderer';
+import { useKeyboardInput } from './useKeyboardInput';
+import { useTreasureCollection } from './useTreasureCollection';
 
 interface UseGameStateProps {
   questionDatabase: QuestionDatabase | null;
@@ -15,6 +18,14 @@ interface UseGameStateProps {
   onPlayerHpUpdate: (hp: number) => void;
   onXpGained?: (amount: number) => void;
   onTreasureCollected?: (screenX: number, screenY: number, xpAmount: number) => void;
+  /** Reference to combat state (injected from useCombat) */
+  inCombatRef?: React.MutableRefObject<boolean>;
+  /** Callback when combat should start (injected from useCombat) */
+  onStartCombat?: (enemy: any) => void;
+  /** Shared player reference (owned by parent component) */
+  playerRef?: React.MutableRefObject<Player>;
+  /** Optional configuration for dependency injection (testing) */
+  config?: GameStateConfig;
 }
 
 export function useGameState({
@@ -23,8 +34,15 @@ export function useGameState({
   userId,
   onPlayerHpUpdate,
   onXpGained,
-  onTreasureCollected
+  onTreasureCollected,
+  inCombatRef: externalInCombatRef,
+  onStartCombat,
+  playerRef: externalPlayerRef,
+  config: userConfig
 }: UseGameStateProps) {
+  // Resolve configuration with defaults
+  const config = resolveConfig(userConfig);
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const minimapRef = useRef<HTMLCanvasElement>(null);
   const [gameInitialized, setGameInitialized] = useState(false);
@@ -34,7 +52,8 @@ export function useGameState({
   const gameLoopIdRef = useRef<number | null>(null);
   const lastTimeRef = useRef(0);
 
-  const playerRef = useRef<Player>({
+  // Player reference - use external if provided, otherwise create local fallback
+  const fallbackPlayerRef = useRef<Player>({
     x: 0,
     y: 0,
     width: 0,
@@ -44,22 +63,16 @@ export function useGameState({
     hp: PLAYER_MAX_HP,
     maxHp: PLAYER_MAX_HP
   });
+  const playerRef = externalPlayerRef || fallbackPlayerRef;
 
-  const keysRef = useRef<KeyboardState>({
-    ArrowUp: false,
-    ArrowDown: false,
-    ArrowLeft: false,
-    ArrowRight: false,
-    w: false,
-    s: false,
-    a: false,
-    d: false
-  });
+  // Use extracted keyboard input hook
+  const { keysRef } = useKeyboardInput({ eventTarget: config.eventTarget });
 
+  // Use factories from config for dependency injection
   const dungeonManagerRef = useRef<DungeonManager | null>(null);
-  const gameEngineRef = useRef<GameEngine>(new GameEngine());
-  const gameRendererRef = useRef<GameRenderer>(new GameRenderer());
-  const minimapRendererRef = useRef<MinimapRenderer>(new MinimapRenderer());
+  const gameEngineRef = useRef<GameEngine>(config.gameEngineFactory());
+  const gameRendererRef = useRef<GameRenderer>(config.gameRendererFactory());
+  const minimapRendererRef = useRef<MinimapRenderer>(config.minimapRendererFactory());
 
   const generateNewDungeon = async () => {
     if (!dungeonManagerRef.current) return;
@@ -68,57 +81,20 @@ export function useGameState({
     onPlayerHpUpdate(PLAYER_MAX_HP);
   };
 
-  // Combat state will be injected
-  const inCombatRef = useRef(false);
-  const startCombatRef = useRef<(enemy: any) => void>(() => {});
+  // Combat state - use external refs/callbacks if provided, otherwise create local fallbacks
+  const fallbackInCombatRef = useRef(false);
+  const inCombatRef = externalInCombatRef || fallbackInCombatRef;
+  const startCombatCallback = onStartCombat || (() => {});
 
-  const handleTreasureCollected = async (tileX: number, tileY: number) => {
-    if (!userId) return;
-
-    const xpAmount = 200;
-
-    try {
-      await fetch('/api/xp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: userId,
-          xp_amount: xpAmount,
-          reason: 'treasure',
-          enemy_level: null
-        })
-      });
-
-      if (onXpGained) {
-        onXpGained(xpAmount);
-      }
-
-      // Calculate screen position for the bubble
-      if (onTreasureCollected && canvasRef.current && dungeonManagerRef.current) {
-        const canvas = canvasRef.current;
-        const tileSize = dungeonManagerRef.current.tileSize;
-        const player = playerRef.current;
-
-        // Calculate camera offset (camera is centered on player)
-        const cameraX = player.x + tileSize / 2 - canvas.width / 2;
-        const cameraY = player.y + tileSize / 2 - canvas.height / 2;
-
-        // Convert tile position to world position
-        const worldX = tileX * tileSize + tileSize / 2;
-        const worldY = tileY * tileSize + tileSize / 2;
-
-        // Convert world position to screen position
-        const screenX = worldX - cameraX;
-        const screenY = worldY - cameraY;
-
-        onTreasureCollected(screenX, screenY, xpAmount);
-      }
-
-      console.log(`Treasure collected at (${tileX}, ${tileY})! +${xpAmount} XP`);
-    } catch (error) {
-      console.error('Failed to award treasure XP:', error);
-    }
-  };
+  // Use extracted treasure collection hook
+  const { handleTreasureCollected } = useTreasureCollection({
+    userId,
+    playerRef,
+    canvasRef,
+    dungeonManagerRef,
+    onXpGained,
+    onTreasureCollected
+  });
 
   const update = (dt: number) => {
     if (isNaN(dt)) dt = 0;
@@ -127,31 +103,34 @@ export function useGameState({
     const engine = gameEngineRef.current;
     const manager = dungeonManagerRef.current;
 
-    engine.updatePlayer(
+    engine.updatePlayer({
       dt,
-      playerRef.current,
-      keysRef.current,
-      manager.tileSize,
-      manager.dungeon,
-      manager.roomMap,
-      manager.rooms,
-      manager.playerSprite,
-      inCombatRef.current,
-      manager.treasures,
-      handleTreasureCollected
-    );
+      player: playerRef.current,
+      keys: keysRef.current,
+      tileSize: manager.tileSize,
+      dungeon: manager.dungeon,
+      roomMap: manager.roomMap,
+      rooms: manager.rooms,
+      playerSprite: manager.playerSprite,
+      inCombat: inCombatRef.current,
+      doorStates: manager.doorStates,
+      enemies: manager.enemies,
+      treasures: manager.treasures,
+      onTreasureCollected: handleTreasureCollected
+    });
 
-    engine.updateEnemies(
+    engine.updateEnemies({
       dt,
-      manager.enemies,
-      playerRef.current,
-      manager.tileSize,
-      manager.rooms,
-      manager.dungeon,
-      manager.roomMap,
-      startCombatRef.current,
-      inCombatRef.current
-    );
+      enemies: manager.enemies,
+      player: playerRef.current,
+      tileSize: manager.tileSize,
+      rooms: manager.rooms,
+      dungeon: manager.dungeon,
+      roomMap: manager.roomMap,
+      startCombat: startCombatCallback,
+      inCombat: inCombatRef.current,
+      doorStates: manager.doorStates
+    });
   };
 
   const render = () => {
@@ -161,18 +140,21 @@ export function useGameState({
 
     const manager = dungeonManagerRef.current;
 
-    gameRendererRef.current.render(
-      canvas,
-      playerRef.current,
-      manager.dungeon,
-      manager.tileVariants,
-      manager.roomMap,
-      manager.rooms,
-      manager.enemies,
-      manager.playerSprite,
-      manager.tileSize,
-      manager.treasures
-    );
+    if (manager.renderMap) {
+      gameRendererRef.current.render(
+        canvas,
+        playerRef.current,
+        manager.dungeon,
+        manager.roomMap,
+        manager.rooms,
+        manager.enemies,
+        manager.playerSprite,
+        manager.tileSize,
+        manager.renderMap,
+        manager.doorStates,
+        manager.darkTheme
+      );
+    }
 
     minimapRendererRef.current.render(
       minimap,
@@ -193,7 +175,7 @@ export function useGameState({
       render();
     }
 
-    gameLoopIdRef.current = requestAnimationFrame(gameLoop);
+    gameLoopIdRef.current = config.scheduler.requestFrame(gameLoop);
   };
 
   useEffect(() => {
@@ -213,14 +195,11 @@ export function useGameState({
       const canvas = canvasRef.current;
       if (!canvas) return;
 
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      canvas.width = config.windowDimensions.getWidth();
+      canvas.height = config.windowDimensions.getHeight();
 
-      // Load tileset
-      await gameRendererRef.current.loadTileset();
-
-      // Initialize dungeon manager
-      const dungeonManager = new DungeonManager(playerRef.current);
+      // Initialize dungeon manager using factory from config
+      const dungeonManager = config.dungeonManagerFactory(playerRef.current);
       await dungeonManager.initialize(availableSubjects);
       dungeonManagerRef.current = dungeonManager;
 
@@ -229,41 +208,25 @@ export function useGameState({
       }
 
       setGameInitialized(true);
-      gameLoopIdRef.current = requestAnimationFrame(gameLoop);
+      gameLoopIdRef.current = config.scheduler.requestFrame(gameLoop);
     };
 
     initGame();
 
     const handleResize = () => {
       if (canvasRef.current) {
-        canvasRef.current.width = window.innerWidth;
-        canvasRef.current.height = window.innerHeight;
+        canvasRef.current.width = config.windowDimensions.getWidth();
+        canvasRef.current.height = config.windowDimensions.getHeight();
       }
     };
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key in keysRef.current) {
-        keysRef.current[e.key as keyof KeyboardState] = true;
-      }
-    };
-
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key in keysRef.current) {
-        keysRef.current[e.key as keyof KeyboardState] = false;
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
+    config.eventTarget.addEventListener('resize', handleResize);
 
     return () => {
       isMountedRef.current = false;
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
+      config.eventTarget.removeEventListener('resize', handleResize);
       if (gameLoopIdRef.current) {
-        cancelAnimationFrame(gameLoopIdRef.current);
+        config.scheduler.cancelFrame(gameLoopIdRef.current);
       }
     };
   }, [questionDatabase, availableSubjects, userId]);
@@ -274,8 +237,7 @@ export function useGameState({
     gameInitialized,
     gamePausedRef,
     playerRef,
-    inCombatRef,
-    startCombatRef,
-    generateNewDungeon
+    generateNewDungeon,
+    dungeonManagerRef
   };
 }
