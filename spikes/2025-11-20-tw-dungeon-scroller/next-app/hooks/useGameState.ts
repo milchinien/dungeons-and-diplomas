@@ -2,14 +2,14 @@ import { useState, useRef, useEffect } from 'react';
 import type { Player } from '@/lib/enemy';
 import type { QuestionDatabase } from '@/lib/questions';
 import { DIRECTION, PLAYER_MAX_HP } from '@/lib/constants';
-import type { KeyboardState } from '@/lib/constants';
 import type { GameStateConfig } from '@/lib/types/gameState';
 import { resolveConfig } from '@/lib/types/gameState';
 import type { DungeonManager } from '@/lib/game/DungeonManager';
 import type { GameEngine } from '@/lib/game/GameEngine';
 import type { GameRenderer } from '@/lib/rendering/GameRenderer';
 import type { MinimapRenderer } from '@/lib/rendering/MinimapRenderer';
-import { api } from '@/lib/api';
+import { useKeyboardInput } from './useKeyboardInput';
+import { useTreasureCollection } from './useTreasureCollection';
 
 interface UseGameStateProps {
   questionDatabase: QuestionDatabase | null;
@@ -65,17 +65,8 @@ export function useGameState({
   });
   const playerRef = externalPlayerRef || fallbackPlayerRef;
 
-  const keysRef = useRef<KeyboardState>({
-    ArrowUp: false,
-    ArrowDown: false,
-    ArrowLeft: false,
-    ArrowRight: false,
-    w: false,
-    s: false,
-    a: false,
-    d: false,
-    ' ': false
-  });
+  // Use extracted keyboard input hook
+  const { keysRef } = useKeyboardInput({ eventTarget: config.eventTarget });
 
   // Use factories from config for dependency injection
   const dungeonManagerRef = useRef<DungeonManager | null>(null);
@@ -95,49 +86,15 @@ export function useGameState({
   const inCombatRef = externalInCombatRef || fallbackInCombatRef;
   const startCombatCallback = onStartCombat || (() => {});
 
-  const handleTreasureCollected = async (tileX: number, tileY: number) => {
-    if (!userId) return;
-
-    const xpAmount = 200;
-
-    try {
-      await api.xp.addXp({
-        user_id: userId,
-        xp_amount: xpAmount,
-        reason: 'treasure',
-        enemy_level: undefined
-      });
-
-      if (onXpGained) {
-        onXpGained(xpAmount);
-      }
-
-      // Calculate screen position for the bubble
-      if (onTreasureCollected && canvasRef.current && dungeonManagerRef.current) {
-        const canvas = canvasRef.current;
-        const tileSize = dungeonManagerRef.current.tileSize;
-        const player = playerRef.current;
-
-        // Calculate camera offset (camera is centered on player)
-        const cameraX = player.x + tileSize / 2 - canvas.width / 2;
-        const cameraY = player.y + tileSize / 2 - canvas.height / 2;
-
-        // Convert tile position to world position
-        const worldX = tileX * tileSize + tileSize / 2;
-        const worldY = tileY * tileSize + tileSize / 2;
-
-        // Convert world position to screen position
-        const screenX = worldX - cameraX;
-        const screenY = worldY - cameraY;
-
-        onTreasureCollected(screenX, screenY, xpAmount);
-      }
-
-      console.log(`Treasure collected at (${tileX}, ${tileY})! +${xpAmount} XP`);
-    } catch (error) {
-      console.error('Failed to award treasure XP:', error);
-    }
-  };
+  // Use extracted treasure collection hook
+  const { handleTreasureCollected } = useTreasureCollection({
+    userId,
+    playerRef,
+    canvasRef,
+    dungeonManagerRef,
+    onXpGained,
+    onTreasureCollected
+  });
 
   const update = (dt: number) => {
     if (isNaN(dt)) dt = 0;
@@ -263,29 +220,11 @@ export function useGameState({
       }
     };
 
-    const handleKeyDown = (e: Event) => {
-      const key = (e as KeyboardEvent).key;
-      if (key in keysRef.current) {
-        keysRef.current[key as keyof KeyboardState] = true;
-      }
-    };
-
-    const handleKeyUp = (e: Event) => {
-      const key = (e as KeyboardEvent).key;
-      if (key in keysRef.current) {
-        keysRef.current[key as keyof KeyboardState] = false;
-      }
-    };
-
     config.eventTarget.addEventListener('resize', handleResize);
-    config.eventTarget.addEventListener('keydown', handleKeyDown);
-    config.eventTarget.addEventListener('keyup', handleKeyUp);
 
     return () => {
       isMountedRef.current = false;
       config.eventTarget.removeEventListener('resize', handleResize);
-      config.eventTarget.removeEventListener('keydown', handleKeyDown);
-      config.eventTarget.removeEventListener('keyup', handleKeyUp);
       if (gameLoopIdRef.current) {
         config.scheduler.cancelFrame(gameLoopIdRef.current);
       }
