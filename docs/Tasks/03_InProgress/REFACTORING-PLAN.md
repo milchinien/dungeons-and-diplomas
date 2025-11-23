@@ -157,39 +157,32 @@ render(...) {
 
 ---
 
-### [R07] EnemyAI-Hilfsmethoden in separate Module aufteilen
+### [R07] ✅ EnemyAI-Hilfsmethoden in separate Module aufteilen - ERLEDIGT
 
-**Problem:** `EnemyAI.ts` (343 Zeilen) ist eine statische Klasse mit zu vielen Verantwortlichkeiten: State-Transitions, Pathfinding-Integration, Movement, Waypoint-Management.
+**Problem:** `EnemyAI.ts` (343 Zeilen) war eine statische Klasse mit zu vielen Verantwortlichkeiten: State-Transitions, Pathfinding-Integration, Movement, Waypoint-Management.
 
-**Betroffene Dateien:**
-- `lib/enemy/EnemyAI.ts:89-119` - State-Transitions
-- `lib/enemy/EnemyAI.ts:242-262` - Path-Following
-- `lib/enemy/EnemyAI.ts:287-313` - Movement mit Collision
-- `lib/enemy/EnemyAI.ts:318-342` - Waypoint-Picking
+**Abgeschlossen:** 2025-11-23
 
-**Lösung:** Behavior-Module für verschiedene Aufgaben.
+**Änderungen:**
+- ✅ `lib/enemy/EnemyMovement.ts` erstellt mit:
+  - `moveTowards()` - Movement mit Kollisionserkennung
+  - `followPath()` - A* Pfad folgen
+  - `moveDirectlyTowardsPlayer()` - Direktes Movement (Fallback)
+- ✅ `lib/enemy/EnemyWaypoints.ts` erstellt mit:
+  - `pickRandomWaypoint()` - Zufälliges Ziel im Raum wählen
+- ✅ `lib/enemy/AggroManager.ts` erstellt mit:
+  - `handleStateTransitions()` - IDLE/WANDERING/FOLLOWING Übergänge
+- ✅ `lib/enemy/EnemyAI.ts` refaktoriert (~200 Zeilen, von 340 Zeilen)
+- ✅ `lib/enemy/index.ts` mit neuen Exports aktualisiert
 
+**Neue Struktur:**
 ```
 lib/enemy/
-├── EnemyAI.ts          (150 Zeilen) - Orchestrierung
-├── EnemyMovement.ts    (80 Zeilen) - Movement-Logik
-├── EnemyWaypoints.ts   (50 Zeilen) - Waypoint-Management
-└── AggroManager.ts     (60 Zeilen) - Aggro-State-Transitions
+├── EnemyAI.ts          (202 Zeilen) - Orchestrierung
+├── EnemyMovement.ts    (82 Zeilen) - Movement-Logik
+├── EnemyWaypoints.ts   (36 Zeilen) - Waypoint-Management
+└── AggroManager.ts     (43 Zeilen) - Aggro-State-Transitions
 ```
-
-**Aufwand:** M | **Risiko:** mittel
-
-**Schritte:**
-1. `lib/enemy/EnemyMovement.ts` erstellen mit `moveTowards`, `followPath`
-2. `lib/enemy/EnemyWaypoints.ts` erstellen mit `pickRandomWaypoint`
-3. `lib/enemy/AggroManager.ts` erstellen mit State-Transition-Logik
-4. EnemyAI refaktorieren, um Module zu nutzen
-5. Exports in `lib/enemy/index.ts` aktualisieren
-
-**Temporäre Tests:**
-- Test: State-Transitions bei verschiedenen Distanzen
-- Test: Waypoint-Picking innerhalb des Raums
-- Test: Movement mit Kollisionserkennung
 
 ---
 
@@ -319,7 +312,7 @@ R10 (tiletheme/db)  ────────────────────
 6. **R04** - ✅ CombatEngine - ERLEDIGT 2025-11-23
 
 ### Phase 3: Größere Refactorings (5-7 Tage)
-7. **R07** - EnemyAI-Module (4h)
+7. **R07** - ✅ EnemyAI-Module - ERLEDIGT 2025-11-23
 8. **R08** - CharacterPanel-Subkomponenten (3h)
 9. **R10** - tiletheme/db aufteilen (2h)
 10. **R09** - DungeonManager-Trennung (6h) ⚠️ Höchstes Risiko
@@ -339,7 +332,7 @@ R10 (tiletheme/db)  ────────────────────
 
 **Erstellt:** 2025-11-23
 **Autor:** Claude Code Analyse
-**Status:** Phase 1 abgeschlossen, Phase 2 bereit
+**Status:** Phase 3 in Bearbeitung (R07 abgeschlossen)
 
 ## Änderungshistorie
 
@@ -347,3 +340,4 @@ R10 (tiletheme/db)  ────────────────────
 |-------|-------|------------|
 | 2025-11-23 | Phase 1 | R01, R05, R06 abgeschlossen |
 | 2025-11-23 | Phase 2 | R02, R03, R04 abgeschlossen - Phase 2 komplett! |
+| 2025-11-23 | Phase 3 | R07 abgeschlossen - EnemyAI in 3 Module aufgeteilt |
