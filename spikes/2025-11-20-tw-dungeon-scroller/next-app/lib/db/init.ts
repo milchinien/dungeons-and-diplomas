@@ -6,7 +6,13 @@ import path from 'path';
 import fs from 'fs';
 import { migrateEditorLevelsIfNeeded, migrateQuestionsIfNeeded, migrateUserXpIfNeeded } from './migrations';
 
-export function initializeDatabase(database: Database.Database) {
+export interface InitOptions {
+  /** Whether to seed with initial question data (default: true) */
+  seed?: boolean;
+}
+
+export function initializeDatabase(database: Database.Database, options: InitOptions = {}) {
+  const shouldSeed = options.seed ?? true;
   // Create users table
   database.exec(`
     CREATE TABLE IF NOT EXISTS users (
@@ -98,10 +104,12 @@ export function initializeDatabase(database: Database.Database) {
   migrateUserXpIfNeeded(database);
 
   // Check if we need to seed the database
-  const count = database.prepare('SELECT COUNT(*) as count FROM questions').get() as { count: number };
+  if (shouldSeed) {
+    const count = database.prepare('SELECT COUNT(*) as count FROM questions').get() as { count: number };
 
-  if (count.count === 0) {
-    seedQuestions(database);
+    if (count.count === 0) {
+      seedQuestions(database);
+    }
   }
 }
 

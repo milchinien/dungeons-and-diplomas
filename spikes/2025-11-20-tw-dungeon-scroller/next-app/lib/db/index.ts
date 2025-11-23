@@ -6,7 +6,13 @@
  */
 
 // Connection
-export { getDatabase } from './connection';
+export {
+  getDatabase,
+  createDatabase,
+  createTestDatabase,
+  resetDatabase,
+  type DatabaseOptions
+} from './connection';
 
 // Users
 export { loginUser, getUserById, type User } from './users';
