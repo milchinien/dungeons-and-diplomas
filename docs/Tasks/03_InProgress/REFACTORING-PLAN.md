@@ -249,33 +249,31 @@ lib/game/
 
 ---
 
-### [R10] tiletheme/db.ts Funktionen gruppieren
+### [R10] ✅ tiletheme/db.ts Funktionen gruppieren - ERLEDIGT
 
-**Problem:** `lib/tiletheme/db.ts` (322 Zeilen) enthält 20+ Funktionen ohne klare Gruppierung: Theme-CRUD, Tileset-CRUD, Tile-Config-Validierung, Import/Export.
+**Problem:** `lib/tiletheme/db.ts` (322 Zeilen) enthielt 20+ Funktionen ohne klare Gruppierung.
 
-**Betroffene Dateien:**
-- `lib/tiletheme/db.ts:1-322` - Alle Funktionen
+**Abgeschlossen:** 2025-11-23
 
-**Lösung:** In logische Module aufteilen.
+**Änderungen:**
+- ✅ `lib/tiletheme/db/init.ts` erstellt (65 Zeilen) - Tabellen-Initialisierung
+- ✅ `lib/tiletheme/db/tilesets.ts` erstellt (75 Zeilen) - Tileset-CRUD
+- ✅ `lib/tiletheme/db/tileThemes.ts` erstellt (110 Zeilen) - TileTheme-CRUD
+- ✅ `lib/tiletheme/db/dungeonThemes.ts` erstellt (105 Zeilen) - DungeonTheme-CRUD
+- ✅ `lib/tiletheme/db/index.ts` erstellt (18 Zeilen) - Re-exports
+- ✅ `lib/tiletheme/db.ts` zu Re-export-Datei umgebaut (33 Zeilen)
 
+**Neue Struktur:**
 ```
 lib/tiletheme/
-├── db/
-│   ├── themes.ts     (100 Zeilen) - Theme-CRUD
-│   ├── tilesets.ts   (60 Zeilen) - Tileset-CRUD
-│   └── tiles.ts      (80 Zeilen) - Tile-Config
-├── ThemeComposer.ts  (80 Zeilen) - Theme-Assembly
-└── db.ts             (20 Zeilen) - Re-exports
+├── db.ts                  (33 Zeilen) - Re-exports (backwards compatible)
+└── db/
+    ├── index.ts           (18 Zeilen) - Re-exports
+    ├── init.ts            (65 Zeilen) - Tabellen-Initialisierung
+    ├── tilesets.ts        (75 Zeilen) - Tileset-CRUD
+    ├── tileThemes.ts      (110 Zeilen) - TileTheme-CRUD
+    └── dungeonThemes.ts   (105 Zeilen) - DungeonTheme-CRUD
 ```
-
-**Aufwand:** M | **Risiko:** niedrig
-
-**Schritte:**
-1. `lib/tiletheme/db/themes.ts` erstellen
-2. `lib/tiletheme/db/tilesets.ts` erstellen
-3. `lib/tiletheme/db/tiles.ts` erstellen
-4. Ursprüngliche db.ts zu Re-export-Datei umbauen
-5. Imports in abhängigen Dateien anpassen
 
 ---
 
@@ -312,7 +310,7 @@ R10 (tiletheme/db)  ────────────────────
 ### Phase 3: Größere Refactorings (5-7 Tage)
 7. **R07** - ✅ EnemyAI-Module - ERLEDIGT 2025-11-23
 8. **R08** - ✅ CharacterPanel-Subkomponenten - ERLEDIGT 2025-11-23
-9. **R10** - tiletheme/db aufteilen (2h)
+9. **R10** - ✅ tiletheme/db aufteilen - ERLEDIGT 2025-11-23
 10. **R09** - DungeonManager-Trennung (6h) ⚠️ Höchstes Risiko
 
 ---
@@ -340,3 +338,4 @@ R10 (tiletheme/db)  ────────────────────
 | 2025-11-23 | Phase 2 | R02, R03, R04 abgeschlossen - Phase 2 komplett! |
 | 2025-11-23 | Phase 3 | R07 abgeschlossen - EnemyAI in 3 Module aufgeteilt |
 | 2025-11-23 | Phase 3 | R08 abgeschlossen - CharacterPanel in 4 Subkomponenten aufgeteilt |
+| 2025-11-23 | Phase 3 | R10 abgeschlossen - tiletheme/db in 4 CRUD-Module aufgeteilt |
