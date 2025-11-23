@@ -6,6 +6,13 @@ export interface Question {
   correct: number;
 }
 
+export interface QuestionWithElo extends Question {
+  elo: number | null;
+  correctCount: number;
+  wrongCount: number;
+  timeoutCount: number;
+}
+
 export interface Subject {
   subject: string;
   questions: Question[];

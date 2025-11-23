@@ -7,26 +7,16 @@ import {
 } from './types';
 import { detectWallType, detectDoorType, WALL_TYPE_FALLBACKS } from './WallTypeDetector';
 import { TILE, TILE_SOURCE_SIZE, type TileType } from '../constants';
-
-/**
- * Simple seeded RNG for consistent variant selection
- */
-function createRng(seed: number): () => number {
-  let s = seed;
-  return () => {
-    s = (s * 1103515245 + 12345) & 0x7fffffff;
-    return s / 0x7fffffff;
-  };
-}
+import { SeededRandom } from '../dungeon/SeededRandom';
 
 /**
  * Select a tile variant based on weight
  */
-function selectVariant(variants: TileVariant[], rng: () => number): TileVariant | null {
+function selectVariant(variants: TileVariant[], rng: SeededRandom): TileVariant | null {
   if (!variants || variants.length === 0) return null;
 
   const totalWeight = variants.reduce((sum, v) => sum + v.weight, 0);
-  let random = rng() * totalWeight;
+  let random = rng.next() * totalWeight;
 
   for (const variant of variants) {
     random -= variant.weight;
@@ -78,8 +68,8 @@ export function generateRenderMap(
   const width = dungeon[0]?.length ?? 0;
 
   // Two RNGs with same seed for consistent Dark/Light selection
-  const darkRng = createRng(rngSeed);
-  const lightRng = createRng(rngSeed);
+  const darkRng = new SeededRandom(rngSeed);
+  const lightRng = new SeededRandom(rngSeed);
 
   const tiles: (RenderTile | null)[][] = [];
 

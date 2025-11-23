@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import type { QuestionDatabase } from '@/lib/questions';
 import { PLAYER_MAX_HP, DIRECTION } from '@/lib/constants';
-import type { Player } from '@/lib/Enemy';
+import type { Player } from '@/lib/enemy';
 import LoginModal from './LoginModal';
 import SkillDashboard from './SkillDashboard';
 import CharacterPanel from './CharacterPanel';

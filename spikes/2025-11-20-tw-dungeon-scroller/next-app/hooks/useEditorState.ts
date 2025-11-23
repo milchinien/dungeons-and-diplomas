@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { DungeonManager } from '@/lib/game/DungeonManager';
 import { EditorRenderer, EditorCamera } from '@/lib/rendering/EditorRenderer';
-import type { Player } from '@/lib/Enemy';
+import type { Player } from '@/lib/enemy';
 import { DIRECTION, PLAYER_MAX_HP, DUNGEON_WIDTH, DUNGEON_HEIGHT, DUNGEON_ALGORITHM } from '@/lib/constants';
 import type { DungeonAlgorithm } from '@/lib/constants';
 

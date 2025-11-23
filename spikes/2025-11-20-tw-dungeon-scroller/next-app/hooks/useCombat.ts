@@ -1,12 +1,13 @@
-import { useState, useRef } from 'react';
-import type { Enemy } from '@/lib/Enemy';
-import type { Player } from '@/lib/Enemy';
-import type { Question, QuestionDatabase } from '@/lib/questions';
-import { COMBAT_TIME_LIMIT, COMBAT_FEEDBACK_DELAY, DAMAGE_CORRECT, DAMAGE_WRONG, PLAYER_MAX_HP } from '@/lib/constants';
-import { selectQuestion } from '@/lib/combat/QuestionSelector';
+import { useState, useRef, useCallback } from 'react';
+import type { Enemy } from '@/lib/enemy';
+import type { Player } from '@/lib/enemy';
+import type { QuestionDatabase } from '@/lib/questions';
+import { COMBAT_TIME_LIMIT, COMBAT_FEEDBACK_DELAY, PLAYER_MAX_HP } from '@/lib/constants';
+import { selectQuestionFromPool, type SelectedQuestion } from '@/lib/combat/QuestionSelector';
 import { calculateEnemyXpReward } from '@/lib/scoring/LevelCalculator';
 import { calculatePlayerDamage, calculateEnemyDamage } from '@/lib/combat/DamageCalculator';
 import { api } from '@/lib/api';
+import { useTimer } from './useTimer';
 
 interface UseCombatProps {
   questionDatabase: QuestionDatabase | null;
@@ -30,8 +31,7 @@ export function useCombat({
   const [inCombat, setInCombat] = useState(false);
   const inCombatRef = useRef(false);
   const [combatSubject, setCombatSubject] = useState('');
-  const [combatQuestion, setCombatQuestion] = useState<Question & { shuffledAnswers: string[]; correctIndex: number; elo: number | null } | null>(null);
-  const [combatTimer, setCombatTimer] = useState(COMBAT_TIME_LIMIT);
+  const [combatQuestion, setCombatQuestion] = useState<SelectedQuestion | null>(null);
   const [combatFeedback, setCombatFeedback] = useState('');
   const [enemyHp, setEnemyHp] = useState(0);
   const [showVictory, setShowVictory] = useState(false);
@@ -39,11 +39,17 @@ export function useCombat({
   const [showDefeat, setShowDefeat] = useState(false);
 
   const currentEnemyRef = useRef<Enemy | null>(null);
-  const combatTimerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const currentSubjectRef = useRef('');
   const questionStartTimeRef = useRef<number>(0);
   const askedQuestionsRef = useRef<Set<number>>(new Set());
   const currentPlayerEloRef = useRef<number>(5); // Default to middle ELO
+  const handleTimeoutRef = useRef<() => void>(() => {});
+
+  // Timer hook - callback uses ref to access current answerQuestion
+  const { timeRemaining: combatTimer, start: startTimer, stop: stopTimer } = useTimer({
+    initialDuration: COMBAT_TIME_LIMIT,
+    onExpire: () => handleTimeoutRef.current()
+  });
 
   const startCombat = async (enemy: Enemy) => {
     if (!questionDatabase || !userId) {
@@ -94,7 +100,17 @@ export function useCombat({
     const enemy = currentEnemyRef.current;
 
     try {
-      const question = await selectQuestion(enemy, userId, askedQuestionsRef.current);
+      // Fetch questions with ELO from API
+      const questionsWithElo = await api.questions.getQuestionsWithElo(enemy.subject, userId);
+
+      // Use pure function to select question
+      const question = selectQuestionFromPool(questionsWithElo, enemy.level, askedQuestionsRef.current);
+
+      if (!question) {
+        console.error('No questions available');
+        endCombat();
+        return;
+      }
 
       // Calculate dynamic time limit based on enemy level vs question difficulty
       // Question level = 11 - ELO (lower ELO = harder question = higher level)
@@ -105,22 +121,13 @@ export function useCombat({
 
       setCombatQuestion(question);
       setCombatFeedback('');
-      setCombatTimer(dynamicTimeLimit);
       setEnemyHp(enemy.hp);
 
       questionStartTimeRef.current = Date.now();
 
-      if (combatTimerIntervalRef.current) clearInterval(combatTimerIntervalRef.current);
-      combatTimerIntervalRef.current = setInterval(() => {
-        setCombatTimer(prev => {
-          if (prev <= 1) {
-            if (combatTimerIntervalRef.current) clearInterval(combatTimerIntervalRef.current);
-            answerQuestion(-1);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+      // Update timeout handler ref and start timer with dynamic duration
+      handleTimeoutRef.current = () => answerQuestion(-1);
+      startTimer(dynamicTimeLimit);
     } catch (error) {
       console.error('Error fetching questions:', error);
       endCombat();
@@ -128,10 +135,7 @@ export function useCombat({
   };
 
   const answerQuestion = async (selectedIndex: number) => {
-    if (combatTimerIntervalRef.current) {
-      clearInterval(combatTimerIntervalRef.current);
-      combatTimerIntervalRef.current = null;
-    }
+    stopTimer();
 
     if (!combatQuestion || !currentEnemyRef.current) return;
 
@@ -191,10 +195,7 @@ export function useCombat({
   };
 
   const endCombat = async () => {
-    if (combatTimerIntervalRef.current) {
-      clearInterval(combatTimerIntervalRef.current);
-      combatTimerIntervalRef.current = null;
-    }
+    stopTimer();
 
     // Award XP if enemy was defeated
     const enemy = currentEnemyRef.current;

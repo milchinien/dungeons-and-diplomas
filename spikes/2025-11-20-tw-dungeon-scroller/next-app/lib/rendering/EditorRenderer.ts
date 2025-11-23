@@ -1,6 +1,6 @@
 import type { TileType, Room } from '../constants';
 import { TILE, TILE_SOURCE_SIZE } from '../constants';
-import { Enemy } from '../Enemy';
+import { Enemy } from '../enemy';
 import type { RenderMap } from '../tiletheme/types';
 import { getThemeRenderer } from '../tiletheme/ThemeRenderer';
 

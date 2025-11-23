@@ -8,7 +8,7 @@ import {
   DEFAULT_DUNGEON_CONFIG
 } from '../constants';
 import type { TileType, TileVariant, Room, DungeonConfig } from '../constants';
-import type { Player } from '../Enemy';
+import type { Player } from '../enemy';
 import {
   createEmptyDungeon,
   generateTileVariants,
@@ -19,7 +19,7 @@ import {
 } from '../dungeon/generation';
 import { initializeDungeonRNG, generateRandomSeed, getSpawnRng, getDecorationRng } from '../dungeon/DungeonRNG';
 import { SpriteSheetLoader } from '../SpriteSheetLoader';
-import { Enemy } from '../Enemy';
+import { Enemy } from '../enemy';
 import {
   calculateSubjectWeights,
   calculateEnemySpawns

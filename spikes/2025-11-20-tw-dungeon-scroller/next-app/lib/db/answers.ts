@@ -2,15 +2,10 @@
  * Answer logging database operations
  */
 import { getDatabase } from './connection';
+import type { AnswerLogEntry } from '../types/api';
 
-export interface AnswerLogEntry {
-  user_id: number;
-  question_id: number;
-  selected_answer_index: number;
-  is_correct: boolean;
-  answer_time_ms?: number;
-  timeout_occurred?: boolean;
-}
+// Re-export type for convenience
+export type { AnswerLogEntry };
 
 /**
  * Log an answer to the database

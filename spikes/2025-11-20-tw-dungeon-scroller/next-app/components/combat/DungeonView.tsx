@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { TILE, TILE_SOURCE_SIZE } from '@/lib/constants';
 import type { TileType, Room } from '@/lib/constants';
-import type { Player } from '@/lib/Enemy';
+import type { Player } from '@/lib/enemy';
 import type { RenderMap, TileTheme, TileVariant, WallType } from '@/lib/tiletheme/types';
 import { WALL_TYPE } from '@/lib/tiletheme/types';
 import { getThemeRenderer } from '@/lib/tiletheme/ThemeRenderer';

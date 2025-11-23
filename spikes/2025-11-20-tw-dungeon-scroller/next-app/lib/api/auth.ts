@@ -3,16 +3,10 @@
  */
 
 import { post } from './client';
+import type { LoginRequest, LoginResponse } from '../types/api';
 
-export interface LoginRequest {
-  username: string;
-}
-
-export interface LoginResponse {
-  id: number;
-  username: string;
-  xp?: number;
-}
+// Re-export types for convenience
+export type { LoginRequest, LoginResponse };
 
 export async function login(username: string): Promise<LoginResponse> {
   return post<LoginResponse>('/api/auth/login', { username });

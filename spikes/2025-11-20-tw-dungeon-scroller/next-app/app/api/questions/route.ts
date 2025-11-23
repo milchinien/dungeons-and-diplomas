@@ -1,15 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getAllQuestions } from '@/lib/db';
+import { withErrorHandler } from '@/lib/api/errorHandler';
 
-export async function GET() {
-  try {
-    const questions = getAllQuestions();
-    return NextResponse.json(questions);
-  } catch (error) {
-    console.error('Error fetching questions:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch questions' },
-      { status: 500 }
-    );
-  }
-}
+export const GET = withErrorHandler(async () => {
+  const questions = getAllQuestions();
+  return NextResponse.json(questions);
+}, 'fetch questions');

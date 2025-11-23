@@ -4,7 +4,7 @@ import {
   TILE
 } from '../constants';
 import type { TileType, Room } from '../constants';
-import type { Player } from '../Enemy';
+import type { Player } from '../enemy';
 
 export class MinimapRenderer {
   render(

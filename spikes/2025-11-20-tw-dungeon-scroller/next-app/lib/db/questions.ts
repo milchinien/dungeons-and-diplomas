@@ -3,6 +3,10 @@
  */
 import { getDatabase } from './connection';
 import { calculateEloOrNull, calculateProgressiveElo, type AnswerRecord } from '../scoring/EloCalculator';
+import type { SubjectEloScore } from '../types/api';
+
+// Re-export type for convenience
+export type { SubjectEloScore };
 
 // Row types
 export interface QuestionRow {
@@ -42,12 +46,6 @@ export interface QuestionWithElo {
   correctCount: number;
   wrongCount: number;
   timeoutCount: number;
-}
-
-export interface SubjectEloScore {
-  subjectKey: string;
-  subjectName: string;
-  averageElo: number;
 }
 
 /**

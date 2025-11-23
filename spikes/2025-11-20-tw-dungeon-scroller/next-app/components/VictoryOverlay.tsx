@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import FloatingXpBubble from './FloatingXpBubble';
+import GameOverlay, { OVERLAY_STYLES } from './GameOverlay';
 
 interface VictoryOverlayProps {
   xpGained: number;
@@ -36,18 +37,7 @@ export default function VictoryOverlay({ xpGained, onComplete }: VictoryOverlayP
   }, [onComplete]);
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100vw',
-        height: '100vh',
-        zIndex: 2000,
-        pointerEvents: 'none',
-        overflow: 'hidden'
-      }}
-    >
+    <GameOverlay pointerEvents="none">
       {/* Confetti */}
       {confetti.map((particle) => (
         <div
@@ -69,17 +59,14 @@ export default function VictoryOverlay({ xpGained, onComplete }: VictoryOverlayP
       {/* Victory Text */}
       <div
         style={{
+          ...OVERLAY_STYLES.title,
           position: 'absolute',
           top: '30%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          fontSize: '120px',
-          fontWeight: 900,
           color: '#FFD700',
           textShadow: '0 0 20px rgba(255, 215, 0, 0.8), 0 0 40px rgba(255, 215, 0, 0.5), 4px 4px 8px rgba(0, 0, 0, 0.9)',
           animation: 'victoryBounce 0.6s ease-out',
-          userSelect: 'none',
-          letterSpacing: '10px'
         }}
       >
         VICTORY!
@@ -123,6 +110,6 @@ export default function VictoryOverlay({ xpGained, onComplete }: VictoryOverlayP
           }
         }
       `}</style>
-    </div>
+    </GameOverlay>
   );
 }

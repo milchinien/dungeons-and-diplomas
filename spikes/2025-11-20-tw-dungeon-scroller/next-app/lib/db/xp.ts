@@ -2,13 +2,10 @@
  * XP-related database operations
  */
 import { getDatabase } from './connection';
+import type { XpLogEntry } from '../types/api';
 
-export interface XpLogEntry {
-  user_id: number;
-  xp_amount: number;
-  reason: string;
-  enemy_level?: number;
-}
+// Re-export type for convenience
+export type { XpLogEntry };
 
 /**
  * Add XP to a user and log the gain

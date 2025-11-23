@@ -4,9 +4,9 @@ import {
   DIRECTION_OFFSETS
 } from '../constants';
 import type { TileType, Room } from '../constants';
-import type { Player } from '../Enemy';
+import type { Player } from '../enemy';
 import { SpriteSheetLoader } from '../SpriteSheetLoader';
-import { Enemy } from '../Enemy';
+import { Enemy } from '../enemy';
 import type { RenderMap, TileTheme } from '../tiletheme/types';
 import { getThemeRenderer } from '../tiletheme/ThemeRenderer';
 import { detectDoorType } from '../tiletheme/WallTypeDetector';

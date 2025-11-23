@@ -6,12 +6,12 @@ import {
   PLAYER_SPEED_TILES,
   DIRECTION_OFFSETS
 } from '../constants';
-import type { TileType, Room, KeyboardState } from '../constants';
-import type { Player } from '../Enemy';
-import { SpriteSheetLoader } from '../SpriteSheetLoader';
-import { Enemy } from '../Enemy';
+import type { TileType, Room } from '../constants';
+import type { Player } from '../enemy';
+import { Enemy } from '../enemy';
 import { CollisionDetector } from '../physics/CollisionDetector';
 import { DirectionCalculator } from '../movement/DirectionCalculator';
+import type { UpdatePlayerContext, UpdateEnemiesContext } from '../types/game';
 
 export class GameEngine {
   private lastSpacePressed: boolean = false;
@@ -140,21 +140,23 @@ export class GameEngine {
     }
   }
 
-  public updatePlayer(
-    dt: number,
-    player: Player,
-    keys: KeyboardState,
-    tileSize: number,
-    dungeon: TileType[][],
-    roomMap: number[][],
-    rooms: Room[],
-    playerSprite: SpriteSheetLoader | null,
-    inCombat: boolean,
-    doorStates: Map<string, boolean>,
-    enemies: Enemy[],
-    treasures?: Set<string>,
-    onTreasureCollected?: (x: number, y: number) => void
-  ) {
+  public updatePlayer(ctx: UpdatePlayerContext) {
+    const {
+      dt,
+      player,
+      keys,
+      tileSize,
+      dungeon,
+      roomMap,
+      rooms,
+      playerSprite,
+      inCombat,
+      doorStates,
+      enemies,
+      treasures,
+      onTreasureCollected
+    } = ctx;
+
     if (inCombat) return;
 
     // Handle space key for door toggle (only on key press, not hold)
@@ -234,18 +236,20 @@ export class GameEngine {
     playerSprite?.update(dt);
   }
 
-  public updateEnemies(
-    dt: number,
-    enemies: Enemy[],
-    player: Player,
-    tileSize: number,
-    rooms: Room[],
-    dungeon: TileType[][],
-    roomMap: number[][],
-    startCombat: (enemy: Enemy) => void,
-    inCombat: boolean,
-    doorStates: Map<string, boolean>
-  ) {
+  public updateEnemies(ctx: UpdateEnemiesContext) {
+    const {
+      dt,
+      enemies,
+      player,
+      tileSize,
+      rooms,
+      dungeon,
+      roomMap,
+      startCombat,
+      inCombat,
+      doorStates
+    } = ctx;
+
     for (const enemy of enemies) {
       enemy.update(
         dt,

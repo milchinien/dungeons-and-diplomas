@@ -1,12 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
-import type { Player } from '@/lib/Enemy';
+import type { Player } from '@/lib/enemy';
 import type { QuestionDatabase } from '@/lib/questions';
 import { DIRECTION, PLAYER_MAX_HP } from '@/lib/constants';
 import type { KeyboardState } from '@/lib/constants';
-import { DungeonManager } from '@/lib/game/DungeonManager';
-import { GameEngine } from '@/lib/game/GameEngine';
-import { GameRenderer } from '@/lib/rendering/GameRenderer';
-import { MinimapRenderer } from '@/lib/rendering/MinimapRenderer';
+import type { GameStateConfig } from '@/lib/types/gameState';
+import { resolveConfig } from '@/lib/types/gameState';
+import type { DungeonManager } from '@/lib/game/DungeonManager';
+import type { GameEngine } from '@/lib/game/GameEngine';
+import type { GameRenderer } from '@/lib/rendering/GameRenderer';
+import type { MinimapRenderer } from '@/lib/rendering/MinimapRenderer';
 
 interface UseGameStateProps {
   questionDatabase: QuestionDatabase | null;
@@ -21,6 +23,8 @@ interface UseGameStateProps {
   onStartCombat?: (enemy: any) => void;
   /** Shared player reference (owned by parent component) */
   playerRef?: React.MutableRefObject<Player>;
+  /** Optional configuration for dependency injection (testing) */
+  config?: GameStateConfig;
 }
 
 export function useGameState({
@@ -32,8 +36,12 @@ export function useGameState({
   onTreasureCollected,
   inCombatRef: externalInCombatRef,
   onStartCombat,
-  playerRef: externalPlayerRef
+  playerRef: externalPlayerRef,
+  config: userConfig
 }: UseGameStateProps) {
+  // Resolve configuration with defaults
+  const config = resolveConfig(userConfig);
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const minimapRef = useRef<HTMLCanvasElement>(null);
   const [gameInitialized, setGameInitialized] = useState(false);
@@ -68,10 +76,11 @@ export function useGameState({
     ' ': false
   });
 
+  // Use factories from config for dependency injection
   const dungeonManagerRef = useRef<DungeonManager | null>(null);
-  const gameEngineRef = useRef<GameEngine>(new GameEngine());
-  const gameRendererRef = useRef<GameRenderer>(new GameRenderer());
-  const minimapRendererRef = useRef<MinimapRenderer>(new MinimapRenderer());
+  const gameEngineRef = useRef<GameEngine>(config.gameEngineFactory());
+  const gameRendererRef = useRef<GameRenderer>(config.gameRendererFactory());
+  const minimapRendererRef = useRef<MinimapRenderer>(config.minimapRendererFactory());
 
   const generateNewDungeon = async () => {
     if (!dungeonManagerRef.current) return;
@@ -140,34 +149,34 @@ export function useGameState({
     const engine = gameEngineRef.current;
     const manager = dungeonManagerRef.current;
 
-    engine.updatePlayer(
+    engine.updatePlayer({
       dt,
-      playerRef.current,
-      keysRef.current,
-      manager.tileSize,
-      manager.dungeon,
-      manager.roomMap,
-      manager.rooms,
-      manager.playerSprite,
-      inCombatRef.current,
-      manager.doorStates,
-      manager.enemies,
-      manager.treasures,
-      handleTreasureCollected
-    );
+      player: playerRef.current,
+      keys: keysRef.current,
+      tileSize: manager.tileSize,
+      dungeon: manager.dungeon,
+      roomMap: manager.roomMap,
+      rooms: manager.rooms,
+      playerSprite: manager.playerSprite,
+      inCombat: inCombatRef.current,
+      doorStates: manager.doorStates,
+      enemies: manager.enemies,
+      treasures: manager.treasures,
+      onTreasureCollected: handleTreasureCollected
+    });
 
-    engine.updateEnemies(
+    engine.updateEnemies({
       dt,
-      manager.enemies,
-      playerRef.current,
-      manager.tileSize,
-      manager.rooms,
-      manager.dungeon,
-      manager.roomMap,
-      startCombatCallback,
-      inCombatRef.current,
-      manager.doorStates
-    );
+      enemies: manager.enemies,
+      player: playerRef.current,
+      tileSize: manager.tileSize,
+      rooms: manager.rooms,
+      dungeon: manager.dungeon,
+      roomMap: manager.roomMap,
+      startCombat: startCombatCallback,
+      inCombat: inCombatRef.current,
+      doorStates: manager.doorStates
+    });
   };
 
   const render = () => {
@@ -212,7 +221,7 @@ export function useGameState({
       render();
     }
 
-    gameLoopIdRef.current = requestAnimationFrame(gameLoop);
+    gameLoopIdRef.current = config.scheduler.requestFrame(gameLoop);
   };
 
   useEffect(() => {
@@ -232,11 +241,11 @@ export function useGameState({
       const canvas = canvasRef.current;
       if (!canvas) return;
 
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      canvas.width = config.windowDimensions.getWidth();
+      canvas.height = config.windowDimensions.getHeight();
 
-      // Initialize dungeon manager (tilesets are loaded there via ThemeRenderer)
-      const dungeonManager = new DungeonManager(playerRef.current);
+      // Initialize dungeon manager using factory from config
+      const dungeonManager = config.dungeonManagerFactory(playerRef.current);
       await dungeonManager.initialize(availableSubjects);
       dungeonManagerRef.current = dungeonManager;
 
@@ -245,41 +254,43 @@ export function useGameState({
       }
 
       setGameInitialized(true);
-      gameLoopIdRef.current = requestAnimationFrame(gameLoop);
+      gameLoopIdRef.current = config.scheduler.requestFrame(gameLoop);
     };
 
     initGame();
 
     const handleResize = () => {
       if (canvasRef.current) {
-        canvasRef.current.width = window.innerWidth;
-        canvasRef.current.height = window.innerHeight;
+        canvasRef.current.width = config.windowDimensions.getWidth();
+        canvasRef.current.height = config.windowDimensions.getHeight();
       }
     };
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key in keysRef.current) {
-        keysRef.current[e.key as keyof KeyboardState] = true;
+    const handleKeyDown = (e: Event) => {
+      const key = (e as KeyboardEvent).key;
+      if (key in keysRef.current) {
+        keysRef.current[key as keyof KeyboardState] = true;
       }
     };
 
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key in keysRef.current) {
-        keysRef.current[e.key as keyof KeyboardState] = false;
+    const handleKeyUp = (e: Event) => {
+      const key = (e as KeyboardEvent).key;
+      if (key in keysRef.current) {
+        keysRef.current[key as keyof KeyboardState] = false;
       }
     };
 
-    window.addEventListener('resize', handleResize);
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
+    config.eventTarget.addEventListener('resize', handleResize);
+    config.eventTarget.addEventListener('keydown', handleKeyDown);
+    config.eventTarget.addEventListener('keyup', handleKeyUp);
 
     return () => {
       isMountedRef.current = false;
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
+      config.eventTarget.removeEventListener('resize', handleResize);
+      config.eventTarget.removeEventListener('keydown', handleKeyDown);
+      config.eventTarget.removeEventListener('keyup', handleKeyUp);
       if (gameLoopIdRef.current) {
-        cancelAnimationFrame(gameLoopIdRef.current);
+        config.scheduler.cancelFrame(gameLoopIdRef.current);
       }
     };
   }, [questionDatabase, availableSubjects, userId]);
