@@ -6,6 +6,7 @@ import {
 import type { TileType, Room } from '../constants';
 import type { Player } from '../enemy';
 import { getEntityTilePosition } from '../physics/TileCoordinates';
+import { getContext2D, clearCanvas } from './canvasUtils';
 
 export class MinimapRenderer {
   render(
@@ -16,11 +17,10 @@ export class MinimapRenderer {
     rooms: Room[],
     tileSize: number
   ) {
-    const ctx = canvas.getContext('2d');
+    const ctx = getContext2D(canvas);
     if (!ctx) return;
 
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    clearCanvas(ctx);
 
     const scaleX = canvas.width / DUNGEON_WIDTH;
     const scaleY = canvas.height / DUNGEON_HEIGHT;

@@ -5,6 +5,7 @@ import { Enemy } from '../enemy';
 import type { RenderMap, TileTheme } from '../tiletheme/types';
 import { VisibilityCalculator } from '../visibility';
 import { getTileRenderer } from './TileRenderer';
+import { getContext2D } from './canvasUtils';
 
 /**
  * Main game renderer that orchestrates all rendering passes.
@@ -57,7 +58,7 @@ export class GameRenderer {
     doorStates: Map<string, boolean>,
     darkTheme: TileTheme | null
   ) {
-    const ctx = canvas.getContext('2d');
+    const ctx = getContext2D(canvas);
     if (!ctx) {
       throw new Error('Failed to get 2D context from canvas');
     }

@@ -3,6 +3,7 @@ import { TILE, TILE_SOURCE_SIZE } from '../constants';
 import { Enemy } from '../enemy';
 import type { RenderMap } from '../tiletheme/types';
 import { getThemeRenderer } from '../tiletheme/ThemeRenderer';
+import { getContext2D, clearCanvas } from './canvasUtils';
 
 export interface EditorCamera {
   x: number;         // Camera world position X
@@ -34,14 +35,13 @@ export class EditorRenderer {
     playerSpawnPos?: { x: number; y: number },
     showGrid?: boolean
   ) {
-    const ctx = canvas.getContext('2d');
+    const ctx = getContext2D(canvas);
     if (!ctx) return;
 
     const themeRenderer = getThemeRenderer();
 
     // Clear canvas
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    clearCanvas(ctx);
 
     ctx.save();
 

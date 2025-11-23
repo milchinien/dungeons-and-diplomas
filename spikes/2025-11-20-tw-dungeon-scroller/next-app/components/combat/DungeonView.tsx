@@ -10,6 +10,7 @@ import { getThemeRenderer } from '@/lib/tiletheme/ThemeRenderer';
 import { detectDoorType } from '@/lib/tiletheme/WallTypeDetector';
 import { VisibilityCalculator } from '@/lib/visibility';
 import { useFallbackTheme } from '@/hooks/useFallbackTheme';
+import { getContext2D } from '@/lib/rendering/canvasUtils';
 import Torch from './Torch';
 
 interface DungeonViewProps {
@@ -54,7 +55,7 @@ export default function DungeonView({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = getContext2D(canvas);
     if (!ctx) return;
 
     const renderer = getThemeRenderer();
@@ -201,7 +202,7 @@ export default function DungeonView({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = getContext2D(canvas);
     if (!ctx) return;
 
     const renderer = getThemeRenderer();

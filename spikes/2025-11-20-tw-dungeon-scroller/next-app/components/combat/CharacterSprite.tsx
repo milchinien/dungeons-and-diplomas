@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { SpriteSheetLoader } from '@/lib/SpriteSheetLoader';
 import { DIRECTION, ANIMATION } from '@/lib/constants';
+import { getContext2D } from '@/lib/rendering/canvasUtils';
 
 interface CharacterSpriteProps {
   isPlayer: boolean;
@@ -72,7 +73,7 @@ export default function CharacterSprite({ isPlayer, isAttacking, isHurt, isDead 
     if (!loaded || !spriteRef.current || !canvasRef.current) return;
 
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
+    const ctx = getContext2D(canvas);
     if (!ctx) return;
 
     let lastTime = 0;

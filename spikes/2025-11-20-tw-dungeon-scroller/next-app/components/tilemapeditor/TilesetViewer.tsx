@@ -3,6 +3,7 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import type { ImportedTileset, DraggedTile } from '@/lib/tiletheme/types';
 import { TILE_SOURCE_SIZE } from '@/lib/constants';
+import { getContext2D } from '@/lib/rendering/canvasUtils';
 
 interface TilesetViewerProps {
   tilesets: ImportedTileset[];
@@ -49,7 +50,7 @@ export function TilesetViewer({
     const canvas = canvasRef.current;
     if (!canvas || !tilesetImage || !selectedTileset) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = getContext2D(canvas);
     if (!ctx) return;
 
     // Set canvas size
@@ -139,7 +140,7 @@ export function TilesetViewer({
     const dragCanvas = document.createElement('canvas');
     dragCanvas.width = dragSize;
     dragCanvas.height = dragSize;
-    const ctx = dragCanvas.getContext('2d');
+    const ctx = getContext2D(dragCanvas);
     if (ctx && tilesetImage) {
       ctx.drawImage(
         tilesetImage,

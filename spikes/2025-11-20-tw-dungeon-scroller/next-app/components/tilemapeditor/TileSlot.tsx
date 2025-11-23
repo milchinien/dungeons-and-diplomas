@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import type { TileVariant, ImportedTileset, SlotCategory } from '@/lib/tiletheme/types';
 import { TILE_SOURCE_SIZE } from '@/lib/constants';
+import { getContext2D } from '@/lib/rendering/canvasUtils';
 
 interface TileSlotProps {
   category: SlotCategory;
@@ -71,7 +72,7 @@ export function TileSlot({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = getContext2D(canvas);
     if (!ctx) return;
 
     canvas.width = SLOT_SIZE;

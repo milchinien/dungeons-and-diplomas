@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import type { TileTheme, TileVariant, ImportedTileset, DraggedTile, SelectedSlot, SlotCategory, WallType, DoorType } from '@/lib/tiletheme/types';
 import { TILE_SOURCE_SIZE } from '@/lib/constants';
 import { getSlotLabel } from '@/lib/tiletheme/ThemeValidator';
+import { getContext2D } from '@/lib/rendering/canvasUtils';
 
 interface VariantEditorProps {
   theme: TileTheme;
@@ -141,7 +142,7 @@ function VariantItem({ variant, index, tilesets, onRemove, onUpdateWeight }: Var
     const canvas = canvasRef.current;
     if (!canvas || !tilesetImage) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = getContext2D(canvas);
     if (!ctx) return;
 
     canvas.width = VARIANT_SIZE;

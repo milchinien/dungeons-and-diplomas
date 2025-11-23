@@ -6,6 +6,7 @@ import { generateAllWallTypesTestMap } from '@/lib/tiletheme/TestMapGenerator';
 import { generateSingleThemeRenderMap } from '@/lib/tiletheme/RenderMapGenerator';
 import { ThemeRenderer, getThemeRenderer } from '@/lib/tiletheme/ThemeRenderer';
 import { TILE_SOURCE_SIZE } from '@/lib/constants';
+import { getContext2D, clearCanvas } from '@/lib/rendering/canvasUtils';
 
 interface ThemePreviewProps {
   theme: TileTheme | null;
@@ -83,7 +84,7 @@ export function ThemePreview({ theme, tilesets }: ThemePreviewProps) {
     const canvas = canvasRef.current;
     if (!canvas || !renderMap) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = getContext2D(canvas);
     if (!ctx) return;
 
     const width = testMap.width * previewTileSize;
@@ -93,8 +94,7 @@ export function ThemePreview({ theme, tilesets }: ThemePreviewProps) {
     canvas.height = height;
 
     // Clear with black
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, width, height);
+    clearCanvas(ctx);
 
     // Render using ThemeRenderer
     const renderer = getThemeRenderer();
