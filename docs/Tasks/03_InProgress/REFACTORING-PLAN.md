@@ -57,41 +57,25 @@ next-app/
 
 ---
 
-### [R02] Visibility-Logik aus GameRenderer extrahieren
+### [R02] ✅ Visibility-Logik aus GameRenderer extrahieren - ERLEDIGT
 
-**Problem:** `GameRenderer.ts` (370 Zeilen) enthält komplexe Fog-of-War-Logik (Zeilen 204-358) vermischt mit Rendering-Code. Die Visibility-Berechnung ist auch in `DungeonView.tsx` (Zeilen 147-167) dupliziert.
+**Problem:** `GameRenderer.ts` (370 Zeilen) enthielt komplexe Fog-of-War-Logik vermischt mit Rendering-Code. Die Visibility-Berechnung war auch in `DungeonView.tsx` dupliziert.
 
-**Betroffene Dateien:**
-- `lib/rendering/GameRenderer.ts:52-112` - `shouldUseBrightTileset()` mit Raum-Sichtbarkeits-Logik
-- `lib/rendering/GameRenderer.ts:118-148` - `getPlayerRoomIds()`
-- `lib/rendering/GameRenderer.ts:204-228, 296-358` - Fog-of-War-Rendering
-- `components/combat/DungeonView.tsx:147-172` - Duplizierte Visibility-Logik
+**Abgeschlossen:** 2025-11-23
 
-**Lösung:** Neues Modul `lib/visibility/VisibilityCalculator.ts`
-
-```typescript
-// lib/visibility/VisibilityCalculator.ts
-export class VisibilityCalculator {
-  static isTileVisible(x, y, roomMap, rooms): boolean { ... }
-  static getPlayerRoomIds(player, tileSize, roomMap): Set<number> { ... }
-  static shouldDimTile(x, y, playerRoomIds, roomMap): boolean { ... }
-  static isRoomClear(roomId, rooms, roomMap, enemies): boolean { ... }
-}
-```
-
-**Aufwand:** M | **Risiko:** mittel
-
-**Schritte:**
-1. Neues Modul `lib/visibility/VisibilityCalculator.ts` erstellen
-2. Visibility-Methoden aus GameRenderer extrahieren
-3. GameRenderer refaktorieren, um VisibilityCalculator zu nutzen
-4. DungeonView refaktorieren, um VisibilityCalculator zu nutzen
-5. Unit-Tests für VisibilityCalculator schreiben
-
-**Temporäre Tests:**
-- Test: `isTileVisible` gibt `true` zurück wenn Raum sichtbar ist
-- Test: `isTileVisible` prüft Nachbarräume für Wände/Türen
-- Test: `shouldDimTile` korrekt für verschiedene Raum-Konstellationen
+**Änderungen:**
+- ✅ `lib/visibility/VisibilityCalculator.ts` erstellt mit:
+  - `isTileVisible()` - Fog-of-War-Sichtbarkeitsprüfung
+  - `getPlayerRoomIds()` - Spieler-Raum-Ermittlung
+  - `shouldDimTile()` - Dimming-Berechnung
+- ✅ `lib/visibility/index.ts` für Re-exports erstellt
+- ✅ `lib/rendering/GameRenderer.ts` - Nutzt nun VisibilityCalculator
+  - `isTileVisible` Methode entfernt
+  - `getPlayerRoomIds` Methode entfernt
+  - `renderTiles()` nutzt `VisibilityCalculator.isTileVisible()`
+  - `renderFogOfWar()` nutzt `VisibilityCalculator.shouldDimTile()`
+  - `render()` nutzt `VisibilityCalculator.getPlayerRoomIds()`
+- ✅ `components/combat/DungeonView.tsx` - Duplizierte Visibility-Logik durch VisibilityCalculator ersetzt
 
 ---
 
@@ -367,7 +351,7 @@ R10 (tiletheme/db)  ────────────────────
 3. **R06** - ✅ Render-Passes aufteilen - ERLEDIGT 2025-11-23
 
 ### Phase 2: Kernmodule (3-4 Tage)
-4. **R02** - Visibility-Logik (2h)
+4. **R02** - ✅ Visibility-Logik - ERLEDIGT 2025-11-23
 5. **R03** - ThemeLoader (2h)
 6. **R04** - CombatEngine (3h)
 
@@ -399,3 +383,4 @@ R10 (tiletheme/db)  ────────────────────
 | Datum | Phase | Änderungen |
 |-------|-------|------------|
 | 2025-11-23 | Phase 1 | R01, R05, R06 abgeschlossen |
+| 2025-11-23 | Phase 2 | R02 abgeschlossen |

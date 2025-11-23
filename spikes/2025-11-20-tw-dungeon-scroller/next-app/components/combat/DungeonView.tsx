@@ -8,6 +8,7 @@ import type { RenderMap, TileTheme, TileVariant, WallType } from '@/lib/tilethem
 import { WALL_TYPE } from '@/lib/tiletheme/types';
 import { getThemeRenderer } from '@/lib/tiletheme/ThemeRenderer';
 import { detectDoorType } from '@/lib/tiletheme/WallTypeDetector';
+import { VisibilityCalculator } from '@/lib/visibility';
 
 interface DungeonViewProps {
   isPlayerAttacking?: boolean;
@@ -144,27 +145,10 @@ export default function DungeonView({
 
         if (tile === TILE.EMPTY) continue;
 
-        // Check visibility
-        let isVisible = false;
-        if (roomId >= 0 && rooms![roomId]) {
-          isVisible = rooms![roomId].visible;
-        } else if (roomId === -1 || roomId === -2) {
-          // Walls/doors visible if any adjacent room is visible
-          outer: for (let dy = -1; dy <= 1; dy++) {
-            for (let dx = -1; dx <= 1; dx++) {
-              if (dx === 0 && dy === 0) continue;
-              const ny = y + dy;
-              const nx = x + dx;
-              if (ny >= 0 && ny < dungeonHeight && nx >= 0 && nx < dungeonWidth) {
-                const neighborRoomId = roomMap![ny][nx];
-                if (neighborRoomId >= 0 && rooms![neighborRoomId]?.visible) {
-                  isVisible = true;
-                  break outer;
-                }
-              }
-            }
-          }
-        }
+        // Check visibility using VisibilityCalculator
+        const isVisible = VisibilityCalculator.isTileVisible(
+          x, y, roomId, roomMap!, rooms!, dungeonWidth, dungeonHeight
+        );
 
         if (!isVisible) {
           // Skip - let the atmospheric background show through

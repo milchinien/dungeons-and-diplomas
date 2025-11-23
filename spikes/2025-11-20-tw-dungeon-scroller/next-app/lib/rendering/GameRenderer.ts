@@ -7,10 +7,10 @@ import type { TileType, Room } from '../constants';
 import type { Player } from '../enemy';
 import { SpriteSheetLoader } from '../SpriteSheetLoader';
 import { Enemy } from '../enemy';
-import { getEntityTilePosition } from '../physics/TileCoordinates';
 import type { RenderMap, TileTheme } from '../tiletheme/types';
 import { getThemeRenderer } from '../tiletheme/ThemeRenderer';
 import { detectDoorType } from '../tiletheme/WallTypeDetector';
+import { VisibilityCalculator } from '../visibility';
 
 export class GameRenderer {
   /**
@@ -112,76 +112,7 @@ export class GameRenderer {
     return false;
   }
 
-  /**
-   * Get player's current room ID(s)
-   * Returns a Set because player might be on a door (adjacent to multiple rooms)
-   */
-  private getPlayerRoomIds(player: Player, tileSize: number, roomMap: number[][], dungeonWidth: number, dungeonHeight: number): Set<number> {
-    const { tx: playerTileX, ty: playerTileY } = getEntityTilePosition(player, tileSize);
-    const roomIds = new Set<number>();
 
-    if (playerTileX < 0 || playerTileX >= dungeonWidth || playerTileY < 0 || playerTileY >= dungeonHeight) {
-      return roomIds;
-    }
-
-    const directRoomId = roomMap[playerTileY][playerTileX];
-
-    // If player is in a valid room, just return that
-    if (directRoomId >= 0) {
-      roomIds.add(directRoomId);
-      return roomIds;
-    }
-
-    // Player is on a door/wall (roomId < 0) - find adjacent rooms
-    for (const { dx, dy } of DIRECTION_OFFSETS) {
-      const nx = playerTileX + dx;
-      const ny = playerTileY + dy;
-      if (nx >= 0 && nx < dungeonWidth && ny >= 0 && ny < dungeonHeight) {
-        const neighborRoomId = roomMap[ny][nx];
-        if (neighborRoomId >= 0) {
-          roomIds.add(neighborRoomId);
-        }
-      }
-    }
-
-    return roomIds;
-  }
-
-  /**
-   * Check if a tile is visible (fog of war)
-   */
-  private isTileVisible(
-    x: number,
-    y: number,
-    roomId: number,
-    roomMap: number[][],
-    rooms: Room[],
-    dungeonWidth: number,
-    dungeonHeight: number
-  ): boolean {
-    if (roomId >= 0 && rooms[roomId]) {
-      return rooms[roomId].visible;
-    }
-
-    if (roomId === -1 || roomId === -2) {
-      // Walls/doors - visible if any adjacent room is visible
-      for (let dy = -1; dy <= 1; dy++) {
-        for (let dx = -1; dx <= 1; dx++) {
-          if (dx === 0 && dy === 0) continue;
-          const ny = y + dy;
-          const nx = x + dx;
-          if (ny >= 0 && ny < dungeonHeight && nx >= 0 && nx < dungeonWidth) {
-            const neighborRoomId = roomMap[ny][nx];
-            if (neighborRoomId >= 0 && rooms[neighborRoomId]?.visible) {
-              return true;
-            }
-          }
-        }
-      }
-    }
-
-    return false;
-  }
 
   /**
    * Render all tiles in the visible area
@@ -216,7 +147,7 @@ export class GameRenderer {
 
         if (tile === TILE.EMPTY) continue;
 
-        const isVisible = this.isTileVisible(x, y, roomId, roomMap, rooms, dungeonWidth, dungeonHeight);
+        const isVisible = VisibilityCalculator.isTileVisible(x, y, roomId, roomMap, rooms, dungeonWidth, dungeonHeight);
 
         if (!isVisible) {
           ctx.fillStyle = '#000000';
@@ -308,31 +239,13 @@ export class GameRenderer {
 
         const roomId = roomMap[y][x];
 
-        const isVisible = this.isTileVisible(x, y, roomId, roomMap, rooms, dungeonWidth, dungeonHeight);
+        const isVisible = VisibilityCalculator.isTileVisible(x, y, roomId, roomMap, rooms, dungeonWidth, dungeonHeight);
         if (!isVisible) continue;
 
-        // Determine if tile should be dimmed
-        let shouldDim = false;
-        if (roomId >= 0) {
-          shouldDim = !playerRoomIds.has(roomId);
-        } else {
-          // Wall/door: dim if not adjacent to any of the player's rooms
-          let adjacentToPlayerRoom = false;
-          for (let dy = -1; dy <= 1; dy++) {
-            for (let dx = -1; dx <= 1; dx++) {
-              const ny = y + dy;
-              const nx = x + dx;
-              if (ny >= 0 && ny < dungeonHeight && nx >= 0 && nx < dungeonWidth) {
-                if (playerRoomIds.has(roomMap[ny][nx])) {
-                  adjacentToPlayerRoom = true;
-                  break;
-                }
-              }
-            }
-            if (adjacentToPlayerRoom) break;
-          }
-          shouldDim = !adjacentToPlayerRoom;
-        }
+        // Determine if tile should be dimmed using VisibilityCalculator
+        const shouldDim = VisibilityCalculator.shouldDimTile(
+          x, y, roomId, roomMap, playerRoomIds, dungeonWidth, dungeonHeight
+        );
 
         if (shouldDim) {
           ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
@@ -413,7 +326,7 @@ export class GameRenderer {
     const endRow = startRow + Math.ceil(canvas.height / tileSize) + 1;
 
     // Get player's current room(s) for visibility calculations
-    const playerRoomIds = this.getPlayerRoomIds(player, tileSize, roomMap, dungeonWidth, dungeonHeight);
+    const playerRoomIds = VisibilityCalculator.getPlayerRoomIds(player, tileSize, roomMap, dungeonWidth, dungeonHeight);
 
     // Pass 1: Render tiles
     this.renderTiles(
