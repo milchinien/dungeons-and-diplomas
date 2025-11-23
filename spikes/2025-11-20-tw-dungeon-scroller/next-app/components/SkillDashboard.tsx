@@ -1,21 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-
-interface QuestionStats {
-  id: number;
-  question: string;
-  correct: number;
-  wrong: number;
-  timeout: number;
-  elo: number;
-}
-
-interface SubjectStats {
-  subject_name: string;
-  average_elo: number;
-  questions: QuestionStats[];
-}
+import { api, type StatsData } from '@/lib/api';
 
 // Helper function to get mastery level
 function getMasteryLevel(elo: number): { label: string; color: string; icon: string; bgColor: string } {
@@ -51,10 +37,6 @@ function getMasteryLevel(elo: number): { label: string; color: string; icon: str
   }
 }
 
-interface StatsData {
-  [key: string]: SubjectStats;
-}
-
 interface SkillDashboardProps {
   userId: number;
   onClose: () => void;
@@ -68,11 +50,7 @@ export default function SkillDashboard({ userId, onClose }: SkillDashboardProps)
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await fetch(`/api/stats?userId=${userId}`);
-        if (!response.ok) {
-          throw new Error('Failed to load stats');
-        }
-        const data = await response.json();
+        const data = await api.stats.getStats(userId);
         setStats(data);
       } catch (err) {
         setError('Fehler beim Laden der Statistiken');

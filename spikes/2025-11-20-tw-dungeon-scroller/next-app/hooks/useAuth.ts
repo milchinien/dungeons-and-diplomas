@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { type StorageService, defaultStorage } from '@/lib/storage';
+import { logHookError } from '@/lib/hooks';
 
 interface UseAuthOptions {
   /** Storage service for persistence (defaults to localStorage) */
@@ -30,7 +31,7 @@ export function useAuth(options: UseAuthOptions = {}) {
       api.auth.login(storedUsername).then(userData => {
         setUserXp(userData.xp || 0);
       }).catch(err => {
-        console.error('Failed to reload user XP:', err);
+        logHookError('useAuth', err, 'Failed to reload user XP');
       });
     }
   }, []);
@@ -43,7 +44,7 @@ export function useAuth(options: UseAuthOptions = {}) {
   };
 
   const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
+    await api.auth.logout();
     storage.remove('userId');
     storage.remove('username');
     setUserId(null);

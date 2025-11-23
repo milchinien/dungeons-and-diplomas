@@ -9,4 +9,4 @@ export { EnemyRenderer } from './EnemyRenderer';
 export { handleStateTransitions } from './AggroManager';
 export { moveTowards, followPath, moveDirectlyTowardsPlayer } from './EnemyMovement';
 export { pickRandomWaypoint } from './EnemyWaypoints';
-export type { Player, EnemyUpdateContext } from './types';
+export type { Player, EnemyUpdateContext, Pathfinder, PathCoord } from './types';

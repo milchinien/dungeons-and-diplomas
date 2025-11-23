@@ -15,10 +15,10 @@ import {
   COMBAT_TRIGGER_DISTANCE
 } from '../constants';
 import type { TileType, Room } from '../constants';
-import { AStarPathfinder } from '../pathfinding/AStarPathfinder';
+import { defaultPathfinder } from '../pathfinding/DefaultPathfinder';
 import { getEntityTilePosition } from '../physics/TileCoordinates';
 import { Enemy } from './Enemy';
-import type { Player, EnemyUpdateContext } from './types';
+import type { Player, EnemyUpdateContext, Pathfinder } from './types';
 import { handleStateTransitions } from './AggroManager';
 import { moveTowards, followPath, moveDirectlyTowardsPlayer } from './EnemyMovement';
 import { pickRandomWaypoint } from './EnemyWaypoints';
@@ -87,14 +87,14 @@ export class EnemyAI {
    * Execute behavior based on current AI state
    */
   private static executeBehavior(enemy: Enemy, ctx: EnemyUpdateContext): void {
-    const { dt, player, tileSize, rooms, dungeon, roomMap, onCombatStart, inCombat, doorStates } = ctx;
+    const { dt, player, tileSize, rooms, dungeon, roomMap, onCombatStart, inCombat, doorStates, pathfinder } = ctx;
 
     if (enemy.aiState === AI_STATE.IDLE) {
       this.executeIdleBehavior(enemy, dt, rooms, dungeon, roomMap, tileSize);
     } else if (enemy.aiState === AI_STATE.WANDERING) {
       this.executeWanderingBehavior(enemy, dt, tileSize, dungeon, doorStates);
     } else if (enemy.aiState === AI_STATE.FOLLOWING) {
-      this.executeFollowingBehavior(enemy, dt, player, tileSize, dungeon, doorStates, onCombatStart, inCombat);
+      this.executeFollowingBehavior(enemy, dt, player, tileSize, dungeon, doorStates, onCombatStart, inCombat, pathfinder);
     }
   }
 
@@ -161,7 +161,8 @@ export class EnemyAI {
     dungeon: TileType[][],
     doorStates: Map<string, boolean>,
     onCombatStart: (enemy: Enemy) => void,
-    inCombat: boolean
+    inCombat: boolean,
+    pathfinder: Pathfinder = defaultPathfinder
   ): void {
     const distanceToPlayer = enemy.getDistanceToPlayer(player, tileSize);
 
@@ -174,7 +175,7 @@ export class EnemyAI {
         const { tx: enemyTileX, ty: enemyTileY } = getEntityTilePosition(enemy, tileSize);
         const { tx: playerTileX, ty: playerTileY } = getEntityTilePosition(player, tileSize);
 
-        enemy.path = AStarPathfinder.findPath(
+        enemy.path = pathfinder.findPath(
           enemyTileX, enemyTileY,
           playerTileX, playerTileY,
           dungeon, doorStates

@@ -1,18 +1,15 @@
 import { NextResponse } from 'next/server';
 import { loginUser } from '@/lib/db';
 import { withErrorHandler } from '@/lib/api/errorHandler';
+import { validateNonEmptyString } from '@/lib/api/validation';
 
 export const POST = withErrorHandler(async (request: Request) => {
   const { username } = await request.json();
 
-  if (!username || typeof username !== 'string' || username.trim().length === 0) {
-    return NextResponse.json(
-      { error: 'Username is required' },
-      { status: 400 }
-    );
-  }
+  const usernameResult = validateNonEmptyString(username, 'username');
+  if (!usernameResult.success) return usernameResult.error;
 
-  const user = loginUser(username.trim());
+  const user = loginUser(usernameResult.value.trim());
 
   return NextResponse.json({
     id: user.id,

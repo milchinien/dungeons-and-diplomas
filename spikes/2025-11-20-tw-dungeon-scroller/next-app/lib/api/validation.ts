@@ -133,3 +133,102 @@ export function parseRouteIntParam(
 export function getSearchParams(request: Request): URLSearchParams {
   return new URL(request.url).searchParams;
 }
+
+// =============================================================================
+// POST Body Validation
+// =============================================================================
+
+/**
+ * Validate that a value is a positive integer (> 0)
+ */
+export function validatePositiveInt(
+  value: unknown,
+  fieldName: string
+): ValidationResult<number> {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0) {
+    return {
+      success: false,
+      error: NextResponse.json(
+        { error: `Valid ${fieldName} is required (must be a positive integer)` },
+        { status: 400 }
+      )
+    };
+  }
+  return { success: true, value };
+}
+
+/**
+ * Validate that a value is a non-negative integer (>= 0)
+ */
+export function validateNonNegativeInt(
+  value: unknown,
+  fieldName: string
+): ValidationResult<number> {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 0) {
+    return {
+      success: false,
+      error: NextResponse.json(
+        { error: `Valid ${fieldName} is required (must be a non-negative integer)` },
+        { status: 400 }
+      )
+    };
+  }
+  return { success: true, value };
+}
+
+/**
+ * Validate that a value is a boolean
+ */
+export function validateBoolean(
+  value: unknown,
+  fieldName: string
+): ValidationResult<boolean> {
+  if (typeof value !== 'boolean') {
+    return {
+      success: false,
+      error: NextResponse.json(
+        { error: `${fieldName} must be a boolean` },
+        { status: 400 }
+      )
+    };
+  }
+  return { success: true, value };
+}
+
+/**
+ * Validate that a value is a non-empty string
+ */
+export function validateNonEmptyString(
+  value: unknown,
+  fieldName: string
+): ValidationResult<string> {
+  if (typeof value !== 'string' || value.trim() === '') {
+    return {
+      success: false,
+      error: NextResponse.json(
+        { error: `${fieldName} must be a non-empty string` },
+        { status: 400 }
+      )
+    };
+  }
+  return { success: true, value };
+}
+
+/**
+ * Validate an integer that can be -1 (for timeout) or >= 0
+ */
+export function validateAnswerIndex(
+  value: unknown,
+  fieldName: string
+): ValidationResult<number> {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < -1) {
+    return {
+      success: false,
+      error: NextResponse.json(
+        { error: `Valid ${fieldName} is required (must be >= -1)` },
+        { status: 400 }
+      )
+    };
+  }
+  return { success: true, value };
+}

@@ -12,6 +12,7 @@ import * as answers from './answers';
 import * as xp from './xp';
 import * as auth from './auth';
 import * as theme from './theme';
+import * as stats from './stats';
 
 export const api = {
   elo,
@@ -19,7 +20,8 @@ export const api = {
   answers,
   xp,
   auth,
-  theme
+  theme,
+  stats
 };
 
 // Re-export types for convenience
@@ -28,6 +30,7 @@ export type { AnswerLogEntry, LogAnswerResponse } from './answers';
 export type { XpLogEntry, AddXpResponse } from './xp';
 export type { LoginRequest, LoginResponse } from './auth';
 export type { ThemeResponse } from './theme';
+export type { StatsData, SubjectStats, QuestionStats } from './stats';
 export { ApiError } from './client';
 
 // Re-export validation utilities for API routes

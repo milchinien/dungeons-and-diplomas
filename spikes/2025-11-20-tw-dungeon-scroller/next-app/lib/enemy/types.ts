@@ -1,7 +1,7 @@
 /**
  * Types for the enemy module
  */
-import type { Direction } from '../constants';
+import type { Direction, TileType } from '../constants';
 
 /**
  * Player interface - represents the player entity
@@ -19,6 +19,29 @@ export interface Player {
 }
 
 /**
+ * Path coordinate returned by pathfinder
+ */
+export interface PathCoord {
+  x: number;
+  y: number;
+}
+
+/**
+ * Pathfinder interface for dependency injection
+ * Allows mocking in tests and swapping implementations
+ */
+export interface Pathfinder {
+  findPath(
+    startX: number,
+    startY: number,
+    endX: number,
+    endY: number,
+    dungeon: TileType[][],
+    doorStates: Map<string, boolean>
+  ): PathCoord[];
+}
+
+/**
  * Context for enemy AI update
  */
 export interface EnemyUpdateContext {
@@ -31,4 +54,6 @@ export interface EnemyUpdateContext {
   onCombatStart: (enemy: import('./Enemy').Enemy) => void;
   inCombat: boolean;
   doorStates: Map<string, boolean>;
+  /** Optional pathfinder - defaults to AStarPathfinder if not provided */
+  pathfinder?: Pathfinder;
 }

@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
-import { api } from '@/lib/api';
+import { loadAllEloScores } from '@/lib/scoring/EloService';
+import { logHookError } from '@/lib/hooks';
 
 interface SubjectScore {
   subjectKey: string;
@@ -15,7 +16,7 @@ export function useScoring(userId: number | null) {
 
   const loadSessionElos = async (id: number) => {
     try {
-      const eloScores = await api.elo.getSessionElo(id);
+      const eloScores = await loadAllEloScores(id);
       const startElos: { [key: string]: number } = {};
       const scores: SubjectScore[] = [];
 
@@ -33,7 +34,7 @@ export function useScoring(userId: number | null) {
       sessionStartEloRef.current = startElos;
       setSessionScores(scores);
     } catch (error) {
-      console.error('Error loading session ELO:', error);
+      logHookError('useScoring', error, 'Failed to load session ELO');
     }
   };
 
@@ -41,7 +42,7 @@ export function useScoring(userId: number | null) {
     if (!userId) return;
 
     try {
-      const eloScores = await api.elo.getSessionElo(userId);
+      const eloScores = await loadAllEloScores(userId);
 
       setSessionScores(prevScores => {
         return prevScores.map(score => {
@@ -58,7 +59,7 @@ export function useScoring(userId: number | null) {
         });
       });
     } catch (error) {
-      console.error('Failed to update session scores:', error);
+      logHookError('useScoring', error, 'Failed to update session scores');
     }
   };
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { api } from '@/lib/api';
 
 interface LoginModalProps {
   onLogin: (userId: number, username: string, xp?: number) => void;
@@ -23,19 +24,7 @@ export default function LoginModal({ onLogin }: LoginModalProps) {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username: username.trim() }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Login fehlgeschlagen');
-      }
-
-      const data = await response.json();
+      const data = await api.auth.login(username.trim());
 
       // Store in localStorage
       localStorage.setItem('userId', data.id.toString());

@@ -8,8 +8,10 @@ import { calculateEnemyXpReward } from '@/lib/scoring/LevelCalculator';
 import { CombatEngine } from '@/lib/combat/CombatEngine';
 import { combatReducer, initialCombatState, isInCombat } from '@/lib/combat/combatReducer';
 import { api } from '@/lib/api';
+import { loadSubjectElo, findSubjectElo, DEFAULT_ELO } from '@/lib/scoring/EloService';
 import { useTimer } from './useTimer';
 import { type Clock, defaultClock } from '@/lib/time';
+import { logHookError } from '@/lib/hooks';
 
 interface UseCombatProps {
   questionDatabase: QuestionDatabase | null;
@@ -54,14 +56,8 @@ export function useCombat({
   const loadPlayerElo = useCallback(async (subjectKey: string) => {
     if (!userId) return;
 
-    try {
-      const eloScores = await api.elo.getSessionElo(userId);
-      const subjectElo = eloScores.find((s) => s.subjectKey === subjectKey);
-      dispatch({ type: 'SET_PLAYER_ELO', elo: subjectElo?.averageElo || 5 });
-    } catch (error) {
-      console.error('Failed to load player ELO:', error);
-      dispatch({ type: 'SET_PLAYER_ELO', elo: 5 });
-    }
+    const elo = await loadSubjectElo(userId, subjectKey);
+    dispatch({ type: 'SET_PLAYER_ELO', elo });
   }, [userId]);
 
   const endCombat = useCallback(async () => {
@@ -86,7 +82,7 @@ export function useCombat({
         dispatch({ type: 'SHOW_VICTORY', xp: xpReward });
         return;
       } catch (error) {
-        console.error('Failed to award XP:', error);
+        logHookError('useCombat', error, 'Failed to award XP');
       }
     }
 
@@ -105,7 +101,7 @@ export function useCombat({
     }
 
     if (!questionDatabase || !userId) {
-      console.error('Question database or user not loaded');
+      logHookError('useCombat', new Error('Question database or user not loaded'), 'Combat prerequisites not met');
       dispatch({ type: 'END_COMBAT' });
       return;
     }
@@ -115,7 +111,7 @@ export function useCombat({
       const question = selectQuestionFromPool(questionsWithElo, enemy.level, state.askedQuestionIds);
 
       if (!question) {
-        console.error('No questions available');
+        logHookError('useCombat', new Error('No questions available for combat'), 'Question pool exhausted');
         dispatch({ type: 'END_COMBAT' });
         return;
       }
@@ -131,7 +127,7 @@ export function useCombat({
       handleTimeoutRef.current = () => answerQuestion(-1);
       startTimer(dynamicTimeLimit);
     } catch (error) {
-      console.error('Error fetching questions:', error);
+      logHookError('useCombat', error, 'Failed to fetch questions');
       dispatch({ type: 'END_COMBAT' });
     }
   }, [state.enemy, state.askedQuestionIds, questionDatabase, userId, playerRef, clock, startTimer, endCombat]);
@@ -163,7 +159,7 @@ export function useCombat({
         onUpdateSessionScores(state.subject);
         await loadPlayerElo(state.subject);
       } catch (error) {
-        console.error('Failed to track answer:', error);
+        logHookError('useCombat', error, 'Failed to track answer');
       }
     }
 
@@ -199,7 +195,7 @@ export function useCombat({
 
   const startCombat = useCallback(async (enemy: Enemy) => {
     if (!questionDatabase || !userId) {
-      console.error('Question database or user not loaded yet');
+      logHookError('useCombat', new Error('Question database or user not loaded yet'), 'Cannot start combat');
       return;
     }
 
@@ -207,13 +203,8 @@ export function useCombat({
     dispatch({ type: 'START_COMBAT', enemy, subjectDisplay });
 
     // Load ELO then ask first question
-    try {
-      const eloScores = await api.elo.getSessionElo(userId);
-      const subjectElo = eloScores.find((s) => s.subjectKey === enemy.subject);
-      dispatch({ type: 'SET_PLAYER_ELO', elo: subjectElo?.averageElo || 5 });
-    } catch (error) {
-      console.error('Failed to load player ELO:', error);
-    }
+    const elo = await loadSubjectElo(userId, enemy.subject);
+    dispatch({ type: 'SET_PLAYER_ELO', elo });
 
     // Need to ask question after state is updated - use immediate invocation
     setTimeout(async () => {
@@ -224,7 +215,7 @@ export function useCombat({
         const question = selectQuestionFromPool(questionsWithElo, enemy.level, new Set());
 
         if (!question) {
-          console.error('No questions available');
+          logHookError('useCombat', new Error('No questions available for initial combat'), 'Question pool exhausted');
           dispatch({ type: 'END_COMBAT' });
           return;
         }
@@ -240,7 +231,7 @@ export function useCombat({
         handleTimeoutRef.current = () => answerQuestion(-1);
         startTimer(dynamicTimeLimit);
       } catch (error) {
-        console.error('Error fetching questions:', error);
+        logHookError('useCombat', error, 'Failed to start combat');
         dispatch({ type: 'END_COMBAT' });
       }
     }, 0);

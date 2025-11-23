@@ -1,46 +1,35 @@
 import { NextResponse } from 'next/server';
 import { logAnswer, type AnswerLogEntry } from '@/lib/db';
 import { withErrorHandler } from '@/lib/api/errorHandler';
+import {
+  validatePositiveInt,
+  validateAnswerIndex,
+  validateBoolean
+} from '@/lib/api/validation';
 
 export const POST = withErrorHandler(async (request: Request) => {
   const body = await request.json();
 
   const { user_id, question_id, selected_answer_index, is_correct, answer_time_ms, timeout_occurred } = body;
 
-  // Validation
-  if (typeof user_id !== 'number' || user_id <= 0) {
-    return NextResponse.json(
-      { error: 'Valid user_id is required' },
-      { status: 400 }
-    );
-  }
+  // Validation using centralized validators
+  const userIdResult = validatePositiveInt(user_id, 'user_id');
+  if (!userIdResult.success) return userIdResult.error;
 
-  if (typeof question_id !== 'number' || question_id <= 0) {
-    return NextResponse.json(
-      { error: 'Valid question_id is required' },
-      { status: 400 }
-    );
-  }
+  const questionIdResult = validatePositiveInt(question_id, 'question_id');
+  if (!questionIdResult.success) return questionIdResult.error;
 
-  if (typeof selected_answer_index !== 'number' || selected_answer_index < 0) {
-    return NextResponse.json(
-      { error: 'Valid selected_answer_index is required' },
-      { status: 400 }
-    );
-  }
+  const answerIndexResult = validateAnswerIndex(selected_answer_index, 'selected_answer_index');
+  if (!answerIndexResult.success) return answerIndexResult.error;
 
-  if (typeof is_correct !== 'boolean') {
-    return NextResponse.json(
-      { error: 'is_correct must be a boolean' },
-      { status: 400 }
-    );
-  }
+  const isCorrectResult = validateBoolean(is_correct, 'is_correct');
+  if (!isCorrectResult.success) return isCorrectResult.error;
 
   const entry: AnswerLogEntry = {
-    user_id,
-    question_id,
-    selected_answer_index,
-    is_correct,
+    user_id: userIdResult.value,
+    question_id: questionIdResult.value,
+    selected_answer_index: answerIndexResult.value,
+    is_correct: isCorrectResult.value,
     answer_time_ms: answer_time_ms || undefined,
     timeout_occurred: timeout_occurred || false
   };
