@@ -186,33 +186,31 @@ lib/enemy/
 
 ---
 
-### [R08] CharacterPanel in Subkomponenten aufteilen
+### [R08] ✅ CharacterPanel in Subkomponenten aufteilen - ERLEDIGT
 
-**Problem:** `CharacterPanel.tsx` (340 Zeilen) ist ein monolithischer UI-Block mit ~250 Zeilen inline JSX/Styles. Schwer zu testen und zu warten.
+**Problem:** `CharacterPanel.tsx` (340 Zeilen) war ein monolithischer UI-Block mit ~250 Zeilen inline JSX/Styles.
 
-**Betroffene Dateien:**
-- `components/CharacterPanel.tsx:1-340` - Gesamte Datei
+**Abgeschlossen:** 2025-11-23
 
-**Lösung:** Subkomponenten extrahieren.
+**Änderungen:**
+- ✅ `components/character/CharacterHeader.tsx` erstellt (40 Zeilen) - Username, Level
+- ✅ `components/character/XpProgressBar.tsx` erstellt (56 Zeilen) - XP-Fortschritt
+- ✅ `components/character/MasteryCircles.tsx` erstellt (168 Zeilen) - ELO-Kreise mit SubjectRow und EloCircle
+- ✅ `components/character/ActionButtons.tsx` erstellt (76 Zeilen) - Logout, Restart, Skills
+- ✅ `components/character/index.ts` erstellt für Re-exports
+- ✅ `components/CharacterPanel.tsx` refaktoriert (65 Zeilen, von 340 Zeilen)
 
+**Neue Struktur:**
 ```
 components/
-├── CharacterPanel.tsx      (80 Zeilen) - Layout
-├── character/
-│   ├── CharacterHeader.tsx (50 Zeilen) - Username, Level
-│   ├── XpProgressBar.tsx   (70 Zeilen) - XP-Fortschritt
-│   ├── MasteryCircles.tsx  (80 Zeilen) - ELO-Kreise
-│   └── ActionButtons.tsx   (40 Zeilen) - Logout, Restart, Skills
+├── CharacterPanel.tsx      (65 Zeilen) - Layout & Orchestrierung
+└── character/
+    ├── index.ts            (11 Zeilen) - Re-exports
+    ├── CharacterHeader.tsx (40 Zeilen) - Username, Level
+    ├── XpProgressBar.tsx   (56 Zeilen) - XP-Fortschritt
+    ├── MasteryCircles.tsx  (168 Zeilen) - ELO-Kreise
+    └── ActionButtons.tsx   (76 Zeilen) - Action Buttons
 ```
-
-**Aufwand:** M | **Risiko:** niedrig
-
-**Schritte:**
-1. `components/character/CharacterHeader.tsx` erstellen
-2. `components/character/XpProgressBar.tsx` erstellen
-3. `components/character/MasteryCircles.tsx` erstellen
-4. `components/character/ActionButtons.tsx` erstellen
-5. CharacterPanel refaktorieren, um Subkomponenten zu nutzen
 
 ---
 
@@ -313,7 +311,7 @@ R10 (tiletheme/db)  ────────────────────
 
 ### Phase 3: Größere Refactorings (5-7 Tage)
 7. **R07** - ✅ EnemyAI-Module - ERLEDIGT 2025-11-23
-8. **R08** - CharacterPanel-Subkomponenten (3h)
+8. **R08** - ✅ CharacterPanel-Subkomponenten - ERLEDIGT 2025-11-23
 9. **R10** - tiletheme/db aufteilen (2h)
 10. **R09** - DungeonManager-Trennung (6h) ⚠️ Höchstes Risiko
 
@@ -341,3 +339,4 @@ R10 (tiletheme/db)  ────────────────────
 | 2025-11-23 | Phase 1 | R01, R05, R06 abgeschlossen |
 | 2025-11-23 | Phase 2 | R02, R03, R04 abgeschlossen - Phase 2 komplett! |
 | 2025-11-23 | Phase 3 | R07 abgeschlossen - EnemyAI in 3 Module aufgeteilt |
+| 2025-11-23 | Phase 3 | R08 abgeschlossen - CharacterPanel in 4 Subkomponenten aufgeteilt |
