@@ -8,6 +8,7 @@ import { calculateEnemyXpReward } from '@/lib/scoring/LevelCalculator';
 import { CombatEngine } from '@/lib/combat/CombatEngine';
 import { api } from '@/lib/api';
 import { useTimer } from './useTimer';
+import { type Clock, defaultClock } from '@/lib/time';
 
 interface UseCombatProps {
   questionDatabase: QuestionDatabase | null;
@@ -17,6 +18,7 @@ interface UseCombatProps {
   onPlayerHpUpdate: (hp: number) => void;
   onGameRestart: () => void;
   onXpGained?: (amount: number) => void;
+  clock?: Clock;
 }
 
 export function useCombat({
@@ -26,7 +28,8 @@ export function useCombat({
   onUpdateSessionScores,
   onPlayerHpUpdate,
   onGameRestart,
-  onXpGained
+  onXpGained,
+  clock = defaultClock
 }: UseCombatProps) {
   const [inCombat, setInCombat] = useState(false);
   const inCombatRef = useRef(false);
@@ -119,7 +122,7 @@ export function useCombat({
       setCombatFeedback('');
       setEnemyHp(enemy.hp);
 
-      questionStartTimeRef.current = Date.now();
+      questionStartTimeRef.current = clock.now();
 
       // Update timeout handler ref and start timer with dynamic duration
       handleTimeoutRef.current = () => answerQuestion(-1);
@@ -135,7 +138,7 @@ export function useCombat({
 
     if (!combatQuestion || !currentEnemyRef.current) return;
 
-    const answerTimeMs = Date.now() - questionStartTimeRef.current;
+    const answerTimeMs = clock.now() - questionStartTimeRef.current;
     const isTimeout = selectedIndex === -1;
 
     // Process answer using CombatEngine
