@@ -14,9 +14,9 @@
 - [R02] useCombat Hook aufteilen ✅ (via Combat Reducer Pattern in R06)
 - [R03] DungeonView Component aufteilen ✅
 
-**Sprint 3 (Komplexe Refactorings) - IN BEARBEITUNG**
+**Sprint 3 (Komplexe Refactorings) - ABGESCHLOSSEN ✅**
 - [R08] useTilemapEditorState Hook aufteilen ✅
-- [R09] TileRenderer aus GameRenderer extrahieren
+- [R09] TileRenderer aus GameRenderer extrahieren ✅
 
 ## Zusammenfassung
 

@@ -1,157 +1,17 @@
-import { TILE, TILE_SOURCE_SIZE } from '../constants';
 import type { TileType, Room } from '../constants';
 import type { Player } from '../enemy';
 import { SpriteSheetLoader } from '../SpriteSheetLoader';
 import { Enemy } from '../enemy';
 import type { RenderMap, TileTheme } from '../tiletheme/types';
-import { getThemeRenderer } from '../tiletheme/ThemeRenderer';
-import { detectDoorType } from '../tiletheme/WallTypeDetector';
 import { VisibilityCalculator } from '../visibility';
-import { BrightnessCalculator } from './BrightnessCalculator';
+import { getTileRenderer } from './TileRenderer';
 
+/**
+ * Main game renderer that orchestrates all rendering passes.
+ * Uses TileRenderer for tile-specific rendering operations.
+ */
 export class GameRenderer {
-
-
-
-  /**
-   * Render all tiles in the visible area
-   */
-  private renderTiles(
-    ctx: CanvasRenderingContext2D,
-    dungeon: TileType[][],
-    roomMap: number[][],
-    rooms: Room[],
-    enemies: Enemy[],
-    tileSize: number,
-    renderMap: RenderMap,
-    doorStates: Map<string, boolean>,
-    darkTheme: TileTheme | null,
-    startCol: number,
-    endCol: number,
-    startRow: number,
-    endRow: number,
-    dungeonWidth: number,
-    dungeonHeight: number
-  ): void {
-    const themeRenderer = getThemeRenderer();
-
-    for (let y = startRow; y < endRow; y++) {
-      for (let x = startCol; x < endCol; x++) {
-        if (x < 0 || x >= dungeonWidth || y < 0 || y >= dungeonHeight) {
-          continue;
-        }
-
-        const tile = dungeon[y][x];
-        const roomId = roomMap[y][x];
-
-        if (tile === TILE.EMPTY) continue;
-
-        const isVisible = VisibilityCalculator.isTileVisible(x, y, roomId, roomMap, rooms, dungeonWidth, dungeonHeight);
-
-        if (!isVisible) {
-          ctx.fillStyle = '#000000';
-          ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
-          continue;
-        }
-
-        // Special handling for doors
-        if (tile === TILE.DOOR && darkTheme) {
-          const doorKey = `${x},${y}`;
-          const isOpen = doorStates.get(doorKey) ?? false;
-          const doorType = detectDoorType(dungeon, x, y, isOpen);
-          const doorVariants = darkTheme.door[doorType];
-
-          if (doorVariants && doorVariants.length > 0) {
-            const variant = doorVariants[0];
-            const tileset = themeRenderer.getTilesetImage(variant.source.tilesetId);
-
-            if (tileset) {
-              ctx.drawImage(
-                tileset,
-                variant.source.x * TILE_SOURCE_SIZE,
-                variant.source.y * TILE_SOURCE_SIZE,
-                TILE_SOURCE_SIZE, TILE_SOURCE_SIZE,
-                x * tileSize, y * tileSize, tileSize, tileSize
-              );
-            } else {
-              ctx.fillStyle = '#FF00FF';
-              ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
-            }
-          }
-          continue;
-        }
-
-        // Get pre-computed render tile
-        const renderTile = renderMap.tiles[y]?.[x];
-        if (!renderTile) continue;
-
-        const useBright = BrightnessCalculator.shouldUseBrightTileset(
-          x, y, tile, roomMap, rooms, enemies, dungeonWidth, dungeonHeight
-        );
-
-        const useLight = useBright && renderTile.lightTilesetId !== null;
-        const tilesetId = useLight ? renderTile.lightTilesetId! : renderTile.darkTilesetId;
-        const srcX = useLight ? renderTile.lightSrcX! : renderTile.darkSrcX;
-        const srcY = useLight ? renderTile.lightSrcY! : renderTile.darkSrcY;
-
-        const tileset = themeRenderer.getTilesetImage(tilesetId);
-
-        if (tileset) {
-          ctx.drawImage(
-            tileset,
-            srcX, srcY, TILE_SOURCE_SIZE, TILE_SOURCE_SIZE,
-            x * tileSize, y * tileSize, tileSize, tileSize
-          );
-        } else {
-          ctx.fillStyle = '#FF00FF';
-          ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
-        }
-      }
-    }
-  }
-
-  /**
-   * Render fog of war dimming effect for rooms where player is not present
-   */
-  private renderFogOfWar(
-    ctx: CanvasRenderingContext2D,
-    dungeon: TileType[][],
-    roomMap: number[][],
-    rooms: Room[],
-    playerRoomIds: Set<number>,
-    tileSize: number,
-    startCol: number,
-    endCol: number,
-    startRow: number,
-    endRow: number,
-    dungeonWidth: number,
-    dungeonHeight: number
-  ): void {
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
-
-    for (let y = startRow; y < endRow; y++) {
-      for (let x = startCol; x < endCol; x++) {
-        if (x < 0 || x >= dungeonWidth || y < 0 || y >= dungeonHeight) continue;
-
-        const tile = dungeon[y][x];
-        if (tile === TILE.EMPTY) continue;
-
-        const roomId = roomMap[y][x];
-
-        const isVisible = VisibilityCalculator.isTileVisible(x, y, roomId, roomMap, rooms, dungeonWidth, dungeonHeight);
-        if (!isVisible) continue;
-
-        // Determine if tile should be dimmed using VisibilityCalculator
-        const shouldDim = VisibilityCalculator.shouldDimTile(
-          x, y, roomId, roomMap, playerRoomIds, dungeonWidth, dungeonHeight
-        );
-
-        if (shouldDim) {
-          ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
-        }
-      }
-    }
-  }
+  private tileRenderer = getTileRenderer();
 
   /**
    * Render all enemies visible in player's rooms
@@ -227,14 +87,14 @@ export class GameRenderer {
     // Get player's current room(s) for visibility calculations
     const playerRoomIds = VisibilityCalculator.getPlayerRoomIds(player, tileSize, roomMap, dungeonWidth, dungeonHeight);
 
-    // Pass 1: Render tiles
-    this.renderTiles(
+    // Pass 1: Render tiles (delegated to TileRenderer)
+    this.tileRenderer.renderTiles(
       ctx, dungeon, roomMap, rooms, enemies, tileSize, renderMap, doorStates, darkTheme,
       startCol, endCol, startRow, endRow, dungeonWidth, dungeonHeight
     );
 
-    // Pass 2: Render fog of war dimming
-    this.renderFogOfWar(
+    // Pass 2: Render fog of war dimming (delegated to TileRenderer)
+    this.tileRenderer.renderFogOfWar(
       ctx, dungeon, roomMap, rooms, playerRoomIds, tileSize,
       startCol, endCol, startRow, endRow, dungeonWidth, dungeonHeight
     );
