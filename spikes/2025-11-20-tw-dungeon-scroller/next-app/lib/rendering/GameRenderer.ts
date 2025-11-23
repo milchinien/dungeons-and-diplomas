@@ -6,8 +6,9 @@ import type { TileType, Room } from '../constants';
 import type { Player } from '../Enemy';
 import { SpriteSheetLoader } from '../SpriteSheetLoader';
 import { Enemy } from '../Enemy';
-import type { RenderMap } from '../tiletheme/types';
+import type { RenderMap, TileTheme } from '../tiletheme/types';
 import { getThemeRenderer } from '../tiletheme/ThemeRenderer';
+import { detectDoorType } from '../tiletheme/WallTypeDetector';
 
 export class GameRenderer {
   /**
@@ -117,6 +118,19 @@ export class GameRenderer {
     return false;
   }
 
+  /**
+   * Get player's current room ID
+   */
+  private getPlayerRoomId(player: Player, tileSize: number, roomMap: number[][], dungeonWidth: number, dungeonHeight: number): number {
+    const playerTileX = Math.floor((player.x + tileSize / 2) / tileSize);
+    const playerTileY = Math.floor((player.y + tileSize / 2) / tileSize);
+
+    if (playerTileX >= 0 && playerTileX < dungeonWidth && playerTileY >= 0 && playerTileY < dungeonHeight) {
+      return roomMap[playerTileY][playerTileX];
+    }
+    return -1;
+  }
+
   render(
     canvas: HTMLCanvasElement,
     player: Player,
@@ -126,7 +140,9 @@ export class GameRenderer {
     enemies: Enemy[],
     playerSprite: SpriteSheetLoader | null,
     tileSize: number,
-    renderMap: RenderMap
+    renderMap: RenderMap,
+    doorStates: Map<string, boolean>,
+    darkTheme: TileTheme | null
   ) {
     const ctx = canvas.getContext('2d');
     if (!ctx) {
@@ -198,7 +214,34 @@ export class GameRenderer {
           continue;
         }
 
-        // Get pre-computed render tile
+        // Special handling for doors - render dynamically based on open/closed state
+        if (tile === TILE.DOOR && darkTheme) {
+          const doorKey = `${x},${y}`;
+          const isOpen = doorStates.get(doorKey) ?? false;
+          const doorType = detectDoorType(dungeon, x, y, isOpen);
+          const doorVariants = darkTheme.door[doorType];
+
+          if (doorVariants && doorVariants.length > 0) {
+            const variant = doorVariants[0]; // Use first variant
+            const tileset = themeRenderer.getTilesetImage(variant.source.tilesetId);
+
+            if (tileset) {
+              ctx.drawImage(
+                tileset,
+                variant.source.x * TILE_SOURCE_SIZE,
+                variant.source.y * TILE_SOURCE_SIZE,
+                TILE_SOURCE_SIZE, TILE_SOURCE_SIZE,
+                x * tileSize, y * tileSize, tileSize, tileSize
+              );
+            } else {
+              ctx.fillStyle = '#FF00FF';
+              ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+            }
+          }
+          continue;
+        }
+
+        // Get pre-computed render tile (for non-door tiles)
         const renderTile = renderMap.tiles[y]?.[x];
         if (!renderTile) continue;
 
@@ -229,9 +272,77 @@ export class GameRenderer {
       }
     }
 
-    // Draw enemies
+    // Get player's current room for enemy visibility and fog of war
+    const playerRoomId = this.getPlayerRoomId(player, tileSize, roomMap, dungeonWidth, dungeonHeight);
+
+    // Fog of War: Dim visible rooms where player is NOT present
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+    for (let y = startRow; y < endRow; y++) {
+      for (let x = startCol; x < endCol; x++) {
+        if (x < 0 || x >= dungeonWidth || y < 0 || y >= dungeonHeight) continue;
+
+        const tile = dungeon[y][x];
+        if (tile === TILE.EMPTY) continue;
+
+        const roomId = roomMap[y][x];
+
+        // Check if tile is visible
+        let isVisible = false;
+        if (roomId >= 0 && rooms[roomId]) {
+          isVisible = rooms[roomId].visible;
+        } else if (roomId === -1 || roomId === -2) {
+          // Walls/doors - visible if any adjacent room is visible
+          outer: for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+              if (dx === 0 && dy === 0) continue;
+              const ny = y + dy;
+              const nx = x + dx;
+              if (ny >= 0 && ny < dungeonHeight && nx >= 0 && nx < dungeonWidth) {
+                const neighborRoomId = roomMap[ny][nx];
+                if (neighborRoomId >= 0 && rooms[neighborRoomId]?.visible) {
+                  isVisible = true;
+                  break outer;
+                }
+              }
+            }
+          }
+        }
+
+        if (!isVisible) continue;
+
+        // Dim tiles that are NOT in the player's current room
+        // For walls/doors (roomId < 0), dim if not adjacent to player's room
+        let shouldDim = false;
+        if (roomId >= 0) {
+          shouldDim = roomId !== playerRoomId;
+        } else {
+          // Wall/door: dim if not adjacent to player's room
+          let adjacentToPlayerRoom = false;
+          for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+              const ny = y + dy;
+              const nx = x + dx;
+              if (ny >= 0 && ny < dungeonHeight && nx >= 0 && nx < dungeonWidth) {
+                if (roomMap[ny][nx] === playerRoomId) {
+                  adjacentToPlayerRoom = true;
+                  break;
+                }
+              }
+            }
+            if (adjacentToPlayerRoom) break;
+          }
+          shouldDim = !adjacentToPlayerRoom;
+        }
+
+        if (shouldDim) {
+          ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+        }
+      }
+    }
+
+    // Draw enemies (only in player's current room)
     for (const enemy of enemies) {
-      enemy.draw(ctx, rooms, tileSize, player);
+      enemy.draw(ctx, rooms, tileSize, player, playerRoomId);
     }
 
     // Draw player

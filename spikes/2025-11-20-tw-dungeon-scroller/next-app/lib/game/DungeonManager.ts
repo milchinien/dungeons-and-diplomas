@@ -40,6 +40,7 @@ export class DungeonManager {
   public playerSprite: SpriteSheetLoader | null = null;
   public tileSize: number = 64;
   public treasures: Set<string> = new Set(); // Store treasure positions as "x,y" strings
+  public doorStates: Map<string, boolean> = new Map(); // Store door states as "x,y" -> isOpen
   public config: DungeonConfig = { ...DEFAULT_DUNGEON_CONFIG };
 
   // Theme-based rendering
@@ -146,6 +147,16 @@ export class DungeonManager {
     connectRooms(this.dungeon, this.roomMap, this.rooms, this.config);
     calculateSpatialNeighbors(this.dungeon, this.roomMap, this.rooms, this.config);
     addWalls(this.dungeon, this.config);
+
+    // Initialize door states (all doors start closed)
+    this.doorStates.clear();
+    for (let y = 0; y < this.dungeonHeight; y++) {
+      for (let x = 0; x < this.dungeonWidth; x++) {
+        if (this.dungeon[y][x] === TILE.DOOR) {
+          this.doorStates.set(`${x},${y}`, false); // false = closed
+        }
+      }
+    }
 
     // Generate RenderMap if theme is loaded
     if (this.darkTheme) {

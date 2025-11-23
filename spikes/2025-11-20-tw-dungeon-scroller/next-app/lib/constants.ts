@@ -43,6 +43,7 @@ export interface KeyboardState {
   s: boolean;
   a: boolean;
   d: boolean;
+  ' ': boolean; // Space key for door interaction
 }
 
 // Tile types

@@ -289,11 +289,16 @@ export class Enemy {
     return CollisionDetector.checkEnemyCollision(x, y, tileSize, dungeon);
   }
 
-  draw(ctx: CanvasRenderingContext2D, rooms: Room[], tileSize: number, player?: Player) {
+  draw(ctx: CanvasRenderingContext2D, rooms: Room[], tileSize: number, player?: Player, playerRoomId?: number) {
     if (!this.sprite || !this.sprite.loaded) return;
 
     // Only draw if the enemy's room is visible
     if (this.roomId >= 0 && rooms[this.roomId] && !rooms[this.roomId].visible) {
+      return;
+    }
+
+    // Only draw enemies in the player's current room
+    if (playerRoomId !== undefined && this.roomId !== playerRoomId) {
       return;
     }
 

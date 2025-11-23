@@ -53,7 +53,8 @@ export function useGameState({
     w: false,
     s: false,
     a: false,
-    d: false
+    d: false,
+    ' ': false
   });
 
   const dungeonManagerRef = useRef<DungeonManager | null>(null);
@@ -137,6 +138,7 @@ export function useGameState({
       manager.rooms,
       manager.playerSprite,
       inCombatRef.current,
+      manager.doorStates,
       manager.treasures,
       handleTreasureCollected
     );
@@ -171,7 +173,9 @@ export function useGameState({
         manager.enemies,
         manager.playerSprite,
         manager.tileSize,
-        manager.renderMap
+        manager.renderMap,
+        manager.doorStates,
+        manager.darkTheme
       );
     }
 
