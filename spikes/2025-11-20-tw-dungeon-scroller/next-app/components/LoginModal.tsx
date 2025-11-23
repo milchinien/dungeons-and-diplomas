@@ -2,12 +2,15 @@
 
 import { useState } from 'react';
 import { api } from '@/lib/api';
+import { type StorageService, defaultStorage } from '@/lib/storage';
 
 interface LoginModalProps {
   onLogin: (userId: number, username: string, xp?: number) => void;
+  /** Storage service for persistence (defaults to localStorage). Allows testing with mock storage. */
+  storage?: StorageService;
 }
 
-export default function LoginModal({ onLogin }: LoginModalProps) {
+export default function LoginModal({ onLogin, storage = defaultStorage }: LoginModalProps) {
   const [username, setUsername] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -26,9 +29,9 @@ export default function LoginModal({ onLogin }: LoginModalProps) {
     try {
       const data = await api.auth.login(username.trim());
 
-      // Store in localStorage
-      localStorage.setItem('userId', data.id.toString());
-      localStorage.setItem('username', data.username);
+      // Store in storage
+      storage.set('userId', data.id.toString());
+      storage.set('username', data.username);
 
       // Call parent callback with XP
       onLogin(data.id, data.username, data.xp);
