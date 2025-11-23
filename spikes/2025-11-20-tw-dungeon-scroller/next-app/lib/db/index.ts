@@ -47,3 +47,11 @@ export {
   deleteEditorLevel,
   type EditorLevel
 } from './editorLevels';
+
+// Stats
+export {
+  getUserStats,
+  type QuestionStats,
+  type SubjectStats,
+  type UserStats
+} from './stats';
