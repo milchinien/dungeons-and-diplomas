@@ -1,18 +1,14 @@
 import { NextResponse } from 'next/server';
 import { getSessionEloScores } from '@/lib/db';
 import { withErrorHandler } from '@/lib/api/errorHandler';
+import { getSearchParams, getRequiredIntParam } from '@/lib/api/validation';
 
 export const GET = withErrorHandler(async (request: Request) => {
-  const { searchParams } = new URL(request.url);
-  const userId = searchParams.get('userId');
+  const searchParams = getSearchParams(request);
 
-  if (!userId) {
-    return NextResponse.json(
-      { error: 'Missing userId parameter' },
-      { status: 400 }
-    );
-  }
+  const userIdResult = getRequiredIntParam(searchParams, 'userId');
+  if (!userIdResult.success) return userIdResult.error;
 
-  const scores = getSessionEloScores(parseInt(userId, 10));
+  const scores = getSessionEloScores(userIdResult.value);
   return NextResponse.json(scores);
 }, 'fetch session ELO');

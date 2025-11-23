@@ -29,3 +29,6 @@ export type { XpLogEntry, AddXpResponse } from './xp';
 export type { LoginRequest, LoginResponse } from './auth';
 export type { ThemeResponse } from './theme';
 export { ApiError } from './client';
+
+// Re-export validation utilities for API routes
+export * from './validation';

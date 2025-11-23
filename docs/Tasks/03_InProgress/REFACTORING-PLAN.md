@@ -2,335 +2,300 @@
 
 ## Zusammenfassung
 
-Die Codebasis zeigt eine solide modulare Architektur mit klarer Trennung zwischen API, Datenbank, Rendering und Game-Logik. Es existieren jedoch **11 God-Files** (>300 Zeilen mit gemischten Verantwortlichkeiten), signifikante **Code-Duplikation** bei Tile-Position-Berechnungen (20+ Vorkommen), sowie mehrere **schwer testbare Hooks** mit zu vielen Verantwortlichkeiten.
+Die Codebasis ist grundsätzlich gut strukturiert mit klarer Trennung zwischen API-Layer, Hooks, und Library-Modulen. Es existieren jedoch mehrere "God Files" in den Hooks (useGameState: 304 Zeilen, useCombat: 261 Zeilen, useTilemapEditorState: 317 Zeilen) und im Rendering-Layer (GameRenderer: 351 Zeilen), die mehrere Verantwortlichkeiten vermischen. Die Testbarkeit ist durch direkte Abhängigkeiten zu Browser-APIs (localStorage, fetch, Canvas) und fehlende Dependency Injection eingeschränkt.
 
 ## Architektur-Snapshot
 
 ```
 next-app/
-├── app/api/          # API-Routes (sauber, kleine Dateien)
-├── components/       # React-Komponenten (3 God-Components)
-│   ├── combat/       # Combat-UI (DungeonView problematisch)
-│   └── editor/       # Editor-UI
-├── hooks/            # React-Hooks (3 God-Hooks)
-├── lib/
-│   ├── api/          # API-Client-Layer (gut strukturiert)
-│   ├── combat/       # Combat-Utilities (gut extrahiert)
-│   ├── db/           # Datenbank-Layer (gut strukturiert)
-│   ├── dungeon/      # Dungeon-Generation (gut strukturiert)
-│   ├── enemy/        # Enemy-System (EnemyAI problematisch)
-│   ├── game/         # Game-Engine (DungeonManager problematisch)
-│   ├── movement/     # Movement-Utilities (gut extrahiert)
-│   ├── pathfinding/  # A*-Pathfinding (gut extrahiert)
-│   ├── physics/      # Collision-Detection (gut extrahiert)
-│   ├── rendering/    # Canvas-Rendering (GameRenderer problematisch)
-│   ├── scoring/      # ELO/XP-Berechnung (gut extrahiert)
-│   ├── spawning/     # Enemy-Spawning
-│   └── tiletheme/    # Theme-System (db.ts problematisch)
-└── public/Assets/    # Sprites, Tilesets
+├── app/                    # Next.js App Router + API Routes (~750 Zeilen)
+│   └── api/               # REST Endpoints - gut strukturiert
+├── components/            # React Components (~5.400 Zeilen, 35 Dateien)
+│   ├── character/        # Character Panel Subkomponenten (306 Zeilen)
+│   ├── combat/           # Combat UI (1.359 Zeilen, 9 Dateien)
+│   ├── editor/           # Dungeon Editor UI (737 Zeilen)
+│   └── tilemapeditor/    # Tilemap Editor (1.374 Zeilen)
+├── hooks/                 # Custom Hooks (~1.330 Zeilen, 7 Dateien)
+│   ├── useGameState.ts   # GOD HOOK - 304 Zeilen - Game Loop Orchestrierung
+│   ├── useCombat.ts      # GOD HOOK - 261 Zeilen - Combat State Machine + API
+│   └── useTilemapEditorState.ts # GOD HOOK - 317 Zeilen - Editor State
+└── lib/                   # Business Logic (~7.550 Zeilen, 50+ Dateien)
+    ├── rendering/        # GameRenderer (351), EditorRenderer (233)
+    ├── game/             # GameEngine (264), DungeonManager (136)
+    ├── enemy/            # Enemy.ts, EnemyAI.ts (202)
+    ├── combat/           # CombatEngine (112) - gut refactored!
+    ├── spawning/         # LevelDistribution (268) - GOD FILE
+    └── db/               # Database Operations
 ```
 
-**Positive Aspekte:**
-- ✓ Keine zirkulären Abhängigkeiten
-- ✓ API-Client-Layer sauber abstrahiert
-- ✓ Utility-Module gut extrahiert (DirectionCalculator, CollisionDetector, etc.)
-- ✓ Type-Definitionen zentralisiert
+**Datenfluss:** User → GameCanvas → useGameState → GameEngine → DungeonManager → Rendering
 
----
+**Positive Aspekte:**
+- Combat-System gut refaktoriert (CombatEngine, QuestionSelector, AnswerShuffler)
+- API-Client-Layer sauber abstrahiert
+- Utility-Module gut extrahiert (DirectionCalculator, CollisionDetector, VisibilityCalculator)
+- DungeonManager bereits in fokussierte Module aufgeteilt
 
 ## Identifizierte Refactorings
 
-### [R01] ✅ Tile-Position-Utility extrahieren (Quick Win) - ERLEDIGT
-
-**Problem:** Die Berechnung `Math.floor((entity.x + tileSize / 2) / tileSize)` ist **20+ mal** dupliziert in verschiedenen Dateien.
-
-**Lösung:** Neue Utility-Funktion `getTilePosition` und `getEntityTilePosition` in `lib/physics/TileCoordinates.ts`
+### [R01] ✅ GameRenderer Brightness-Logik extrahieren - ERLEDIGT
+**Problem:** GameRenderer.ts (351 Zeilen) enthält komplexe `shouldUseBrightTileset()` Logik (Zeilen 53-113) die mit Room-Clearance, Enemy-Checking und Neighbor-Berechnung zu tun hat - nicht mit Rendering.
 
 **Abgeschlossen:** 2025-11-23
 
 **Änderungen:**
-- ✅ `lib/physics/TileCoordinates.ts` erstellt mit `getTilePosition`, `worldToTile`, `tileToWorld`, `getEntityTilePosition`
-- ✅ `lib/enemy/EnemyAI.ts` - 4 Stellen ersetzt
-- ✅ `lib/game/GameEngine.ts` - 4 Stellen ersetzt
-- ✅ `lib/rendering/GameRenderer.ts` - 1 Stelle ersetzt
-- ✅ `lib/rendering/MinimapRenderer.ts` - 1 Stelle ersetzt
+- ✅ `lib/rendering/BrightnessCalculator.ts` erstellt mit:
+  - `hasEnemiesInRoom()` - Enemy-Checking
+  - `getSpatialNeighbors()` - Room-Neighbor-Logik
+  - `isRoomClear()` - Room-State-Prüfung
+  - `shouldUseBrightTileset()` - Brightness-Berechnung
+  - `getAdjacentRoomIds()` - Helper für Nachbar-Räume
+- ✅ `lib/rendering/GameRenderer.ts` - Nutzt nun BrightnessCalculator (von 351 auf ~250 Zeilen reduziert)
 
 ---
 
-### [R02] ✅ Visibility-Logik aus GameRenderer extrahieren - ERLEDIGT
+### [R02] useGameState in fokussierte Sub-Hooks aufteilen
+**Problem:** useGameState.ts (304 Zeilen) verwaltet Game Loop, Player Movement, Enemy Updates, Treasure Collection, Window Events und Canvas Initialization in einem Hook.
 
-**Problem:** `GameRenderer.ts` (370 Zeilen) enthielt komplexe Fog-of-War-Logik vermischt mit Rendering-Code. Die Visibility-Berechnung war auch in `DungeonView.tsx` dupliziert.
+**Betroffene Dateien:**
+- `hooks/useGameState.ts:1-305` - God Hook mit 10+ Verantwortlichkeiten
+- `hooks/useGameState.ts:68-78` - Keyboard State Management
+- `hooks/useGameState.ts:98-140` - Treasure Collection mit API Call
+- `hooks/useGameState.ts:259-278` - Event Handler Registration
 
-**Abgeschlossen:** 2025-11-23
+**Lösung:** Aufteilung in komponentenbasierte Hooks:
+- `useKeyboardInput.ts` - Keyboard State Management (~40 Zeilen)
+- `useTreasureCollection.ts` - Treasure XP Logic (~50 Zeilen)
 
-**Änderungen:**
-- ✅ `lib/visibility/VisibilityCalculator.ts` erstellt mit:
-  - `isTileVisible()` - Fog-of-War-Sichtbarkeitsprüfung
-  - `getPlayerRoomIds()` - Spieler-Raum-Ermittlung
-  - `shouldDimTile()` - Dimming-Berechnung
-- ✅ `lib/visibility/index.ts` für Re-exports erstellt
-- ✅ `lib/rendering/GameRenderer.ts` - Nutzt nun VisibilityCalculator
-  - `isTileVisible` Methode entfernt
-  - `getPlayerRoomIds` Methode entfernt
-  - `renderTiles()` nutzt `VisibilityCalculator.isTileVisible()`
-  - `renderFogOfWar()` nutzt `VisibilityCalculator.shouldDimTile()`
-  - `render()` nutzt `VisibilityCalculator.getPlayerRoomIds()`
-- ✅ `components/combat/DungeonView.tsx` - Duplizierte Visibility-Logik durch VisibilityCalculator ersetzt
+**Aufwand:** M | **Risiko:** mittel
 
----
+**Schritte:**
+1. `useKeyboardInput.ts` extrahieren (keysRef + Event Handler)
+2. `useTreasureCollection.ts` extrahieren (handleTreasureCollected + API Call)
+3. useGameState importiert und orchestriert Sub-Hooks
+4. Ziel: useGameState < 200 Zeilen
 
-### [R03] ✅ Theme-Loading aus DungeonView extrahieren - ERLEDIGT
-
-**Problem:** `DungeonView.tsx` und `DungeonManager.ts` enthielten fast identische Theme-Loading-Logik.
-
-**Abgeschlossen:** 2025-11-23
-
-**Änderungen:**
-- ✅ `lib/tiletheme/ThemeLoader.ts` erstellt mit:
-  - `loadTheme()` - Lädt Theme via API mit Caching
-  - `ensureTilesetsLoaded()` - Lädt alle Tilesets in ThemeRenderer
-  - `clearCache()`, `isCached()`, `getCached()` - Cache-Management
-- ✅ `lib/game/DungeonManager.ts` - `loadTheme()` nutzt nun ThemeLoader
-- ✅ `components/combat/DungeonView.tsx` - Fallback-Theme-Loading nutzt ThemeLoader
+**Temporäre Tests:**
+- Test: Keyboard State reagiert korrekt auf KeyDown/KeyUp
+- Test: Treasure Collection ruft API korrekt auf
 
 ---
 
-### [R04] ✅ Combat-Engine aus useCombat extrahieren - ERLEDIGT
-
-**Problem:** `useCombat.ts` vermischte State-Management, Business-Logik und API-Calls.
+### [R03] ✅ localStorage Abstraktion für Testbarkeit - ERLEDIGT
+**Problem:** useAuth.ts greift direkt auf `localStorage` zu (Zeilen 15-16, 40-41). Tests in Node.js-Umgebung schlagen fehl.
 
 **Abgeschlossen:** 2025-11-23
 
 **Änderungen:**
-- ✅ `lib/combat/CombatEngine.ts` erstellt mit:
-  - `processAnswer()` - Pure function für Antwortverarbeitung und Schadensberechnung
-  - `calculateDynamicTimeLimit()` - Zeitlimit basierend auf Schwierigkeit
-  - `shouldEndCombat()` - Kampfende-Prüfung
-  - `getCombatOutcome()` - Ergebnis-Ermittlung (victory/defeat/ongoing)
-- ✅ `AnswerResult` Interface für typsichere Rückgaben
-- ✅ `hooks/useCombat.ts` nutzt nun CombatEngine:
-  - `answerQuestion()` vereinfacht durch `CombatEngine.processAnswer()`
-  - `askQuestion()` nutzt `CombatEngine.calculateDynamicTimeLimit()`
-  - Kampfende-Prüfung durch `CombatEngine.shouldEndCombat()`
+- ✅ `lib/storage/StorageService.ts` erstellt mit:
+  - `StorageService` Interface: `get()`, `set()`, `remove()`
+  - `LocalStorageService` - Default-Implementation für Browser
+  - `InMemoryStorageService` - In-Memory für Tests mit `clear()` und `keys()`
+  - `defaultStorage` - Export der Default-Instance
+- ✅ `lib/storage/index.ts` erstellt für Re-exports
+- ✅ `hooks/useAuth.ts` refaktoriert:
+  - Neues `UseAuthOptions` Interface mit optionalem `storage` Parameter
+  - Nutzt `storage.get()`, `storage.remove()` statt direktem localStorage
 
 ---
 
-### [R05] ✅ Direct Fetch in useGameState durch API-Client ersetzen - ERLEDIGT
-
-**Problem:** `useGameState.ts` (Zeile 103) nutzt direktes `fetch()` statt des API-Clients.
+### [R04] ✅ constants.ts aufteilen - ERLEDIGT
+**Problem:** constants.ts (234 Zeilen) vermischt numerische Konstanten, Type-Definitionen, Enums, und Sprite-Konfiguration.
 
 **Abgeschlossen:** 2025-11-23
 
 **Änderungen:**
-- ✅ Import `{ api } from '@/lib/api'` hinzugefügt
-- ✅ `fetch('/api/xp', ...)` durch `api.xp.addXp(...)` ersetzt
+- ✅ `lib/enums.ts` erstellt mit:
+  - `TILE`, `DIRECTION`, `DIRECTION_OFFSETS`, `ANIMATION`, `AI_STATE`, `DUNGEON_ALGORITHM`
+  - Abgeleitete Types: `Direction`, `AnimationType`, `TileType`, `AIStateType`, `DungeonAlgorithm`
+- ✅ `lib/spriteConfig.ts` erstellt mit:
+  - `ANIM_SPEEDS` - Animation-Geschwindigkeiten
+  - `SPRITESHEET_CONFIGS` - Player/Goblin Sprite-Definitionen
+  - `TILE_SOURCE_SIZE`, `TILESET_COORDS`, `WALL_VARIANTS`, `FLOOR_VARIANTS`
+  - `AnimationDefinition`, `SpritesheetConfig` Interfaces
+- ✅ `lib/constants.ts` refaktoriert:
+  - Re-exports aller Enums und Sprite-Configs für Abwärtskompatibilität
+  - Nur noch Game-Constants (DUNGEON_WIDTH, PLAYER_SPEED, etc.) und Type-Definitionen
+  - Von 234 auf ~115 Zeilen reduziert
 
 ---
 
-### [R06] ✅ Rendering-Passes in GameRenderer aufteilen - ERLEDIGT
+### [R05] Date.now() Injection in useCombat
+**Problem:** useCombat.ts verwendet `Date.now()` direkt (Zeilen 122, 138) für Answer-Timing. Dies verhindert deterministische Tests.
 
-**Problem:** `GameRenderer.render()` (Zeilen 150-369) enthält 4 verschiedene Rendering-Passes in einer Methode.
+**Betroffene Dateien:**
+- `hooks/useCombat.ts:122` - `questionStartTimeRef.current = Date.now()`
+- `hooks/useCombat.ts:138` - `Date.now() - questionStartTimeRef.current`
 
-**Abgeschlossen:** 2025-11-23
+**Lösung:** Clock Interface mit Injection.
 
-**Änderungen:**
-- ✅ `isTileVisible()` - Neue private Methode für Fog-of-War-Sichtbarkeit
-- ✅ `renderTiles()` - Extrahierte Methode für Tile-Rendering
-- ✅ `renderFogOfWar()` - Extrahierte Methode für Dimming-Effekt
-- ✅ `renderEnemies()` - Extrahierte Methode für Enemy-Rendering
-- ✅ `renderPlayer()` - Extrahierte Methode für Player-Rendering
-- ✅ `render()` - Vereinfacht zu 4-Pass-Orchestrierung
+**Aufwand:** S | **Risiko:** niedrig
 
-**Neue Struktur:**
-```typescript
-render(...) {
-  // Pass 1: Render tiles
-  this.renderTiles(...);
-  // Pass 2: Render fog of war dimming
-  this.renderFogOfWar(...);
-  // Pass 3: Render enemies
-  this.renderEnemies(...);
-  // Pass 4: Render player
-  this.renderPlayer(...);
-}
-```
+**Schritte:**
+1. `lib/time/Clock.ts` Interface: `{ now(): number }`
+2. `lib/time/SystemClock.ts` Default-Implementation
+3. useCombat Props um optionalen `clock` Parameter erweitern
+4. Tests können Mock-Clock mit festen Werten injizieren
 
 ---
 
-### [R07] ✅ EnemyAI-Hilfsmethoden in separate Module aufteilen - ERLEDIGT
+### [R06] useCombat State Machine Reducer Pattern
+**Problem:** useCombat.ts (261 Zeilen) kombiniert State Machine Logik mit vielen useRef. State-Tracking über 6 separate Refs erschwert Debugging.
 
-**Problem:** `EnemyAI.ts` (343 Zeilen) war eine statische Klasse mit zu vielen Verantwortlichkeiten: State-Transitions, Pathfinding-Integration, Movement, Waypoint-Management.
+**Betroffene Dateien:**
+- `hooks/useCombat.ts:31-46` - Multiple Refs für Combat State
+  - `currentEnemyRef`, `askedQuestionsRef`, `currentPlayerEloRef`, `handleTimeoutRef`
+- `hooks/useCombat.ts:54-131` - State Transitions verstreut
 
-**Abgeschlossen:** 2025-11-23
+**Lösung:** Reducer-Pattern für Combat State.
 
-**Änderungen:**
-- ✅ `lib/enemy/EnemyMovement.ts` erstellt mit:
-  - `moveTowards()` - Movement mit Kollisionserkennung
-  - `followPath()` - A* Pfad folgen
-  - `moveDirectlyTowardsPlayer()` - Direktes Movement (Fallback)
-- ✅ `lib/enemy/EnemyWaypoints.ts` erstellt mit:
-  - `pickRandomWaypoint()` - Zufälliges Ziel im Raum wählen
-- ✅ `lib/enemy/AggroManager.ts` erstellt mit:
-  - `handleStateTransitions()` - IDLE/WANDERING/FOLLOWING Übergänge
-- ✅ `lib/enemy/EnemyAI.ts` refaktoriert (~200 Zeilen, von 340 Zeilen)
-- ✅ `lib/enemy/index.ts` mit neuen Exports aktualisiert
+**Aufwand:** M | **Risiko:** mittel
 
-**Neue Struktur:**
-```
-lib/enemy/
-├── EnemyAI.ts          (202 Zeilen) - Orchestrierung
-├── EnemyMovement.ts    (82 Zeilen) - Movement-Logik
-├── EnemyWaypoints.ts   (36 Zeilen) - Waypoint-Management
-└── AggroManager.ts     (43 Zeilen) - Aggro-State-Transitions
-```
+**Schritte:**
+1. `CombatState` Type definieren mit allen State-Feldern
+2. `CombatAction` Union Type für Aktionen: START, ASK_QUESTION, ANSWER, END
+3. `combatReducer` Function mit allen State-Transitions
+4. useCombat auf useReducer + Effects umbauen
+5. Business Logic bleibt in CombatEngine
+
+**Temporäre Tests:**
+- Test: Reducer State Transitions (IDLE → ACTIVE → FEEDBACK → IDLE)
+- Test: Reducer handhabt alle Action Types korrekt
 
 ---
 
-### [R08] ✅ CharacterPanel in Subkomponenten aufteilen - ERLEDIGT
+### [R07] LevelDistribution.ts aufteilen
+**Problem:** LevelDistribution.ts (268 Zeilen) enthält 5+ Helper-Funktionen mit verschiedenen Verantwortlichkeiten: Level-Berechnung, Subject-Weighting, Spawn-Konfiguration.
 
-**Problem:** `CharacterPanel.tsx` (340 Zeilen) war ein monolithischer UI-Block mit ~250 Zeilen inline JSX/Styles.
+**Betroffene Dateien:**
+- `lib/spawning/LevelDistribution.ts:1-268` - Mixed Concerns
 
-**Abgeschlossen:** 2025-11-23
+**Lösung:** Aufteilung in fokussierte Module.
 
-**Änderungen:**
-- ✅ `components/character/CharacterHeader.tsx` erstellt (40 Zeilen) - Username, Level
-- ✅ `components/character/XpProgressBar.tsx` erstellt (56 Zeilen) - XP-Fortschritt
-- ✅ `components/character/MasteryCircles.tsx` erstellt (168 Zeilen) - ELO-Kreise mit SubjectRow und EloCircle
-- ✅ `components/character/ActionButtons.tsx` erstellt (76 Zeilen) - Logout, Restart, Skills
-- ✅ `components/character/index.ts` erstellt für Re-exports
-- ✅ `components/CharacterPanel.tsx` refaktoriert (65 Zeilen, von 340 Zeilen)
+**Aufwand:** S | **Risiko:** niedrig
 
-**Neue Struktur:**
-```
-components/
-├── CharacterPanel.tsx      (65 Zeilen) - Layout & Orchestrierung
-└── character/
-    ├── index.ts            (11 Zeilen) - Re-exports
-    ├── CharacterHeader.tsx (40 Zeilen) - Username, Level
-    ├── XpProgressBar.tsx   (56 Zeilen) - XP-Fortschritt
-    ├── MasteryCircles.tsx  (168 Zeilen) - ELO-Kreise
-    └── ActionButtons.tsx   (76 Zeilen) - Action Buttons
-```
+**Schritte:**
+1. `SubjectWeighting.ts` extrahieren - Subject-basierte Gewichtung
+2. `SpawnCalculator.ts` extrahieren - Spawn-Konfiguration
+3. LevelDistribution als Orchestrator behalten (<100 Zeilen)
 
 ---
 
-### [R09] ✅ DungeonManager-Verantwortlichkeiten trennen - ERLEDIGT
-
-**Problem:** `DungeonManager.ts` (290 Zeilen) war für Generation, Theme-Loading, Enemy-Spawning, Treasure-Placement und State-Management verantwortlich.
+### [R08] ✅ API Parameter Validation Utility - ERLEDIGT
+**Problem:** Mehrere API-Routes wiederholen identische Parameter-Validation-Patterns für URL Query Params.
 
 **Abgeschlossen:** 2025-11-23
 
 **Änderungen:**
-- ✅ `lib/game/DungeonInitializer.ts` erstellt (105 Zeilen) - Dungeon-Strukturgenerierung
-  - `generateDungeonStructure()` - Pure function für komplette Dungeon-Generierung
-  - `DungeonStructure` Interface für typsichere Rückgabe
-- ✅ `lib/game/EntitySpawner.ts` erstellt (170 Zeilen) - Entity-Spawning
-  - `spawnPlayer()` - Player-Platzierung mit Sichtbarkeit
-  - `spawnEnemies()` - ELO-basiertes Enemy-Spawning
-  - `spawnTreasures()` - Treasure-Platzierung in Treasure-Räumen
-- ✅ `lib/game/DungeonManager.ts` refaktoriert (136 Zeilen, von 290 Zeilen)
-  - Nutzt DungeonInitializer und EntitySpawner
-  - Theme-Loading bereits via ThemeLoader (R03)
-
-**Neue Struktur:**
-```
-lib/game/
-├── DungeonManager.ts       (136 Zeilen) - State & Koordination
-├── DungeonInitializer.ts   (105 Zeilen) - Dungeon-Strukturgenerierung
-├── EntitySpawner.ts        (170 Zeilen) - Entity-Spawning
-└── GameEngine.ts           (existierend) - Game-Loop
-```
+- ✅ `lib/api/validation.ts` erstellt mit:
+  - `ValidationResult<T>` - Type für Success/Error-Handling
+  - `getSearchParams(request)` - Extrahiert searchParams aus Request
+  - `getRequiredStringParam(searchParams, paramName)` - Pflicht-String-Parameter
+  - `getRequiredIntParam(searchParams, paramName)` - Pflicht-Int-Parameter
+  - `getOptionalStringParam(searchParams, paramName)` - Optionaler String
+  - `getOptionalIntParam(searchParams, paramName)` - Optionaler Int
+  - `parseRouteIntParam(value, paramName)` - Für Route-Parameter wie [id]
+- ✅ `lib/api/index.ts` - Re-exportiert validation utilities
+- ✅ `app/api/questions-with-elo/route.ts` - Refaktoriert mit validation utilities
+- ✅ `app/api/session-elo/route.ts` - Refaktoriert mit validation utilities
 
 ---
 
-### [R10] ✅ tiletheme/db.ts Funktionen gruppieren - ERLEDIGT
+### [R09] Database Connection Factory für Tests
+**Problem:** Datenbank ist Singleton ohne Reset-Möglichkeit. Tests beeinflussen globalen State.
 
-**Problem:** `lib/tiletheme/db.ts` (322 Zeilen) enthielt 20+ Funktionen ohne klare Gruppierung.
+**Betroffene Dateien:**
+- `lib/db/connection.ts:8-16` - Module-Level `let db` Singleton
 
-**Abgeschlossen:** 2025-11-23
+**Lösung:** Factory-Funktion mit optionalem Database Path.
 
-**Änderungen:**
-- ✅ `lib/tiletheme/db/init.ts` erstellt (65 Zeilen) - Tabellen-Initialisierung
-- ✅ `lib/tiletheme/db/tilesets.ts` erstellt (75 Zeilen) - Tileset-CRUD
-- ✅ `lib/tiletheme/db/tileThemes.ts` erstellt (110 Zeilen) - TileTheme-CRUD
-- ✅ `lib/tiletheme/db/dungeonThemes.ts` erstellt (105 Zeilen) - DungeonTheme-CRUD
-- ✅ `lib/tiletheme/db/index.ts` erstellt (18 Zeilen) - Re-exports
-- ✅ `lib/tiletheme/db.ts` zu Re-export-Datei umgebaut (33 Zeilen)
+**Aufwand:** S | **Risiko:** niedrig
 
-**Neue Struktur:**
-```
-lib/tiletheme/
-├── db.ts                  (33 Zeilen) - Re-exports (backwards compatible)
-└── db/
-    ├── index.ts           (18 Zeilen) - Re-exports
-    ├── init.ts            (65 Zeilen) - Tabellen-Initialisierung
-    ├── tilesets.ts        (75 Zeilen) - Tileset-CRUD
-    ├── tileThemes.ts      (110 Zeilen) - TileTheme-CRUD
-    └── dungeonThemes.ts   (105 Zeilen) - DungeonTheme-CRUD
-```
+**Schritte:**
+1. `createDatabase(path?: string)` Factory erstellen
+2. In-Memory Option für Tests: `:memory:`
+3. `resetDatabase()` Funktion für Test-Setup
+4. Bestehender Code bleibt durch Default-Path kompatibel
+
+---
+
+### [R10] ELO-Aggregation aus /api/stats extrahieren
+**Problem:** `/api/stats/route.ts` (140 Zeilen) reimplementiert Answer-Grouping-Logik die in `lib/db/questions.ts` bereits existiert.
+
+**Betroffene Dateien:**
+- `app/api/stats/route.ts:45-128` - Duplizierte Aggregationslogik
+- `lib/db/questions.ts:129-160` - Ähnliche Logik für getQuestionsWithEloBySubject
+
+**Lösung:** Aggregationslogik in DB-Layer konsolidieren.
+
+**Aufwand:** S | **Risiko:** mittel
+
+**Schritte:**
+1. `lib/db/stats.ts` erstellen für Stats-spezifische Queries
+2. Aggregationslogik aus API-Route verschieben
+3. API-Route auf DB-Funktion umstellen
+4. Duplikation eliminieren
 
 ---
 
 ## Abhängigkeiten zwischen Refactorings
 
 ```
-R01 (Tile-Position) ─────────────────────────────────────────────── Unabhängig
-R02 (Visibility)    ─────────────────────────────────────────────── Unabhängig
-R03 (ThemeLoader)   ──┬───────────────────────────────────────────── Unabhängig
-                      │
-R05 (API-Client)    ─────────────────────────────────────────────── Unabhängig
-R06 (Render-Passes) ──┬───────────────────────────────────────────── Abhängig von R02
-                      │
-R04 (CombatEngine)  ─────────────────────────────────────────────── Unabhängig
-R07 (EnemyAI)       ──┬───────────────────────────────────────────── Abhängig von R01
-                      │
-R08 (CharacterPanel)─────────────────────────────────────────────── Unabhängig
-R09 (DungeonManager)──┴───────────────────────────────────────────── Abhängig von R03
-R10 (tiletheme/db)  ─────────────────────────────────────────────── Unabhängig
+R03 (localStorage) ──────┐
+R05 (Clock)        ──────┼──> Unabhängig, verbessern Testbarkeit
+R09 (DB Factory)   ──────┘
+
+R01 (BrightnessCalc) ────> Unabhängig
+
+R04 (constants Split) ───> Unabhängig
+
+R02 (useGameState) ──────> Profitiert von R03, R05
+
+R06 (Combat Reducer) ────> Profitiert von R05
+
+R07 (LevelDistribution) ─> Unabhängig
+
+R08 (API Validation) ────> Unabhängig
+
+R10 (Stats Extract) ─────> Unabhängig
 ```
 
-## Empfohlene Reihenfolge
+## Priorisierung
 
-### Phase 1: Quick Wins (1-2 Tage) ✅ ABGESCHLOSSEN
-1. **R01** - ✅ Tile-Position-Utility - ERLEDIGT 2025-11-23
-2. **R05** - ✅ API-Client ersetzen - ERLEDIGT 2025-11-23
-3. **R06** - ✅ Render-Passes aufteilen - ERLEDIGT 2025-11-23
+### Quick Wins (hoher Impact, niedriges Risiko) ✅ ABGESCHLOSSEN
+1. **R01** - ✅ BrightnessCalculator extrahieren - ERLEDIGT 2025-11-23
+2. **R03** - ✅ localStorage Abstraktion - ERLEDIGT 2025-11-23
+3. **R04** - ✅ constants.ts aufteilen - ERLEDIGT 2025-11-23
+4. **R08** - ✅ API Validation Utility - ERLEDIGT 2025-11-23
 
-### Phase 2: Kernmodule (3-4 Tage)
-4. **R02** - ✅ Visibility-Logik - ERLEDIGT 2025-11-23
-5. **R03** - ✅ ThemeLoader - ERLEDIGT 2025-11-23
-6. **R04** - ✅ CombatEngine - ERLEDIGT 2025-11-23
+### Nächster Sprint (mittlerer Impact)
+5. **R05** - Clock Injection (S, niedrig) - deterministische Tests
+6. **R07** - LevelDistribution Split (S, niedrig) - kleinere Module
+7. **R09** - DB Factory (S, niedrig) - Test-Setup verbessert
+8. **R10** - Stats Extraktion (S, mittel) - Code-Konsolidierung
 
-### Phase 3: Größere Refactorings (5-7 Tage) ✅ ABGESCHLOSSEN
-7. **R07** - ✅ EnemyAI-Module - ERLEDIGT 2025-11-23
-8. **R08** - ✅ CharacterPanel-Subkomponenten - ERLEDIGT 2025-11-23
-9. **R10** - ✅ tiletheme/db aufteilen - ERLEDIGT 2025-11-23
-10. **R09** - ✅ DungeonManager-Trennung - ERLEDIGT 2025-11-23
+### Später (höheres Risiko)
+9. **R02** - useGameState Split (M, mittel) - komplex aber wichtig
+10. **R06** - Combat Reducer (M, mittel) - komplexe State-Logik
 
----
+## Metriken (Vorher/Nachher Ziel)
 
-## Metriken (vorher → nachher geschätzt)
-
-| Metrik | Aktuell | Nach Phase 1 | Nach Phase 3 |
-|--------|---------|--------------|--------------|
-| God-Files (>300 Zeilen) | 11 | 10 | 3 |
-| Duplizierter Code (Tile-Pos) | 20+ | ✅ 0 | 0 |
-| Testbare Pure Functions | ~15 | ✅ ~18 | ~30 |
-| Durchschnittl. Datei-Größe | 180 | 160 | 120 |
+| Metrik | Vorher | Nach Quick Wins | Ziel |
+|--------|--------|-----------------|------|
+| Größte Komponente | 379 Zeilen | 379 Zeilen | <250 Zeilen |
+| Größter Hook | 317 Zeilen | 317 Zeilen | <150 Zeilen |
+| Größtes Lib-Modul | 351 Zeilen | ~250 Zeilen | <200 Zeilen |
+| Dateien >300 Zeilen | 4 | 3 | 0 |
+| Unit-testbare Hooks | ~30% | ~40% | >80% |
 
 ---
 
 **Erstellt:** 2025-11-23
 **Autor:** Claude Code Analyse
-**Status:** ✅ ALLE REFACTORINGS ABGESCHLOSSEN
+**Status:** Quick Wins abgeschlossen (4/10)
 
 ## Änderungshistorie
 
 | Datum | Phase | Änderungen |
 |-------|-------|------------|
-| 2025-11-23 | Phase 1 | R01, R05, R06 abgeschlossen |
-| 2025-11-23 | Phase 2 | R02, R03, R04 abgeschlossen - Phase 2 komplett! |
-| 2025-11-23 | Phase 3 | R07 abgeschlossen - EnemyAI in 3 Module aufgeteilt |
-| 2025-11-23 | Phase 3 | R08 abgeschlossen - CharacterPanel in 4 Subkomponenten aufgeteilt |
-| 2025-11-23 | Phase 3 | R10 abgeschlossen - tiletheme/db in 4 CRUD-Module aufgeteilt |
-| 2025-11-23 | Phase 3 | R09 abgeschlossen - DungeonManager in 2 Module aufgeteilt - **ALLE REFACTORINGS KOMPLETT!** |
+| 2025-11-23 | Quick Wins | R01, R03, R04, R08 abgeschlossen |

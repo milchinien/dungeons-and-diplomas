@@ -1,16 +1,24 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
+import { type StorageService, defaultStorage } from '@/lib/storage';
 
-export function useAuth() {
+interface UseAuthOptions {
+  /** Storage service for persistence (defaults to localStorage) */
+  storage?: StorageService;
+}
+
+export function useAuth(options: UseAuthOptions = {}) {
+  const storage = options.storage ?? defaultStorage;
+
   const [userId, setUserId] = useState<number | null>(null);
   const [username, setUsername] = useState<string | null>(null);
   const [userXp, setUserXp] = useState<number>(0);
   const [showLogin, setShowLogin] = useState(true);
 
-  // Check localStorage for existing user on mount and reload XP from server
+  // Check storage for existing user on mount and reload XP from server
   useEffect(() => {
-    const storedUserId = localStorage.getItem('userId');
-    const storedUsername = localStorage.getItem('username');
+    const storedUserId = storage.get('userId');
+    const storedUsername = storage.get('username');
 
     if (storedUserId && storedUsername) {
       const id = parseInt(storedUserId, 10);
@@ -36,8 +44,8 @@ export function useAuth() {
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
-    localStorage.removeItem('userId');
-    localStorage.removeItem('username');
+    storage.remove('userId');
+    storage.remove('username');
     setUserId(null);
     setUsername(null);
     setUserXp(0);
