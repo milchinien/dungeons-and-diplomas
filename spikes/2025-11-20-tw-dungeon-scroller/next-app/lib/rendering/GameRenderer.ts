@@ -6,6 +6,7 @@ import type { RenderMap, TileTheme } from '../tiletheme/types';
 import { VisibilityCalculator } from '../visibility';
 import { getTileRenderer } from './TileRenderer';
 import { getContext2D } from './canvasUtils';
+import { RENDER_COLORS } from '../ui/colors';
 
 /**
  * Main game renderer that orchestrates all rendering passes.
@@ -76,7 +77,7 @@ export class GameRenderer {
     ctx.translate(-Math.floor(camX), -Math.floor(camY));
 
     // Clear with black
-    ctx.fillStyle = '#000000';
+    ctx.fillStyle = RENDER_COLORS.BACKGROUND;
     ctx.fillRect(Math.floor(camX), Math.floor(camY), canvas.width, canvas.height);
 
     // Calculate visible tile range

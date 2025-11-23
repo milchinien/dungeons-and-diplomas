@@ -4,6 +4,7 @@ import { Enemy } from '../enemy';
 import type { RenderMap } from '../tiletheme/types';
 import { getThemeRenderer } from '../tiletheme/ThemeRenderer';
 import { getContext2D, clearCanvas } from './canvasUtils';
+import { RENDER_COLORS } from '../ui/colors';
 
 export interface EditorCamera {
   x: number;         // Camera world position X
@@ -85,7 +86,7 @@ export class EditorRenderer {
           );
         } else {
           // Missing tileset - pink placeholder
-          ctx.fillStyle = '#FF00FF';
+          ctx.fillStyle = RENDER_COLORS.MISSING_TILE;
           ctx.fillRect(x * baseTileSize, y * baseTileSize, baseTileSize, baseTileSize);
         }
       }
@@ -158,11 +159,11 @@ export class EditorRenderer {
       ctx.save();
 
       // Color based on level (green=easy, yellow=medium, red=hard)
-      let color = '#00ff00'; // green
+      let color: string = RENDER_COLORS.editor.enemyLevelEasy;
       if (enemy.level >= 8) {
-        color = '#ff0000'; // red
+        color = RENDER_COLORS.editor.enemyLevelHard;
       } else if (enemy.level >= 4) {
-        color = '#ffff00'; // yellow
+        color = RENDER_COLORS.editor.enemyLevelMedium;
       }
 
       ctx.fillStyle = color;
@@ -177,12 +178,12 @@ export class EditorRenderer {
       ctx.fill();
 
       // Draw border
-      ctx.strokeStyle = '#000000';
+      ctx.strokeStyle = RENDER_COLORS.editor.border;
       ctx.lineWidth = 2;
       ctx.stroke();
 
       // Draw level text
-      ctx.fillStyle = '#000000';
+      ctx.fillStyle = RENDER_COLORS.editor.text;
       ctx.font = `bold ${tileSize / 3}px Arial`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -203,7 +204,7 @@ export class EditorRenderer {
   ) {
     // Draw a marker at player spawn position
     ctx.save();
-    ctx.fillStyle = 'rgba(0, 255, 255, 0.5)';
+    ctx.fillStyle = RENDER_COLORS.editor.playerSpawn;
     ctx.beginPath();
     ctx.arc(
       spawnPos.x * tileSize + tileSize / 2,
@@ -213,12 +214,12 @@ export class EditorRenderer {
       Math.PI * 2
     );
     ctx.fill();
-    ctx.strokeStyle = '#00FFFF';
+    ctx.strokeStyle = RENDER_COLORS.editor.playerSpawnBorder;
     ctx.lineWidth = 2;
     ctx.stroke();
 
     // Draw "P" for Player
-    ctx.fillStyle = '#00FFFF';
+    ctx.fillStyle = RENDER_COLORS.editor.playerSpawnBorder;
     ctx.font = `bold ${tileSize / 2}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';

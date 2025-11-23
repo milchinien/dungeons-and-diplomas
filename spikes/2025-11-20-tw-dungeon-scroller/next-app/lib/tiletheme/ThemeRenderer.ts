@@ -1,8 +1,9 @@
 import { RenderMap, RenderTile } from './types';
 import { TILE_SOURCE_SIZE } from '../constants';
+import { RENDER_COLORS } from '../ui/colors';
 
 // Pink placeholder for missing tiles (like Unity)
-const MISSING_TILE_COLOR = '#FF00FF';
+const MISSING_TILE_COLOR = RENDER_COLORS.MISSING_TILE;
 
 export class ThemeRenderer {
   private tilesetImages: Map<number, HTMLImageElement> = new Map();

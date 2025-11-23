@@ -11,6 +11,7 @@ import { detectDoorType } from '@/lib/tiletheme/WallTypeDetector';
 import { VisibilityCalculator } from '@/lib/visibility';
 import { useFallbackTheme } from '@/hooks/useFallbackTheme';
 import { getContext2D } from '@/lib/rendering/canvasUtils';
+import { RENDER_COLORS } from '@/lib/ui/colors';
 import Torch from './Torch';
 
 interface DungeonViewProps {
@@ -171,7 +172,7 @@ export default function DungeonView({
             zoomedTileSize, zoomedTileSize
           );
         } else {
-          ctx.fillStyle = '#FF00FF';
+          ctx.fillStyle = RENDER_COLORS.MISSING_TILE;
           ctx.fillRect(
             x * zoomedTileSize - camX,
             y * zoomedTileSize - camY,

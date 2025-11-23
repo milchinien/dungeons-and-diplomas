@@ -5,6 +5,7 @@ import { getThemeRenderer } from '../tiletheme/ThemeRenderer';
 import { detectDoorType } from '../tiletheme/WallTypeDetector';
 import { VisibilityCalculator } from '../visibility';
 import { BrightnessCalculator } from './BrightnessCalculator';
+import { RENDER_COLORS } from '../ui/colors';
 import type { Enemy } from '../enemy';
 
 /**
@@ -23,7 +24,7 @@ export class TileRenderer {
     y: number,
     tileSize: number
   ): void {
-    ctx.fillStyle = '#000000';
+    ctx.fillStyle = RENDER_COLORS.BACKGROUND;
     ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
   }
 
@@ -98,7 +99,7 @@ export class TileRenderer {
     y: number,
     tileSize: number
   ): void {
-    ctx.fillStyle = '#FF00FF';
+    ctx.fillStyle = RENDER_COLORS.MISSING_TILE;
     ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
   }
 
