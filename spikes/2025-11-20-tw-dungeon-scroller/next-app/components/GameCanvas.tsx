@@ -11,7 +11,9 @@ import CombatModal from './CombatModal';
 import VictoryOverlay from './VictoryOverlay';
 import DefeatOverlay from './DefeatOverlay';
 import FloatingXpBubble from './FloatingXpBubble';
-import InventoryModal, { Equipment, Item } from './InventoryModal';
+import InventoryModal, { Equipment, Item, EquipmentSlot } from './InventoryModal';
+import ItemDropNotification from './ItemDropNotification';
+import type { DroppedItem, ItemDefinition } from '@/lib/items';
 import { useAuth } from '@/hooks/useAuth';
 import { useScoring } from '@/hooks/useScoring';
 import { useCombat } from '@/hooks/useCombat';
@@ -28,7 +30,7 @@ export default function GameCanvas() {
   const [playerHp, setPlayerHp] = useState(PLAYER_MAX_HP);
   const [treasureBubbles, setTreasureBubbles] = useState<Array<{ id: number; x: number; y: number; xp: number }>>([]);
 
-  // Inventory system (placeholder)
+  // Inventory system
   const [equipment, setEquipment] = useState<Equipment>({
     head: null,
     chest: null,
@@ -38,6 +40,9 @@ export default function GameCanvas() {
     offHand: null,
   });
   const [inventory, setInventory] = useState<Item[]>([]);
+
+  // Item drop notifications
+  const [itemDropNotification, setItemDropNotification] = useState<{ item: ItemDefinition; id: string } | null>(null);
 
   // Background music ref
   const bgMusicRef = useRef<HTMLAudioElement | null>(null);
@@ -181,6 +186,70 @@ export default function GameCanvas() {
     setTreasureBubbles(prev => prev.filter(b => b.id !== id));
   };
 
+  // Ref to store pending item drops (before gameState is ready)
+  const pendingItemDropRef = useRef<DroppedItem | null>(null);
+
+  // Handle item drop from enemy
+  const handleItemDropped = (droppedItem: DroppedItem) => {
+    // Store for later if dungeonManager not ready
+    pendingItemDropRef.current = droppedItem;
+
+    // Convert to inventory item format
+    const inventoryItem: Item = {
+      id: droppedItem.item.id,
+      name: droppedItem.item.name,
+      slot: droppedItem.item.slot,
+    };
+
+    // Add directly to inventory
+    setInventory(prev => [...prev, inventoryItem]);
+
+    // Show notification
+    setItemDropNotification({ item: droppedItem.item, id: droppedItem.id });
+
+    // Auto-hide notification after 3 seconds
+    setTimeout(() => {
+      setItemDropNotification(prev => prev?.id === droppedItem.id ? null : prev);
+    }, 3000);
+  };
+
+  // Handle equipping an item from inventory
+  const handleEquipItem = (item: Item) => {
+    const slot = item.slot;
+
+    // If something is already equipped, move it to inventory
+    const currentlyEquipped = equipment[slot];
+
+    setEquipment(prev => ({
+      ...prev,
+      [slot]: item,
+    }));
+
+    // Remove from inventory and add old item if exists
+    setInventory(prev => {
+      const filtered = prev.filter(i => i.id !== item.id);
+      if (currentlyEquipped) {
+        return [...filtered, currentlyEquipped];
+      }
+      return filtered;
+    });
+  };
+
+  // Handle unequipping an item
+  const handleUnequipItem = (slot: EquipmentSlot) => {
+    const item = equipment[slot];
+    if (!item) return;
+
+    // Move to inventory
+    setInventory(prev => [...prev, item]);
+
+    // Clear the slot
+    setEquipment(prev => ({
+      ...prev,
+      [slot]: null,
+    }));
+  };
+
   // Shared player reference (owned by GameCanvas, used by both hooks)
   const playerRef = useRef<Player>({
     x: 0,
@@ -201,7 +270,9 @@ export default function GameCanvas() {
     onUpdateSessionScores: updateSessionScores,
     onPlayerHpUpdate: setPlayerHp,
     onGameRestart: () => gameState.generateNewDungeon(),
-    onXpGained: handleXpGained
+    onXpGained: handleXpGained,
+    onItemDropped: handleItemDropped,
+    tileSize: 64
   });
 
   // Game state - receives combat refs via props
@@ -376,6 +447,8 @@ export default function GameCanvas() {
             onClose={handleCloseInventory}
             equipment={equipment}
             inventory={inventory}
+            onEquip={handleEquipItem}
+            onUnequip={handleUnequipItem}
           />
         )}
 
@@ -402,6 +475,15 @@ export default function GameCanvas() {
             onComplete={() => removeTreasureBubble(bubble.id)}
           />
         ))}
+
+        {/* Item Drop Notification */}
+        {itemDropNotification && (
+          <ItemDropNotification
+            key={itemDropNotification.id}
+            item={itemDropNotification.item}
+            onComplete={() => setItemDropNotification(null)}
+          />
+        )}
       </div>
     </>
   );

@@ -1,0 +1,22 @@
+{
+  "id": "equipment_helm_topf",
+  "name": "Verbeulter Topfhelm",
+  "description": "Ein alter Kochtopf, der notdürftig als Helm umfunktioniert wurde. Die Henkel wurden abgesägt, aber man sieht noch die Stellen. Riecht leicht nach Eintopf.",
+  "type": "equipment",
+  "rarity": "common",
+  "slot": "helm",
+  "iconPath": "/Assets/Items/Icons/equipment_helm_topf.svg",
+  "spritePath": "/Assets/Items/Icons/equipment_helm_topf.svg",
+  "stackable": false,
+  "maxStack": 1,
+  "value": 5,
+  "effects": [
+    {
+      "type": "max_hp",
+      "value": 5
+    }
+  ],
+  "droppable": true,
+  "tradeable": true,
+  "questItem": false
+}

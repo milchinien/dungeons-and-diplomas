@@ -20,6 +20,7 @@ import type { TileTheme, ImportedTileset, RenderMap } from '../tiletheme/types';
 import { ThemeLoader } from '../tiletheme/ThemeLoader';
 import { generateDungeonStructure } from './DungeonInitializer';
 import { spawnPlayer, spawnEnemies, spawnTreasures } from './EntitySpawner';
+import type { DroppedItem } from '../items/types';
 
 export class DungeonManager {
   // Dungeon structure
@@ -35,6 +36,7 @@ export class DungeonManager {
   public enemies: Enemy[] = [];
   public playerSprite: SpriteSheetLoader | null = null;
   public treasures: Set<string> = new Set();
+  public droppedItems: DroppedItem[] = [];
 
   // Rendering
   public tileSize: number = 64;

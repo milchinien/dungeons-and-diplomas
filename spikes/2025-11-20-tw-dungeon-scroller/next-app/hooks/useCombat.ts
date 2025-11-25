@@ -12,6 +12,7 @@ import { loadSubjectElo, findSubjectElo, DEFAULT_ELO } from '@/lib/scoring/EloSe
 import { useTimer } from './useTimer';
 import { type Clock, defaultClock } from '@/lib/time';
 import { logHookError } from '@/lib/hooks';
+import { generateEnemyLoot, type DroppedItem } from '@/lib/items';
 
 interface UseCombatProps {
   questionDatabase: QuestionDatabase | null;
@@ -21,6 +22,8 @@ interface UseCombatProps {
   onPlayerHpUpdate: (hp: number) => void;
   onGameRestart: () => void;
   onXpGained?: (amount: number) => void;
+  onItemDropped?: (item: DroppedItem) => void;
+  tileSize?: number;
   clock?: Clock;
 }
 
@@ -32,6 +35,8 @@ export function useCombat({
   onPlayerHpUpdate,
   onGameRestart,
   onXpGained,
+  onItemDropped,
+  tileSize = 64,
   clock = defaultClock
 }: UseCombatProps) {
   const [state, dispatch] = useReducer(combatReducer, initialCombatState);
@@ -79,6 +84,13 @@ export function useCombat({
           onXpGained(xpReward);
         }
 
+        // Generate loot drop
+        const droppedItem = generateEnemyLoot(enemy.level, enemy.x, enemy.y, tileSize);
+        if (droppedItem && onItemDropped) {
+          console.log(`[useCombat] Item dropped: ${droppedItem.item.name}`);
+          onItemDropped(droppedItem);
+        }
+
         dispatch({ type: 'SHOW_VICTORY', xp: xpReward });
         return;
       } catch (error) {
@@ -91,7 +103,7 @@ export function useCombat({
     } else {
       dispatch({ type: 'END_COMBAT' });
     }
-  }, [state.enemy, state.playerElo, userId, onXpGained, stopTimer, playerRef]);
+  }, [state.enemy, state.playerElo, userId, onXpGained, onItemDropped, tileSize, stopTimer, playerRef]);
 
   const askQuestion = useCallback(async () => {
     const enemy = state.enemy;

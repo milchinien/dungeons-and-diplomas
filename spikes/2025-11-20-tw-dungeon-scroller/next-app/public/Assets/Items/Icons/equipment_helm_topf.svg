@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Verbeulter Topfhelm - Common Item -->
+  <rect x="0" y="0" width="32" height="32" fill="#2a2a2a"/>
+  <!-- Topf-Form -->
+  <ellipse cx="16" cy="22" rx="10" ry="6" fill="#8B7355"/>
+  <rect x="6" y="10" width="20" height="14" rx="2" fill="#8B7355"/>
+  <!-- Beulen -->
+  <ellipse cx="10" cy="14" rx="3" ry="2" fill="#9C8465"/>
+  <ellipse cx="22" cy="18" rx="2" ry="3" fill="#7A6245"/>
+  <!-- Henkel-Stellen (abgesägt) -->
+  <rect x="4" y="12" width="3" height="2" fill="#5C4A35"/>
+  <rect x="25" y="12" width="3" height="2" fill="#5C4A35"/>
+  <!-- Kratzer -->
+  <line x1="12" y1="12" x2="14" y2="16" stroke="#6B5344" stroke-width="1"/>
+  <line x1="18" y1="14" x2="20" y2="18" stroke="#6B5344" stroke-width="1"/>
+  <!-- Common Rahmen (grau) -->
+  <rect x="0" y="0" width="32" height="32" fill="none" stroke="#808080" stroke-width="2"/>
+</svg>

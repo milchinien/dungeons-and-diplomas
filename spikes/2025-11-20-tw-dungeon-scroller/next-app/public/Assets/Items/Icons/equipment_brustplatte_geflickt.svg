@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Geflickte Ledertunika - Common Item -->
+  <rect x="0" y="0" width="32" height="32" fill="#2a2a2a"/>
+  <!-- Tunika Körper -->
+  <path d="M8 8 L12 4 L20 4 L24 8 L26 14 L24 28 L8 28 L6 14 Z" fill="#8B6914"/>
+  <!-- Ärmel-Ansätze -->
+  <rect x="4" y="8" width="6" height="8" rx="1" fill="#7A5A10"/>
+  <rect x="22" y="8" width="6" height="8" rx="1" fill="#7A5A10"/>
+  <!-- Flicken -->
+  <rect x="10" y="12" width="5" height="4" fill="#6B4423" stroke="#4A3015" stroke-width="0.5"/>
+  <rect x="17" y="18" width="4" height="5" fill="#8B4513" stroke="#4A3015" stroke-width="0.5"/>
+  <rect x="12" y="22" width="3" height="3" fill="#654321" stroke="#4A3015" stroke-width="0.5"/>
+  <!-- Nähte -->
+  <line x1="16" y1="6" x2="16" y2="26" stroke="#4A3015" stroke-width="1" stroke-dasharray="2,1"/>
+  <!-- Common Rahmen -->
+  <rect x="0" y="0" width="32" height="32" fill="none" stroke="#808080" stroke-width="2"/>
+</svg>
