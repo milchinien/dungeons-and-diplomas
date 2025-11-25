@@ -5,7 +5,7 @@
 import type { ItemDefinition, ItemRarity, DroppedItem } from './types';
 import { RARITY_WEIGHTS } from './types';
 import { generateItem, getAllSlots } from './itemDatabase';
-import type { EquipmentSlot } from '@/components/InventoryModal';
+import type { EquipmentSlotKey } from './types';
 
 // Drop chance per enemy level (percentage, 0-100)
 // Higher level enemies have higher drop chance
@@ -43,7 +43,7 @@ function selectRarity(): ItemRarity {
 /**
  * Select a random equipment slot
  */
-function selectSlot(): EquipmentSlot {
+function selectSlot(): EquipmentSlotKey {
   const slots = getAllSlots();
   return slots[Math.floor(Math.random() * slots.length)];
 }

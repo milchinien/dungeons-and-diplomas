@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { COLORS } from '@/lib/ui/colors';
-import type { ItemDefinition, EquipmentSlotKey, ItemEffect } from '@/lib/items/types';
+import type { ItemDefinition, EquipmentSlotKey } from '@/lib/items/types';
 import { RARITY_COLORS, SLOT_DISPLAY_NAMES, RARITY_CONFIG } from '@/lib/items/types';
 
 // Re-export types for backwards compatibility

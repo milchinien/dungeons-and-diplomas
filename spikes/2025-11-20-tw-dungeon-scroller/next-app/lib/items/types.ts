@@ -2,23 +2,56 @@
  * Item system types
  */
 
-import type { EquipmentSlot } from '@/components/InventoryModal';
+// Equipment slot keys (defined here to avoid circular imports)
+export type EquipmentSlotKey = 'helm' | 'brustplatte' | 'schwert' | 'schild' | 'hose' | 'schuhe';
 
 // Item rarity
 export type ItemRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+
+// Item effect types
+export type ItemEffectType = 'max_hp' | 'damage_boost' | 'damage_reduction' | 'time_boost' | 'xp_boost' | 'hint_chance';
+
+// Item effect
+export interface ItemEffect {
+  type: ItemEffectType;
+  value: number;
+}
 
 // Item definition with stats
 export interface ItemDefinition {
   id: string;
   name: string;
-  slot: EquipmentSlot;
+  slot: EquipmentSlotKey;
   rarity: ItemRarity;
   icon?: string;
-  // Stats bonuses
+  iconPath: string;
+  description: string;
+  value: number;
+  effects?: ItemEffect[];
+  // Legacy stats bonuses (for backwards compatibility)
   bonusHp?: number;
   bonusDamage?: number;
   bonusTimeLimit?: number;
 }
+
+// Slot display names
+export const SLOT_DISPLAY_NAMES: Record<EquipmentSlotKey, string> = {
+  helm: 'Helm',
+  brustplatte: 'Brustplatte',
+  schwert: 'Schwert',
+  schild: 'Schild',
+  hose: 'Hose',
+  schuhe: 'Schuhe',
+};
+
+// Rarity configuration
+export const RARITY_CONFIG: Record<ItemRarity, { name: string; dropChance: number }> = {
+  common: { name: 'Gewöhnlich', dropChance: 0.50 },
+  uncommon: { name: 'Ungewöhnlich', dropChance: 0.30 },
+  rare: { name: 'Selten', dropChance: 0.15 },
+  epic: { name: 'Episch', dropChance: 0.04 },
+  legendary: { name: 'Legendär', dropChance: 0.01 },
+};
 
 // Dropped item on the map
 export interface DroppedItem {
