@@ -1,22 +1,29 @@
 # Dungeons & Diplomas
 
-Educational Dungeon Crawler - Learn through gaming! Browser-basiertes Spiel mit Phaser 3, Next.js und TypeScript.
+Educational browser-based dungeon crawler with procedural dungeon generation, real-time combat, and quiz-based enemy encounters.
 
 ## Tech Stack
 
-- **Frontend:** Next.js 15 (App Router) + TypeScript + React
-- **Game Engine:** Phaser 3
-- **Backend/Database:** Supabase (PostgreSQL + Edge Functions)
-- **Deployment:** Vercel
-- **Package Manager:** pnpm
+- **Frontend:** Next.js 14 (App Router) + TypeScript + React
+- **Styling:** Tailwind CSS 4
+- **Database:** SQLite (better-sqlite3) - **lokal**
+- **Game Engine:** Canvas API (custom rendering)
+- **Package Manager:** npm
+
+### Wichtiger Hinweis: Datenbankabstraktion
+
+Die Anwendung nutzt aktuell **SQLite** für lokale Entwicklung. Da SQLite auf Vercel nicht verfügbar ist, muss vor dem Production-Deployment ein **Datenbankabstraktionslayer** implementiert werden, der:
+- **Lokal:** SQLite verwendet
+- **Production (Vercel):** Supabase (PostgreSQL) verwendet
+
+Dies ist eine zukünftige Aufgabe und nicht Teil der aktuellen Migration.
 
 ## Projekt Setup
 
 ### Voraussetzungen
 
 - Node.js 18+ installiert
-- pnpm installiert (`npm install -g pnpm`)
-- Git installiert
+- npm installiert (kommt mit Node.js)
 
 ### Lokales Development Setup
 
@@ -28,141 +35,108 @@ Educational Dungeon Crawler - Learn through gaming! Browser-basiertes Spiel mit 
 
 2. **Dependencies installieren**:
    ```bash
-   pnpm install
+   npm install
    ```
 
-3. **Environment Variables einrichten**:
+3. **Development Server starten**:
    ```bash
-   # .env.local.example nach .env.local kopieren
-   cp .env.local.example .env.local
-
-   # Dann .env.local öffnen und mit echten Supabase-Credentials füllen
-   ```
-
-4. **Development Server starten**:
-   ```bash
-   pnpm dev
+   npm run dev
    ```
 
    Browser öffnet automatisch `http://localhost:3000`
 
-5. **TypeScript Type-Checking** (optional):
+4. **TypeScript Type-Checking** (optional):
    ```bash
-   pnpm type-check
+   npm run type-check
    ```
 
-## Supabase Setup
+## Projektstruktur
 
-### 1. Neues Supabase Projekt erstellen
-
-1. Gehe zu [https://supabase.com](https://supabase.com)
-2. Login mit GitHub Account
-3. "New Project" klicken
-4. **Einstellungen:**
-   - **Name:** `dungeons-diplomas`
-   - **Database Password:** Sicheres Passwort wählen (speichern!)
-   - **Region:** `Frankfurt (Central EU)`
-   - **Pricing Plan:** `Free Tier`
-5. Auf "Create new project" klicken (dauert ~2 Minuten)
-
-### 2. API Keys kopieren
-
-Nach Projekt-Erstellung:
-
-1. Im Supabase Dashboard: **Settings** → **API**
-2. Kopiere folgende Werte in deine `.env.local`:
-   - **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
-   - **anon/public key** → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-
-Beispiel `.env.local`:
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://abcdefghijklmnop.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
-
-### 3. Connection testen
-
-Nach Setup kannst du die Verbindung testen:
-```bash
-pnpm dev
-```
-
-Im Browser Console sollte erscheinen: `  Supabase connection successful`
-
-## Vercel Deployment
-
-### 1. Vercel Account einrichten
-
-1. Gehe zu [https://vercel.com](https://vercel.com)
-2. "Sign Up" mit GitHub Account
-3. "Add New Project" klicken
-
-### 2. Projekt importieren
-
-1. **Import Git Repository:**
-   - Wähle dein GitHub Repository `dungeons-and-diplomas`
-   - Vercel erkennt automatisch Next.js Framework
-
-2. **Environment Variables hinzufügen:**
-   - Klicke auf "Environment Variables"
-   - Füge hinzu:
-     - `NEXT_PUBLIC_SUPABASE_URL` = (deine Supabase URL)
-     - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = (dein Supabase Anon Key)
-   - Wichtig: Für alle Environments aktivieren (Production, Preview, Development)
-
-3. **Deploy klicken:**
-   - Vercel baut das Projekt (~2-3 Minuten)
-   - Nach Fertigstellung bekommst du eine URL: `https://dungeons-diplomas.vercel.app`
-
-### 3. Auto-Deployment aktivieren
-
-Vercel deployed automatisch bei jedem Git Push:
-- **`main` Branch** → Production Deployment
-- **Feature Branches** → Preview Deployment (eigene Test-URL)
-
-## Folder-Struktur
-
 dungeons-and-diplomas/
 ├── app/                    # Next.js App Router
 │   ├── layout.tsx         # Root Layout
-│   ├── page.tsx           # Homepage (Phaser Game embedded)
-│   └── globals.css        # Global Styles
-├── components/            # React Components
-│   └── PhaserGame.tsx    # Phaser Wrapper Component
-├── game/                  # Phaser Game Code
-│   ├── config.ts         # Phaser Configuration
-│   ├── scenes/           # Phaser Scenes
-│   │   ├── CombatScene.ts
-│   │   └── MainScene.ts
-│   └── types/            # Type Definitions
-├── lib/                   # Utilities & Clients
-│   └── supabase.ts       # Supabase Client
-├── public/                # Static Assets (Images, Sounds, etc.)
-├── docs/                  # Projekt-Dokumentation
-│   ├── spec/             # Technical Specs
-│   └── Tasks/            # User Stories & Plans
-├── .env.local.example     # Environment Variables Template
-├── package.json           # Dependencies
-├── tsconfig.json          # TypeScript Config
-└── next.config.ts         # Next.js Config
+│   ├── page.tsx            # Hauptseite (lädt GameCanvas)
+│   ├── globals.css         # Global Styles
+│   └── api/                # API Routes
+│       ├── questions/      # Fragen-Endpunkte
+│       ├── answers/        # Antwort-Logging
+│       ├── stats/          # Statistiken
+│       └── auth/           # Authentifizierung
+├── components/             # React Components
+│   ├── GameCanvas.tsx      # Haupt-Game-Component
+│   ├── CombatModal.tsx     # Kampf-UI
+│   ├── CharacterPanel.tsx  # Spieler-Panel
+│   └── ...
+├── hooks/                  # React Hooks
+│   ├── useAuth.ts          # Authentifizierung
+│   ├── useGameState.ts     # Game State Management
+│   ├── useCombat.ts        # Kampf-Logik
+│   └── ...
+├── lib/                     # Utilities & Game Logic
+│   ├── constants.ts         # Spiel-Konstanten und Typen
+│   ├── db/                  # Datenbank-Operationen
+│   ├── dungeon/             # Dungeon-Generierung (BSP)
+│   ├── combat/              # Kampf-System
+│   ├── scoring/             # ELO-System
+│   └── ...
+├── data/                    # SQLite Datenbank
+│   └── game.db              # Lokale Datenbank
+├── public/                  # Static Assets
+│   └── Assets/              # Game Assets (Sprites, Tilesets)
+├── docs/                    # Projekt-Dokumentation
+├── supabase/                # Supabase Migrations (für zukünftige Nutzung)
+└── spikes/                  # Experimentelle Prototypen
+```
 
 ## Available Scripts
 
 ```bash
 # Development Server starten
-pnpm dev
+npm run dev
 
 # Production Build erstellen
-pnpm build
+npm run build
 
 # Production Build lokal testen
-pnpm start
+npm run start
 
 # Linting
-pnpm lint
+npm run lint
 
 # Type-Checking (ohne Build)
-pnpm type-check
+npm run type-check
+```
+
+## Spielfunktionen
+
+- ✅ Prozedurale Dungeon-Generierung (BSP-Algorithmus)
+- ✅ Spieler mit Animation (14 Animationstypen)
+- ✅ Enemy AI (Idle, Wandering, Following)
+- ✅ Quiz-basiertes Kampfsystem mit ELO-basierter Schwierigkeit
+- ✅ Fog of War
+- ✅ Minimap
+- ✅ Raumtypen (Empty, Treasure, Combat)
+- ✅ HP-System
+- ✅ Statistiken-Dashboard
+- ✅ Session-basierte Fortschrittsverfolgung
+
+## Steuerung
+
+- **WASD** oder **Pfeiltasten**: Spieler bewegen
+- **D**: Statistiken-Dashboard öffnen/schließen
+- **ESC**: Modals schließen
+
+## Datenbank
+
+Die Anwendung nutzt SQLite für lokale Entwicklung. Die Datenbank wird automatisch beim ersten Start erstellt und mit 30 Seed-Fragen (10 pro Fach: Mathematik, Chemie, Physik) befüllt.
+
+**Datenbank-Location:** `data/game.db`
+
+**Datenbank zurücksetzen:**
+```bash
+rm data/game.db
+# Datenbank wird beim nächsten App-Start neu erstellt
 ```
 
 ## Team
@@ -199,35 +173,29 @@ git push origin feature/my-new-feature
 
 ## Troubleshooting
 
-### `pnpm dev` startet nicht
+### `npm run dev` startet nicht
 
 ```bash
 # Node Modules löschen und neu installieren
 rm -rf node_modules
-pnpm install
+npm install
 ```
 
-### Phaser Canvas zeigt nichts an
+### Datenbank-Fehler
 
-- Prüfe Browser Console auf Fehler
-- Stelle sicher, dass `PhaserGame` Component mit `dynamic import` (SSR disabled) geladen wird
+- Stelle sicher, dass `data/` Verzeichnis existiert
+- Prüfe, ob `data/game.db` beschreibbar ist
+- Bei Problemen: Datenbank löschen und neu erstellen lassen
 
-### Supabase Connection Error
+## Nächste Schritte
 
-- Prüfe, ob `.env.local` existiert und korrekte Keys enthält
-- Restart Development Server nach `.env.local` Änderungen
-
-## Next Steps
-
-Nach erfolgreichem Setup:
-1.   Projekt läuft lokal (`pnpm dev`)
-2.   Phaser Canvas zeigt "Hello World"
-3.   Supabase Connection funktioniert
-4.   Vercel Deployment erfolreich
-5. → Weiter mit Phase 0 - Task 2: Database Schema Setup
+1. ✅ Lokale Entwicklung funktioniert
+2. ⏳ Datenbankabstraktionslayer implementieren (SQLite lokal, Supabase in Production)
+3. ⏳ Vercel Deployment vorbereiten
+4. ⏳ Weitere Features entwickeln
 
 ## Weitere Dokumentation
 
-- [MVP Definition](docs/Tasks/01_Plans/MVP_Definition.md)
-- [Tech Stack Details](docs/spec/Tech_Stack.md)
-- [Implementation Roadmap](docs/Tasks/01_Plans/Implementation_Roadmap.md)
+- [CLAUDE.md](CLAUDE.md) - Detaillierte technische Dokumentation
+- [Agents.md](Agents.md) - Agent-spezifische Anweisungen
+- [docs/](docs/) - Projekt-Dokumentation und Pläne
