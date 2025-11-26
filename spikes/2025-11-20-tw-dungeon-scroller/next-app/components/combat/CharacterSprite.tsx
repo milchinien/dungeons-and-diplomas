@@ -7,12 +7,13 @@ import { getContext2D } from '@/lib/rendering/canvasUtils';
 
 interface CharacterSpriteProps {
   isPlayer: boolean;
+  enemyType?: string;
   isAttacking?: boolean;
   isHurt?: boolean;
   isDead?: boolean;
 }
 
-export default function CharacterSprite({ isPlayer, isAttacking, isHurt, isDead }: CharacterSpriteProps) {
+export default function CharacterSprite({ isPlayer, isAttacking, isHurt, isDead, enemyType }: CharacterSpriteProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const spriteRef = useRef<SpriteSheetLoader | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -21,7 +22,7 @@ export default function CharacterSprite({ isPlayer, isAttacking, isHurt, isDead 
   // Load sprite
   useEffect(() => {
     const loadSprite = async () => {
-      const spriteName = isPlayer ? 'player' : 'goblin';
+      const spriteName = isPlayer ? 'player' : (enemyType || 'goblin');
       const sprite = new SpriteSheetLoader(spriteName);
       await sprite.load();
 
@@ -39,7 +40,7 @@ export default function CharacterSprite({ isPlayer, isAttacking, isHurt, isDead 
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [isPlayer]);
+  }, [isPlayer, enemyType]);
 
   // Update animation based on state
   useEffect(() => {

@@ -10,6 +10,7 @@ import type { GameRenderer } from '@/lib/rendering/GameRenderer';
 import type { MinimapRenderer } from '@/lib/rendering/MinimapRenderer';
 import { useKeyboardInput } from './useKeyboardInput';
 import { useTreasureCollection } from './useTreasureCollection';
+import { useFootsteps } from './useFootsteps';
 
 interface UseGameStateProps {
   questionDatabase: QuestionDatabase | null;
@@ -66,6 +67,9 @@ export function useGameState({
   const playerRef = externalPlayerRef || fallbackPlayerRef;
 
   // Use extracted keyboard input hook
+
+  // Use footsteps audio hook
+  const { updateFootsteps } = useFootsteps();
   const { keysRef } = useKeyboardInput({ eventTarget: config.eventTarget });
 
   // Use factories from config for dependency injection
@@ -131,6 +135,11 @@ export function useGameState({
       inCombat: inCombatRef.current,
       doorStates: manager.doorStates
     });
+    
+    // Update footstep sounds
+    if (!inCombatRef.current) {
+      updateFootsteps(playerRef.current, manager.enemies, manager.tileSize);
+    }
   };
 
   const render = () => {

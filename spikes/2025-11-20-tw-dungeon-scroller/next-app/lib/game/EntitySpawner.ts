@@ -16,6 +16,7 @@ import {
   calculateEnemySpawns
 } from '../spawning/LevelDistribution';
 import { api } from '../api';
+import { ENEMY_TYPES } from '../spriteConfig';
 
 export interface SpawnContext {
   dungeon: TileType[][];
@@ -168,7 +169,7 @@ export async function spawnEnemies(
     const enemy = new Enemy(
       config.tileX * tileSize,
       config.tileY * tileSize,
-      'goblin',
+      ENEMY_TYPES[Math.floor(Math.random() * ENEMY_TYPES.length)],
       config.roomIndex,
       config.level,
       config.subject

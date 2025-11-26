@@ -45,6 +45,24 @@ const STANDARD_ANIMATIONS: AnimationDefinition[] = [
   { name: 'combat', firstrow: 46, rowcount: 4, animcount: 3 }
 ];
 
+// Skeleton animations - uses spellcast row for idle (has full body)
+const SKELETON_ANIMATIONS: AnimationDefinition[] = [
+  { name: 'spellcast', firstrow: 0, rowcount: 4, animcount: 7 },
+  { name: 'thrust', firstrow: 4, rowcount: 4, animcount: 8 },
+  { name: 'walk', firstrow: 8, rowcount: 4, animcount: 9 },
+  { name: 'slash', firstrow: 12, rowcount: 4, animcount: 6 },
+  { name: 'shoot', firstrow: 16, rowcount: 4, animcount: 13 },
+  { name: 'hurt', firstrow: 20, rowcount: 1, animcount: 6 },
+  { name: 'climb', firstrow: 21, rowcount: 1, animcount: 6 },
+  { name: 'idle', firstrow: 0, rowcount: 4, animcount: 1 }, // Use spellcast first frame as idle
+  { name: 'jump', firstrow: 26, rowcount: 4, animcount: 6 },
+  { name: 'sit', firstrow: 30, rowcount: 4, animcount: 15 },
+  { name: 'emote', firstrow: 34, rowcount: 4, animcount: 15 },
+  { name: 'run', firstrow: 8, rowcount: 4, animcount: 9 }, // Use walk as run (has full body)
+  { name: 'watering', firstrow: 42, rowcount: 4, animcount: 7 },
+  { name: 'combat', firstrow: 46, rowcount: 4, animcount: 3 }
+];
+
 // Spritesheet configurations (embedded to avoid CORS issues with file://)
 export const SPRITESHEET_CONFIGS: Record<string, SpritesheetConfig> = {
   player: {
@@ -56,6 +74,11 @@ export const SPRITESHEET_CONFIGS: Record<string, SpritesheetConfig> = {
     frameWidth: 64,
     frameHeight: 64,
     animations: STANDARD_ANIMATIONS
+  },
+  skeleton: {
+    frameWidth: 64,
+    frameHeight: 64,
+    animations: SKELETON_ANIMATIONS
   }
 };
 
@@ -95,3 +118,7 @@ export const FLOOR_VARIANTS = [
   { x: 2, y: 11, weight: 2 },
   { x: 19, y: 8, weight: 1 }
 ];
+
+// Available enemy types for spawning
+export const ENEMY_TYPES = ['goblin', 'skeleton'] as const;
+export type EnemyType = typeof ENEMY_TYPES[number];

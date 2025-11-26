@@ -99,6 +99,7 @@ export default function CombatModal({
       />
       <CharacterSprite
         isPlayer={false}
+        enemyType={currentEnemy?.spriteName}
         isAttacking={isEnemyAttacking}
         isHurt={isEnemyHurt}
         isDead={isEnemyDead}
@@ -126,7 +127,7 @@ export default function CombatModal({
           current={enemyHp}
           max={currentEnemy?.maxHp ?? GOBLIN_MAX_HP}
           color="#ff0000"
-          label={`LEVEL ${currentEnemy?.level ?? 1} GOBLIN`}
+          label={`LEVEL ${currentEnemy?.level ?? 1} ${(currentEnemy?.spriteName ?? "goblin").toUpperCase()}`}
         />
       </div>
 
