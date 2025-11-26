@@ -4,6 +4,7 @@
  * Features:
  * - Player footstep sounds when moving
  * - Enemy footstep sounds with distance-based volume
+ * - Different sounds for different enemy types (goblin, skeleton)
  * - Deeper/darker sounds for boss enemies (high level)
  * - Web Audio API for pitch shifting and volume control
  */
@@ -20,20 +21,27 @@ interface FootstepSource {
   level?: number;
 }
 
+// Enemy type to sound file mapping
+const ENEMY_FOOTSTEP_SOUNDS: Record<string, string> = {
+  goblin: '/Assets/Sound/Goblin_Footstep.wav',
+  skeleton: '/Assets/Sound/Skeleton_Footstep.mp3'
+};
+
 export class FootstepManager {
   private audioContext: AudioContext | null = null;
   private footstepBuffer: AudioBuffer | null = null;
+  private enemyFootstepBuffers: Map<string, AudioBuffer> = new Map();
   private isLoaded: boolean = false;
 
   // Timing for footsteps
   private readonly PLAYER_STEP_INTERVAL = 0.25; // seconds between steps
-  private readonly ENEMY_STEP_INTERVAL = 0.35; // slightly slower for enemies
+  private readonly ENEMY_STEP_INTERVAL = 1.0; // longer interval for enemies to avoid overlap
   private readonly BOSS_THRESHOLD = 8; // level 8+ is considered a boss
 
-  // Distance-based volume
-  private readonly MAX_AUDIBLE_DISTANCE = 10; // tiles
-  private readonly MIN_VOLUME = 0.02;
-  private readonly MAX_VOLUME = 0.4;
+  // Distance-based volume (very quiet for subtle ambient sound)
+  private readonly MAX_AUDIBLE_DISTANCE = 8; // tiles (reduced range)
+  private readonly MIN_VOLUME = 0.005;
+  private readonly MAX_VOLUME = 0.04; // very quiet - subtle background sound
 
   // Track last step times
   private lastStepTimes: Map<string, number> = new Map();
@@ -42,7 +50,7 @@ export class FootstepManager {
   private activeNodes: Set<AudioBufferSourceNode> = new Set();
 
   /**
-   * Initialize the audio context and load the footstep sound
+   * Initialize the audio context and load all footstep sounds
    */
   async initialize(): Promise<void> {
     if (this.isLoaded) return;
@@ -50,13 +58,35 @@ export class FootstepManager {
     try {
       this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
 
+      // Load player footstep
       const response = await fetch('/Assets/Sound/Footstep.wav');
       const arrayBuffer = await response.arrayBuffer();
       this.footstepBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
 
+      // Load enemy-specific footstep sounds
+      await this.loadEnemyFootstepSounds();
+
       this.isLoaded = true;
     } catch (error) {
       console.warn('Failed to load footstep sound:', error);
+    }
+  }
+
+  /**
+   * Load enemy-specific footstep sounds
+   */
+  private async loadEnemyFootstepSounds(): Promise<void> {
+    if (!this.audioContext) return;
+
+    for (const [enemyType, soundPath] of Object.entries(ENEMY_FOOTSTEP_SOUNDS)) {
+      try {
+        const response = await fetch(soundPath);
+        const arrayBuffer = await response.arrayBuffer();
+        const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+        this.enemyFootstepBuffers.set(enemyType, audioBuffer);
+      } catch (error) {
+        console.warn(`Failed to load ${enemyType} footstep sound:`, error);
+      }
     }
   }
 
@@ -74,12 +104,16 @@ export class FootstepManager {
    * @param volume Volume (0-1)
    * @param pitchShift Playback rate (1 = normal, <1 = deeper, >1 = higher)
    * @param pan Stereo pan (-1 = left, 0 = center, 1 = right)
+   * @param buffer Optional custom buffer (for enemy-specific sounds)
    */
-  private playFootstep(volume: number, pitchShift: number = 1.0, pan: number = 0): void {
-    if (!this.audioContext || !this.footstepBuffer) return;
+  private playFootstep(volume: number, pitchShift: number = 1.0, pan: number = 0, buffer?: AudioBuffer): void {
+    if (!this.audioContext) return;
+
+    const soundBuffer = buffer || this.footstepBuffer;
+    if (!soundBuffer) return;
 
     const source = this.audioContext.createBufferSource();
-    source.buffer = this.footstepBuffer;
+    source.buffer = soundBuffer;
     source.playbackRate.value = pitchShift;
 
     // Create gain node for volume
@@ -163,7 +197,7 @@ export class FootstepManager {
   }
 
   /**
-   * Update enemy footsteps with distance-based volume
+   * Update enemy footsteps with distance-based volume and enemy-specific sounds
    */
   updateEnemies(
     enemies: Enemy[],
@@ -173,12 +207,14 @@ export class FootstepManager {
   ): void {
     if (!this.isLoaded) return;
 
-    for (const enemy of enemies) {
+    for (let i = 0; i < enemies.length; i++) {
+      const enemy = enemies[i];
       if (!enemy.alive || !enemy.isMoving) continue;
 
-      const id = `enemy_${enemy.x}_${enemy.y}_${enemy.level}`;
+      // Use stable ID based on array index and room (not position which changes every frame)
+      const id = `enemy_${i}_${enemy.roomId}_${enemy.spriteName}`;
       const isBoss = enemy.level >= this.BOSS_THRESHOLD;
-      const interval = isBoss ? this.ENEMY_STEP_INTERVAL * 1.2 : this.ENEMY_STEP_INTERVAL;
+      const interval = isBoss ? this.ENEMY_STEP_INTERVAL * 1.5 : this.ENEMY_STEP_INTERVAL;
 
       if (this.canPlayStep(id, interval, currentTime)) {
         const volume = this.calculateDistanceVolume(
@@ -190,6 +226,9 @@ export class FootstepManager {
         );
 
         if (volume > 0) {
+          // Get enemy-specific sound buffer (fallback to default if not found)
+          const enemyBuffer = this.enemyFootstepBuffers.get(enemy.spriteName);
+
           // Boss enemies: deeper pitch (0.6-0.7), regular enemies: slightly varied (0.9-1.1)
           let pitchShift: number;
           if (isBoss) {
@@ -201,9 +240,9 @@ export class FootstepManager {
           const pan = this.calculatePan(enemy.x, player.x, tileSize);
 
           // Bosses are slightly louder
-          const adjustedVolume = isBoss ? volume * 1.3 : volume;
+          const adjustedVolume = isBoss ? volume * 1.0 : volume;
 
-          this.playFootstep(Math.min(adjustedVolume, this.MAX_VOLUME), pitchShift, pan);
+          this.playFootstep(Math.min(adjustedVolume, this.MAX_VOLUME), pitchShift, pan, enemyBuffer);
         }
       }
     }

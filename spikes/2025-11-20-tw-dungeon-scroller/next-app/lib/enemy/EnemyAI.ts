@@ -109,6 +109,7 @@ export class EnemyAI {
     roomMap: number[][],
     tileSize: number
   ): void {
+    enemy.isMoving = false;
     enemy.idleTimer -= dt;
     if (enemy.idleTimer <= 0) {
       enemy.aiState = AI_STATE.WANDERING;
@@ -130,6 +131,7 @@ export class EnemyAI {
     if (!enemy.waypoint) {
       enemy.aiState = AI_STATE.IDLE;
       enemy.idleTimer = ENEMY_IDLE_WAIT_TIME;
+      enemy.isMoving = false;
       return;
     }
 
@@ -142,9 +144,11 @@ export class EnemyAI {
       enemy.aiState = AI_STATE.IDLE;
       enemy.idleTimer = ENEMY_IDLE_WAIT_TIME;
       enemy.waypoint = null;
+      enemy.isMoving = false;
       enemy.sprite?.playAnimation(enemy.direction, ANIMATION.IDLE);
     } else {
       // Move towards waypoint (using EnemyMovement module)
+      enemy.isMoving = true;
       moveTowards(enemy, dx, dy, distance, dt, tileSize, dungeon, doorStates);
       enemy.sprite?.playAnimation(enemy.direction, ANIMATION.WALK);
     }
@@ -183,6 +187,7 @@ export class EnemyAI {
       }
 
       // Follow the path (using EnemyMovement module)
+      enemy.isMoving = true;
       if (enemy.path.length > 0) {
         followPath(enemy, dt, tileSize, dungeon, doorStates);
       } else {
@@ -193,6 +198,7 @@ export class EnemyAI {
       enemy.sprite?.playAnimation(enemy.direction, ANIMATION.RUN);
     } else {
       // Close enough - start combat (but only after reaction time has passed)
+      enemy.isMoving = false;
       if (!inCombat && enemy.alive && enemy.aggroReactionTimer <= 0) {
         onCombatStart(enemy);
       }
