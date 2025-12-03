@@ -77,3 +77,31 @@ export interface UpdateEnemiesContext {
   /** Map of door positions to their open/closed state */
   doorStates: Map<string, boolean>;
 }
+
+// ============================================================================
+// Trashmob Update Context
+// ============================================================================
+
+import type { Trashmob } from '../enemy/Trashmob';
+
+/**
+ * Context object for updateTrashmobs method
+ */
+export interface UpdateTrashmobsContext {
+  /** Delta time in seconds */
+  dt: number;
+  /** Array of all trashmobs */
+  trashmobs: Trashmob[];
+  /** Player entity */
+  player: Player;
+  /** Size of a tile in pixels */
+  tileSize: number;
+  /** Array of all rooms */
+  rooms: Room[];
+  /** 2D dungeon grid */
+  dungeon: TileType[][];
+  /** Map of door positions to their open/closed state */
+  doorStates: Map<string, boolean>;
+  /** Callback when player takes contact damage */
+  onContactDamage: (damage: number) => void;
+}

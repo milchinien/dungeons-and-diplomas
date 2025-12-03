@@ -4,6 +4,7 @@
  * Re-exports all enemy-related classes, utilities, and types
  */
 export { Enemy } from './Enemy';
+export { Trashmob, createRandomTrashmob } from './Trashmob';
 export { EnemyAI } from './EnemyAI';
 export { EnemyRenderer } from './EnemyRenderer';
 export { handleStateTransitions } from './AggroManager';

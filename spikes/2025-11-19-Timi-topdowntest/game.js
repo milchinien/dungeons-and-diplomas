@@ -207,29 +207,30 @@ class Player {
         // Apply speed modifier
         const currentSpeed = this.isSlowed ? this.speed * 0.3 : this.speed;
 
-        // Handle input
+        // Handle input - move on each axis separately
         if (keys.w || keys.ArrowUp) {
             this.y -= currentSpeed;
+            if (room.checkCollision(this)) {
+                this.y = oldY;
+            }
         }
         if (keys.s || keys.ArrowDown) {
             this.y += currentSpeed;
+            if (room.checkCollision(this)) {
+                this.y = oldY;
+            }
         }
         if (keys.a || keys.ArrowLeft) {
             this.x -= currentSpeed;
+            if (room.checkCollision(this)) {
+                this.x = oldX;
+            }
         }
         if (keys.d || keys.ArrowRight) {
             this.x += currentSpeed;
-        }
-
-        // Attack with spacebar
-        if (keys.Space) {
-            // Will be handled by game
-        }
-
-        // Check collisions
-        if (room.checkCollision(this)) {
-            this.x = oldX;
-            this.y = oldY;
+            if (room.checkCollision(this)) {
+                this.x = oldX;
+            }
         }
     }
 
@@ -395,6 +396,8 @@ class Bat {
         this.dashSpeed = 4; // Even slower dash speed
         this.dashDirection = { x: 0, y: 0 };
         this.damage = 20;
+        this.stuckCounter = 0;
+        this.avoidDirection = 0;
     }
 
     takeDamage(amount) {
@@ -425,24 +428,16 @@ class Bat {
                 const moveX = Math.cos(angle) * this.speed;
                 const moveY = Math.sin(angle) * this.speed;
 
+                // Try X movement
                 this.x += moveX;
-                this.y += moveY;
-
-                // Wall sliding - try to move along walls
                 if (room.checkCollision(this)) {
                     this.x = oldX;
-                    this.y = oldY;
+                }
 
-                    // Try X only
-                    this.x += moveX;
-                    if (room.checkCollision(this)) {
-                        this.x = oldX;
-                        // Try Y only
-                        this.y += moveY;
-                        if (room.checkCollision(this)) {
-                            this.y = oldY;
-                        }
-                    }
+                // Try Y movement
+                this.y += moveY;
+                if (room.checkCollision(this)) {
+                    this.y = oldY;
                 }
             }
         } else if (this.state === 'charging') {
@@ -548,6 +543,8 @@ class Spider {
         this.isDead = false;
         this.shootCooldown = 0;
         this.damage = 10;
+        this.stuckCounter = 0;
+        this.avoidDirection = 0;
     }
 
     takeDamage(amount) {
@@ -583,25 +580,16 @@ class Spider {
             moveY = Math.sin(angle) * this.speed;
         }
 
-        // Apply movement
+        // Try X movement
         this.x += moveX;
-        this.y += moveY;
-
-        // Check collisions with walls - with wall sliding
         if (room.checkCollision(this)) {
             this.x = oldX;
-            this.y = oldY;
+        }
 
-            // Try X only movement
-            this.x += moveX;
-            if (room.checkCollision(this)) {
-                this.x = oldX;
-                // Try Y only movement
-                this.y += moveY;
-                if (room.checkCollision(this)) {
-                    this.y = oldY;
-                }
-            }
+        // Try Y movement
+        this.y += moveY;
+        if (room.checkCollision(this)) {
+            this.y = oldY;
         }
 
         // Update cooldown

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import type { Player } from '@/lib/enemy';
 import type { QuestionDatabase } from '@/lib/questions';
 import { DIRECTION, PLAYER_MAX_HP } from '@/lib/constants';
@@ -104,12 +104,43 @@ export function useGameState({
     onItemDropped
   });
 
+  // Handle contact damage from trashmobs
+  const handleContactDamage = useCallback((damage: number) => {
+    playerRef.current.hp -= damage;
+    if (playerRef.current.hp < 0) playerRef.current.hp = 0;
+    onPlayerHpUpdate(playerRef.current.hp);
+  }, [onPlayerHpUpdate]);
+
+  // Handle melee attack (called on mouse click)
+  const handleAttack = useCallback(() => {
+    if (!dungeonManagerRef.current) return;
+    if (inCombatRef.current) return;
+    if (gamePausedRef.current) return;
+
+    const engine = gameEngineRef.current;
+    const manager = dungeonManagerRef.current;
+
+    const hits = engine.performAttack(
+      playerRef.current,
+      manager.trashmobs,
+      manager.tileSize
+    );
+
+    // Remove dead trashmobs
+    if (hits.length > 0) {
+      manager.trashmobs = manager.trashmobs.filter(t => t.alive);
+    }
+  }, []);
+
   const update = (dt: number) => {
     if (isNaN(dt)) dt = 0;
     if (!dungeonManagerRef.current) return;
 
     const engine = gameEngineRef.current;
     const manager = dungeonManagerRef.current;
+
+    // Update attack state (cooldown timer)
+    engine.updateAttackState(dt);
 
     engine.updatePlayer({
       dt,
@@ -139,7 +170,24 @@ export function useGameState({
       inCombat: inCombatRef.current,
       doorStates: manager.doorStates
     });
-    
+
+    // Update trashmobs (AI and contact damage)
+    if (!inCombatRef.current) {
+      engine.updateTrashmobs({
+        dt,
+        trashmobs: manager.trashmobs,
+        player: playerRef.current,
+        tileSize: manager.tileSize,
+        rooms: manager.rooms,
+        dungeon: manager.dungeon,
+        doorStates: manager.doorStates,
+        onContactDamage: handleContactDamage
+      });
+
+      // Remove dead trashmobs
+      manager.trashmobs = manager.trashmobs.filter(t => t.alive);
+    }
+
     // Update footstep sounds
     if (!inCombatRef.current) {
       updateFootsteps(playerRef.current, manager.enemies, manager.tileSize);
@@ -154,6 +202,7 @@ export function useGameState({
     const manager = dungeonManagerRef.current;
 
     if (manager.renderMap) {
+      const engine = gameEngineRef.current;
       gameRendererRef.current.render(
         canvas,
         playerRef.current,
@@ -165,7 +214,9 @@ export function useGameState({
         manager.tileSize,
         manager.renderMap,
         manager.doorStates,
-        manager.darkTheme
+        manager.darkTheme,
+        manager.trashmobs,
+        engine.isPlayerAttacking()
       );
     }
 
@@ -244,6 +295,23 @@ export function useGameState({
     };
   }, [questionDatabase, availableSubjects, userId]);
 
+  // Mouse click handler for melee attack
+  useEffect(() => {
+    const handleMouseDown = (e: Event) => {
+      // Left mouse button only
+      const mouseEvent = e as MouseEvent;
+      if (mouseEvent.button === 0) {
+        handleAttack();
+      }
+    };
+
+    config.eventTarget.addEventListener('mousedown', handleMouseDown);
+
+    return () => {
+      config.eventTarget.removeEventListener('mousedown', handleMouseDown);
+    };
+  }, [handleAttack]);
+
   return {
     canvasRef,
     minimapRef,
@@ -251,6 +319,7 @@ export function useGameState({
     gamePausedRef,
     playerRef,
     generateNewDungeon,
-    dungeonManagerRef
+    dungeonManagerRef,
+    handleAttack
   };
 }
