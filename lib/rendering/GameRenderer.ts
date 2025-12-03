@@ -1,0 +1,112 @@
+import type { TileType, Room } from '../constants';
+import type { Player } from '../enemy';
+import { SpriteSheetLoader } from '../SpriteSheetLoader';
+import { Enemy } from '../enemy';
+import type { RenderMap, TileTheme } from '../tiletheme/types';
+import { VisibilityCalculator } from '../visibility';
+import { getTileRenderer } from './TileRenderer';
+import { getContext2D } from './canvasUtils';
+import { RENDER_COLORS } from '../ui/colors';
+
+/**
+ * Main game renderer that orchestrates all rendering passes.
+ * Uses TileRenderer for tile-specific rendering operations.
+ */
+export class GameRenderer {
+  private tileRenderer = getTileRenderer();
+
+  /**
+   * Render all enemies visible in player's rooms
+   */
+  private renderEnemies(
+    ctx: CanvasRenderingContext2D,
+    enemies: Enemy[],
+    rooms: Room[],
+    tileSize: number,
+    player: Player,
+    playerRoomIds: Set<number>
+  ): void {
+    for (const enemy of enemies) {
+      enemy.draw(ctx, rooms, tileSize, player, playerRoomIds);
+    }
+  }
+
+  /**
+   * Render the player sprite
+   */
+  private renderPlayer(
+    ctx: CanvasRenderingContext2D,
+    playerSprite: SpriteSheetLoader | null,
+    player: Player,
+    tileSize: number
+  ): void {
+    playerSprite?.draw(ctx, player.x, player.y, tileSize, tileSize);
+  }
+
+  /**
+   * Main render method - orchestrates all rendering passes
+   */
+  render(
+    canvas: HTMLCanvasElement,
+    player: Player,
+    dungeon: TileType[][],
+    roomMap: number[][],
+    rooms: Room[],
+    enemies: Enemy[],
+    playerSprite: SpriteSheetLoader | null,
+    tileSize: number,
+    renderMap: RenderMap,
+    doorStates: Map<string, boolean>,
+    darkTheme: TileTheme | null
+  ) {
+    const ctx = getContext2D(canvas);
+    if (!ctx) {
+      throw new Error('Failed to get 2D context from canvas');
+    }
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const dungeonWidth = renderMap.width;
+    const dungeonHeight = renderMap.height;
+
+    const camX = player.x + tileSize / 2 - canvas.width / 2;
+    const camY = player.y + tileSize / 2 - canvas.height / 2;
+
+    ctx.save();
+    ctx.translate(-Math.floor(camX), -Math.floor(camY));
+
+    // Clear with black
+    ctx.fillStyle = RENDER_COLORS.BACKGROUND;
+    ctx.fillRect(Math.floor(camX), Math.floor(camY), canvas.width, canvas.height);
+
+    // Calculate visible tile range
+    const startCol = Math.floor(camX / tileSize);
+    const endCol = startCol + Math.ceil(canvas.width / tileSize) + 1;
+    const startRow = Math.floor(camY / tileSize);
+    const endRow = startRow + Math.ceil(canvas.height / tileSize) + 1;
+
+    // Get player's current room(s) for visibility calculations
+    const playerRoomIds = VisibilityCalculator.getPlayerRoomIds(player, tileSize, roomMap, dungeonWidth, dungeonHeight);
+
+    // Pass 1: Render tiles (delegated to TileRenderer)
+    this.tileRenderer.renderTiles(
+      ctx, dungeon, roomMap, rooms, enemies, tileSize, renderMap, doorStates, darkTheme,
+      startCol, endCol, startRow, endRow, dungeonWidth, dungeonHeight
+    );
+
+    // Pass 2: Render fog of war dimming (delegated to TileRenderer)
+    this.tileRenderer.renderFogOfWar(
+      ctx, dungeon, roomMap, rooms, playerRoomIds, tileSize,
+      startCol, endCol, startRow, endRow, dungeonWidth, dungeonHeight
+    );
+
+    // Pass 3: Render enemies
+    this.renderEnemies(ctx, enemies, rooms, tileSize, player, playerRoomIds);
+
+    // Pass 4: Render player
+    this.renderPlayer(ctx, playerSprite, player, tileSize);
+
+    ctx.restore();
+  }
+}

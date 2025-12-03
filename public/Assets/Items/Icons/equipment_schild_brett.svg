@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Holzbrett mit Griff - Common Item -->
+  <rect x="0" y="0" width="32" height="32" fill="#2a2a2a"/>
+  <!-- Holzbrett -->
+  <rect x="6" y="4" width="20" height="24" rx="1" fill="#B8860B"/>
+  <!-- Holzmaserung -->
+  <line x1="10" y1="4" x2="10" y2="28" stroke="#8B6914" stroke-width="1"/>
+  <line x1="16" y1="4" x2="16" y2="28" stroke="#8B6914" stroke-width="1"/>
+  <line x1="22" y1="4" x2="22" y2="28" stroke="#8B6914" stroke-width="1"/>
+  <!-- Risse -->
+  <path d="M8 10 L12 12 L10 16" fill="none" stroke="#4A3015" stroke-width="1"/>
+  <path d="M24 20 L20 22 L22 26" fill="none" stroke="#4A3015" stroke-width="1"/>
+  <!-- Astloch -->
+  <ellipse cx="19" cy="10" rx="2" ry="2" fill="#6B4423"/>
+  <!-- Verblasstes Wappen (kaum sichtbar) -->
+  <circle cx="16" cy="16" r="5" fill="none" stroke="#9C8465" stroke-width="1" opacity="0.4"/>
+  <!-- Lederriemen (Griff hinten, sichtbar an den Seiten) -->
+  <rect x="4" y="12" width="3" height="8" rx="1" fill="#8B4513"/>
+  <rect x="25" y="12" width="3" height="8" rx="1" fill="#8B4513"/>
+  <!-- Nägel -->
+  <circle cx="5" cy="14" r="1" fill="#4A4A4A"/>
+  <circle cx="5" cy="18" r="1" fill="#4A4A4A"/>
+  <circle cx="27" cy="14" r="1" fill="#4A4A4A"/>
+  <circle cx="27" cy="18" r="1" fill="#4A4A4A"/>
+  <!-- Common Rahmen -->
+  <rect x="0" y="0" width="32" height="32" fill="none" stroke="#808080" stroke-width="2"/>
+</svg>

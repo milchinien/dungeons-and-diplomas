@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Abgelaufene Lederstiefel - Common Item -->
+  <rect x="0" y="0" width="32" height="32" fill="#2a2a2a"/>
+  <!-- Linker Stiefel -->
+  <path d="M4 12 L4 24 L14 24 L14 20 L10 20 L10 12 Z" fill="#654321"/>
+  <!-- Rechter Stiefel -->
+  <path d="M18 12 L18 20 L22 20 L22 24 L28 24 L28 12 Z" fill="#654321"/>
+  <!-- Sohlen (dünn, abgelaufen) -->
+  <rect x="4" y="24" width="10" height="2" fill="#3D2914"/>
+  <rect x="18" y="24" width="10" height="2" fill="#3D2914"/>
+  <!-- Abnutzung an Sohlen -->
+  <line x1="6" y1="25" x2="8" y2="25" stroke="#2a2a2a" stroke-width="1"/>
+  <line x1="22" y1="25" x2="25" y2="25" stroke="#2a2a2a" stroke-width="1"/>
+  <!-- Schnürsenkel (mehrfach geknotet) -->
+  <line x1="5" y1="14" x2="9" y2="14" stroke="#8B6914" stroke-width="1"/>
+  <line x1="5" y1="16" x2="9" y2="16" stroke="#8B6914" stroke-width="1"/>
+  <line x1="5" y1="18" x2="9" y2="18" stroke="#8B6914" stroke-width="1"/>
+  <circle cx="7" cy="13" r="1.5" fill="#8B6914"/> <!-- Knoten -->
+  <line x1="19" y1="14" x2="27" y2="14" stroke="#8B6914" stroke-width="1"/>
+  <line x1="19" y1="16" x2="27" y2="16" stroke="#8B6914" stroke-width="1"/>
+  <line x1="19" y1="18" x2="27" y2="18" stroke="#8B6914" stroke-width="1"/>
+  <circle cx="23" cy="13" r="1.5" fill="#8B6914"/> <!-- Knoten -->
+  <!-- Risse/Abnutzung -->
+  <line x1="6" y1="20" x2="8" y2="22" stroke="#4A3015" stroke-width="1"/>
+  <line x1="24" y1="20" x2="26" y2="22" stroke="#4A3015" stroke-width="1"/>
+  <!-- Schaft-Oberkante -->
+  <rect x="4" y="10" width="6" height="2" fill="#7A5A40"/>
+  <rect x="22" y="10" width="6" height="2" fill="#7A5A40"/>
+  <!-- Common Rahmen -->
+  <rect x="0" y="0" width="32" height="32" fill="none" stroke="#808080" stroke-width="2"/>
+</svg>
