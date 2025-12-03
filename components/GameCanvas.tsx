@@ -399,6 +399,8 @@ export default function GameCanvas() {
             currentXp={levelInfo.currentXp}
             xpForCurrentLevel={levelInfo.xpForCurrentLevel}
             xpForNextLevel={levelInfo.xpForNextLevel}
+            currentHp={playerHp}
+            maxHp={playerRef.current.maxHp}
             onLogout={handleLogout}
             onRestart={gameState.generateNewDungeon}
             onSkills={handleOpenSkills}
