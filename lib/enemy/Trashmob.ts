@@ -18,6 +18,7 @@ import {
 } from '../constants';
 import type { TrashmobType, Direction, AIStateType, TileType, Room } from '../constants';
 import { CollisionDetector } from '../physics/CollisionDetector';
+import { TrashmobSpriteRenderer } from '../rendering/TrashmobSprites';
 import type { Player } from './types';
 
 export class Trashmob {
@@ -47,7 +48,13 @@ export class Trashmob {
   static readonly DEAGGRO_RADIUS = 8; // tiles - stop chasing
   static readonly ATTACK_RADIUS = 0.6; // tiles - close enough to attack
 
+  // Sprite renderer for pixel-art animation
+  private spriteRenderer: TrashmobSpriteRenderer;
+
   constructor(x: number, y: number, type: TrashmobType, roomId: number) {
+    // Initialize sprite renderer with random offset for varied animation
+    this.spriteRenderer = new TrashmobSpriteRenderer();
+    this.spriteRenderer.setAnimationTime(Math.random() * 10);
     this.x = x;
     this.y = y;
     this.type = type;
@@ -320,59 +327,44 @@ export class Trashmob {
   }
 
   /**
-   * Draw trashmob (placeholder: colored circle with letter)
+   * Draw trashmob with pixel-art sprite animation
    * Note: ctx is already translated by camera, so use world coordinates directly
    */
-  draw(ctx: CanvasRenderingContext2D, tileSize: number): void {
+  draw(ctx: CanvasRenderingContext2D, tileSize: number, dt: number = 0.016): void {
     if (!this.alive) return;
 
-    const size = tileSize * 0.5; // Slightly bigger for visibility
-    const centerX = this.x + tileSize / 2;
-    const centerY = this.y + tileSize / 2;
+    // Update sprite animation
+    this.spriteRenderer.update(dt);
 
-    // Draw movement indicator (line to waypoint) if wandering
-    if (this.aiState === AI_STATE.WANDERING && this.waypoint) {
-      ctx.beginPath();
-      ctx.moveTo(centerX, centerY);
-      ctx.lineTo(this.waypoint.x + tileSize / 2, this.waypoint.y + tileSize / 2);
-      ctx.strokeStyle = 'rgba(255, 255, 0, 0.5)';
+    const spriteSize = tileSize * 0.8; // Sprite size relative to tile
+    const offsetX = (tileSize - spriteSize) / 2;
+    const offsetY = (tileSize - spriteSize) / 2;
+
+    // Draw pixel-art sprite
+    this.spriteRenderer.draw(
+      ctx,
+      this.type,
+      this.x + offsetX,
+      this.y + offsetY,
+      spriteSize,
+      this.isMoving,
+      this.direction
+    );
+
+    // Draw aggro indicator when following
+    if (this.aiState === AI_STATE.FOLLOWING) {
+      const centerX = this.x + tileSize / 2;
+      const centerY = this.y + tileSize / 2;
+      ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
       ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, spriteSize / 2 + 4, 0, Math.PI * 2);
       ctx.stroke();
     }
 
-    // Draw circle with state-based border
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, size / 2, 0, Math.PI * 2);
-    ctx.fillStyle = TRASHMOB_COLORS[this.type];
-    ctx.fill();
-
-    // Border color based on state
-    if (this.aiState === AI_STATE.FOLLOWING) {
-      ctx.strokeStyle = '#FF0000'; // Red when chasing
-      ctx.lineWidth = 4;
-    } else if (this.aiState === AI_STATE.WANDERING) {
-      ctx.strokeStyle = '#FFD700'; // Gold when wandering
-      ctx.lineWidth = 3;
-    } else {
-      ctx.strokeStyle = '#000';
-      ctx.lineWidth = 2;
-    }
-    ctx.stroke();
-
-    // Draw letter
-    ctx.fillStyle = '#FFF';
-    ctx.font = `bold ${size * 0.5}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(this.type[0].toUpperCase(), centerX, centerY);
-
-    // Draw HP bar (always show for debugging)
-    this.drawHpBar(ctx, centerX, centerY - size / 2 - 10, size);
-
-    // Draw state indicator
-    ctx.fillStyle = '#FFF';
-    ctx.font = '10px Arial';
-    ctx.fillText(this.aiState, centerX, centerY + size / 2 + 12);
+    // Draw HP bar above sprite
+    const centerX = this.x + tileSize / 2;
+    this.drawHpBar(ctx, centerX, this.y - 6, spriteSize);
   }
 
   /**
