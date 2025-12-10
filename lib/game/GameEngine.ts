@@ -352,19 +352,8 @@ export class GameEngine {
     }
   }
 
-  // Player invulnerability timer for contact damage
-  private playerInvulnerabilityTimer: number = 0;
-  private static readonly PLAYER_INVULNERABILITY_TIME = 1.0; // seconds
-
-  /**
-   * Check if player is currently invulnerable to contact damage
-   */
-  public isPlayerInvulnerable(): boolean {
-    return this.playerInvulnerabilityTimer > 0;
-  }
-
-  // Debug counter for trashmob updates
-  private trashmobDebugCounter = 0;
+  // Track which trashmobs have dealt damage this attack (to prevent multi-hit)
+  private trashmobDamageDealt: Set<Trashmob> = new Set();
 
   /**
    * Update trashmobs (AI and contact damage)
@@ -381,33 +370,25 @@ export class GameEngine {
       onContactDamage
     } = ctx;
 
-    // Debug log every 60 frames (~1 second)
-    this.trashmobDebugCounter++;
-    if (this.trashmobDebugCounter >= 60) {
-      this.trashmobDebugCounter = 0;
-      if (trashmobs.length > 0) {
-        console.log(`Trashmobs: ${trashmobs.length}, first state: ${trashmobs[0].aiState}, rooms: ${rooms.length}`);
-      }
-    }
-
-    // Update invulnerability timer
-    if (this.playerInvulnerabilityTimer > 0) {
-      this.playerInvulnerabilityTimer -= dt;
-    }
-
     // Update each trashmob
     for (const trashmob of trashmobs) {
       if (!trashmob.alive) continue;
 
+      const wasAttacking = trashmob.isAttacking;
       trashmob.update(dt, player, tileSize, rooms, dungeon, doorStates);
 
-      // Check contact damage
-      if (!this.isPlayerInvulnerable()) {
+      // Reset damage tracking when attack ends
+      if (wasAttacking && !trashmob.isAttacking) {
+        this.trashmobDamageDealt.delete(trashmob);
+      }
+
+      // Check contact damage - only during attacks and only once per attack
+      if (trashmob.isAttacking && !this.trashmobDamageDealt.has(trashmob)) {
         const distance = trashmob.getDistanceToPlayer(player, tileSize);
-        if (distance < 0.5) { // Contact distance
+        if (distance < 0.6) { // Contact distance
           const damage = trashmob.getContactDamage();
           onContactDamage(damage);
-          this.playerInvulnerabilityTimer = GameEngine.PLAYER_INVULNERABILITY_TIME;
+          this.trashmobDamageDealt.add(trashmob);
         }
       }
     }
