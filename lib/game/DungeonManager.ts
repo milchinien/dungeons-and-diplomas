@@ -15,11 +15,11 @@ import {
 import type { TileType, TileVariant, Room, DungeonConfig } from '../constants';
 import type { Player } from '../enemy';
 import { SpriteSheetLoader } from '../SpriteSheetLoader';
-import { Enemy } from '../enemy';
+import { Enemy, Trashmob } from '../enemy';
 import type { TileTheme, ImportedTileset, RenderMap } from '../tiletheme/types';
 import { ThemeLoader } from '../tiletheme/ThemeLoader';
 import { generateDungeonStructure } from './DungeonInitializer';
-import { spawnPlayer, spawnEnemies, spawnTreasures } from './EntitySpawner';
+import { spawnPlayer, spawnEnemies, spawnTreasures, spawnTrashmobs } from './EntitySpawner';
 import type { DroppedItem } from '../items/types';
 
 export class DungeonManager {
@@ -34,6 +34,7 @@ export class DungeonManager {
   // Entities
   public player: Player;
   public enemies: Enemy[] = [];
+  public trashmobs: Trashmob[] = [];
   public playerSprite: SpriteSheetLoader | null = null;
   public treasures: Set<string> = new Set();
   public droppedItems: DroppedItem[] = [];
@@ -134,5 +135,6 @@ export class DungeonManager {
     spawnPlayer(this.player, spawnContext);
     this.enemies = await spawnEnemies(spawnContext, availableSubjects, userId, this.player);
     this.treasures = spawnTreasures(spawnContext);
+    this.trashmobs = spawnTrashmobs(spawnContext, this.player);
   }
 }

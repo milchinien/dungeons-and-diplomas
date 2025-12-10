@@ -1,6 +1,7 @@
 'use client';
 
 import { CharacterHeader } from './character/CharacterHeader';
+import { HpBar } from './character/HpBar';
 import { XpProgressBar } from './character/XpProgressBar';
 import { MasteryCircles } from './character/MasteryCircles';
 import { ActionButtons } from './character/ActionButtons';
@@ -13,6 +14,8 @@ interface CharacterPanelProps {
   currentXp: number;
   xpForCurrentLevel: number;
   xpForNextLevel: number;
+  currentHp: number;
+  maxHp: number;
   onLogout: () => void;
   onRestart: () => void;
   onSkills: () => void;
@@ -28,6 +31,8 @@ export default function CharacterPanel({
   currentXp,
   xpForCurrentLevel,
   xpForNextLevel,
+  currentHp,
+  maxHp,
   onLogout,
   onRestart,
   onSkills
@@ -46,6 +51,8 @@ export default function CharacterPanel({
       boxShadow: '0 4px 16px rgba(0, 0, 0, 0.7)'
     }}>
       <CharacterHeader username={username} level={level} />
+
+      <HpBar currentHp={currentHp} maxHp={maxHp} />
 
       <XpProgressBar
         currentXp={currentXp}

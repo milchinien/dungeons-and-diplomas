@@ -91,6 +91,44 @@ export const COMBAT_TRIGGER_DISTANCE = 0.5; // tiles - distance to trigger comba
 export const COMBAT_FEEDBACK_DELAY = 1500; // milliseconds - delay before next question or ending combat
 
 // =============================================================================
+// Melee Attack constants (for Trashmobs)
+// =============================================================================
+export const PLAYER_ATTACK_CONE_ANGLE = 75; // degrees
+export const PLAYER_ATTACK_RANGE = 1.5; // tiles
+export const PLAYER_ATTACK_COOLDOWN = 0.4; // seconds
+export const PLAYER_ATTACK_SLOWDOWN = 0.5; // 50% speed during attack
+export const PLAYER_ATTACK_DURATION = 0.3; // seconds (attack animation)
+export const PLAYER_ATTACK_DAMAGE = 1; // damage per hit
+
+// =============================================================================
+// Trashmob constants
+// =============================================================================
+export const TRASHMOB_CONTACT_DAMAGE_MIN = 3;
+export const TRASHMOB_CONTACT_DAMAGE_MAX = 4;
+export const TRASHMOB_INVULNERABILITY_TIME = 1.0; // seconds after taking damage
+export const TRASHMOB_SPEED_TILES = 2; // slower than regular enemies
+
+export const TRASHMOB_TYPE = {
+  RAT: 'rat',
+  SLIME: 'slime',
+  BAT: 'bat'
+} as const;
+
+export type TrashmobType = typeof TRASHMOB_TYPE[keyof typeof TRASHMOB_TYPE];
+
+export const TRASHMOB_HP: Record<TrashmobType, number> = {
+  rat: 1,
+  slime: 2,
+  bat: 1
+};
+
+export const TRASHMOB_COLORS: Record<TrashmobType, string> = {
+  rat: '#8B4513',    // Brown
+  slime: '#32CD32',  // Green
+  bat: '#4B0082'     // Purple
+};
+
+// =============================================================================
 // Type definitions
 // =============================================================================
 export interface Room {
