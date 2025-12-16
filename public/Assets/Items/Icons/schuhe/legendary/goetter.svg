@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Pixel Art: Stiefel der Goetter (Legendary/Orange) -->
+  <rect x="4" y="0" width="56" height="4" fill="#ffdd00" opacity="0.5"/>
+  <!-- Left divine boot -->
+  <rect x="4" y="4" width="20" height="4" fill="#ffffff"/>
+  <rect x="4" y="8" width="24" height="8" fill="#ddaa00"/>
+  <rect x="4" y="16" width="24" height="8" fill="#eebb00"/>
+  <rect x="4" y="24" width="24" height="8" fill="#ffcc00"/>
+  <rect x="4" y="32" width="24" height="8" fill="#eebb00"/>
+  <rect x="4" y="40" width="24" height="4" fill="#ddaa00"/>
+  <!-- Right divine boot -->
+  <rect x="36" y="4" width="20" height="4" fill="#ffffff"/>
+  <rect x="36" y="8" width="24" height="8" fill="#ddaa00"/>
+  <rect x="36" y="16" width="24" height="8" fill="#eebb00"/>
+  <rect x="36" y="24" width="24" height="8" fill="#ffcc00"/>
+  <rect x="36" y="32" width="24" height="8" fill="#eebb00"/>
+  <rect x="36" y="40" width="24" height="4" fill="#ddaa00"/>
+  <!-- Divine symbols -->
+  <rect x="12" y="24" width="4" height="4" fill="#ffffff"/>
+  <rect x="48" y="24" width="4" height="4" fill="#ffffff"/>
+</svg>

@@ -18,6 +18,8 @@ interface UseGameStateProps {
   questionDatabase: QuestionDatabase | null;
   availableSubjects: string[];
   userId: number | null;
+  /** Whether the game has started (canvas is mounted) */
+  gameStarted: boolean;
   onPlayerHpUpdate: (hp: number) => void;
   onXpGained?: (amount: number) => void;
   onTreasureCollected?: (screenX: number, screenY: number, xpAmount: number) => void;
@@ -37,6 +39,7 @@ export function useGameState({
   questionDatabase,
   availableSubjects,
   userId,
+  gameStarted,
   onPlayerHpUpdate,
   onXpGained,
   onTreasureCollected,
@@ -234,6 +237,16 @@ export function useGameState({
       manager.trashmobs = manager.trashmobs.filter(t => t.alive);
     }
 
+    // Update room exploration state (handles unexplored → exploring → explored)
+    engine.updateRoomState(
+      playerRef.current,
+      manager.tileSize,
+      manager.roomMap,
+      manager.rooms,
+      manager.enemies,
+      manager.trashmobs
+    );
+
     // Update footstep sounds
     if (!inCombatRef.current) {
       updateFootsteps(playerRef.current, manager.enemies, manager.tileSize);
@@ -324,7 +337,7 @@ export function useGameState({
         return;
       }
 
-      if (!questionDatabase) {
+      if (!questionDatabase || !gameStarted) {
         return;
       }
 
@@ -367,7 +380,7 @@ export function useGameState({
         config.scheduler.cancelFrame(gameLoopIdRef.current);
       }
     };
-  }, [questionDatabase, availableSubjects, userId]);
+  }, [questionDatabase, availableSubjects, userId, gameStarted]);
 
   // Mouse move handler for continuous aim tracking
   useEffect(() => {

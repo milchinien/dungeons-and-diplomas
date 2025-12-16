@@ -165,6 +165,7 @@ export class Enemy {
     doorStates: Map<string, boolean>
   ): void {
     // Import dynamically to avoid circular dependency at module load time
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { EnemyAI } = require('./EnemyAI');
     EnemyAI.update(this, {
       dt,
@@ -185,6 +186,7 @@ export class Enemy {
    */
   draw(ctx: CanvasRenderingContext2D, rooms: Room[], tileSize: number, player?: Player, playerRoomIds?: Set<number>): void {
     // Import dynamically to avoid circular dependency at module load time
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { EnemyRenderer } = require('./EnemyRenderer');
     EnemyRenderer.draw(this, ctx, rooms, tileSize, player, playerRoomIds);
   }

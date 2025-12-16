@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Pixel Art: Wattierte Jacke (Uncommon/Green) -->
+
+  <!-- Shoulders - quilted padding -->
+  <rect x="8" y="8" width="8" height="4" fill="#3a5a3a"/>
+  <rect x="48" y="8" width="8" height="4" fill="#2a4a2a"/>
+
+  <!-- Main quilted body -->
+  <rect x="12" y="12" width="8" height="4" fill="#4a6a4a"/>
+  <rect x="20" y="12" width="8" height="4" fill="#5a7a5a"/>
+  <rect x="28" y="12" width="8" height="4" fill="#4a6a4a"/>
+  <rect x="36" y="12" width="8" height="4" fill="#5a7a5a"/>
+  <rect x="44" y="12" width="8" height="4" fill="#4a6a4a"/>
+
+  <!-- Quilting pattern row 2 -->
+  <rect x="12" y="16" width="8" height="4" fill="#5a7a5a"/>
+  <rect x="20" y="16" width="8" height="4" fill="#4a6a4a"/>
+  <rect x="28" y="16" width="8" height="4" fill="#5a7a5a"/>
+  <rect x="36" y="16" width="8" height="4" fill="#4a6a4a"/>
+  <rect x="44" y="16" width="8" height="4" fill="#5a7a5a"/>
+
+  <!-- Quilting pattern row 3 -->
+  <rect x="12" y="20" width="8" height="4" fill="#4a6a4a"/>
+  <rect x="20" y="20" width="8" height="4" fill="#5a7a5a"/>
+  <rect x="28" y="20" width="8" height="4" fill="#4a6a4a"/>
+  <rect x="36" y="20" width="8" height="4" fill="#5a7a5a"/>
+  <rect x="44" y="20" width="8" height="4" fill="#4a6a4a"/>
+
+  <!-- Quilting pattern row 4 -->
+  <rect x="12" y="24" width="8" height="4" fill="#5a7a5a"/>
+  <rect x="20" y="24" width="8" height="4" fill="#4a6a4a"/>
+  <rect x="28" y="24" width="8" height="4" fill="#5a7a5a"/>
+  <rect x="36" y="24" width="8" height="4" fill="#4a6a4a"/>
+  <rect x="44" y="24" width="8" height="4" fill="#5a7a5a"/>
+
+  <!-- Quilting stitches (vertical) -->
+  <rect x="20" y="12" width="1" height="16" fill="#2a4a2a"/>
+  <rect x="28" y="12" width="1" height="16" fill="#2a4a2a"/>
+  <rect x="36" y="12" width="1" height="16" fill="#2a4a2a"/>
+  <rect x="44" y="12" width="1" height="16" fill="#2a4a2a"/>
+
+  <!-- Bottom hem -->
+  <rect x="12" y="28" width="40" height="4" fill="#3a5a3a"/>
+
+  <!-- Buttons -->
+  <rect x="28" y="14" width="4" height="4" fill="#2a4a2a"/>
+  <rect x="28" y="22" width="4" height="4" fill="#2a4a2a"/>
+</svg>

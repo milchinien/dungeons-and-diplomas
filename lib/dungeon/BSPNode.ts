@@ -116,7 +116,8 @@ export class BSPNode {
         height: this.height,
         visible: false,
         neighbors: [],
-        type: roomType
+        type: roomType,
+        state: 'unexplored'
       });
 
       // Fill entire partition with floor and mark tiles with room ID

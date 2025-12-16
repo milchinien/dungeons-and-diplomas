@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Pixel Art: Mithril-Stiefel (Epic/Purple) -->
+  <rect x="4" y="4" width="56" height="4" fill="#e0e8ff" opacity="0.4"/>
+  <!-- Left boot mithril -->
+  <rect x="4" y="8" width="20" height="4" fill="#a080d0"/>
+  <rect x="4" y="12" width="24" height="4" fill="#c0c8e0"/>
+  <rect x="4" y="16" width="24" height="4" fill="#d0d8f0"/>
+  <rect x="4" y="20" width="24" height="4" fill="#c0c8e0"/>
+  <rect x="4" y="24" width="24" height="4" fill="#d0d8f0"/>
+  <rect x="4" y="28" width="24" height="4" fill="#c0c8e0"/>
+  <rect x="4" y="32" width="24" height="4" fill="#d0d8f0"/>
+  <rect x="4" y="36" width="24" height="8" fill="#b0b8d0"/>
+  <!-- Right boot mithril -->
+  <rect x="36" y="8" width="20" height="4" fill="#a080d0"/>
+  <rect x="36" y="12" width="24" height="4" fill="#d0d8f0"/>
+  <rect x="36" y="16" width="24" height="4" fill="#c0c8e0"/>
+  <rect x="36" y="20" width="24" height="4" fill="#d0d8f0"/>
+  <rect x="36" y="24" width="24" height="4" fill="#c0c8e0"/>
+  <rect x="36" y="28" width="24" height="4" fill="#d0d8f0"/>
+  <rect x="36" y="32" width="24" height="4" fill="#c0c8e0"/>
+  <rect x="36" y="36" width="24" height="8" fill="#b0b8d0"/>
+  <!-- Purple shimmer -->
+  <rect x="12" y="20" width="4" height="4" fill="#9070c0"/>
+  <rect x="48" y="24" width="4" height="4" fill="#9070c0"/>
+</svg>

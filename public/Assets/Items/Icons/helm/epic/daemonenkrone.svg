@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Pixel Art: Daemonenkrone (Epic/Purple) -->
+
+  <!-- Dark aura -->
+  <rect x="20" y="0" width="4" height="4" fill="#4a0080" opacity="0.4"/>
+  <rect x="40" y="0" width="4" height="4" fill="#4a0080" opacity="0.4"/>
+
+  <!-- Demonic horns -->
+  <rect x="12" y="4" width="4" height="4" fill="#2a0040"/>
+  <rect x="16" y="8" width="4" height="4" fill="#3a0060"/>
+  <rect x="20" y="12" width="4" height="4" fill="#4a0080"/>
+
+  <rect x="48" y="4" width="4" height="4" fill="#2a0040"/>
+  <rect x="44" y="8" width="4" height="4" fill="#3a0060"/>
+  <rect x="40" y="12" width="4" height="4" fill="#4a0080"/>
+
+  <!-- Central spike -->
+  <rect x="28" y="0" width="4" height="4" fill="#3a0060"/>
+  <rect x="32" y="0" width="4" height="4" fill="#2a0040"/>
+  <rect x="28" y="4" width="4" height="4" fill="#5a0090"/>
+  <rect x="32" y="4" width="4" height="4" fill="#4a0080"/>
+  <rect x="28" y="8" width="4" height="4" fill="#6a00a0"/>
+  <rect x="32" y="8" width="4" height="4" fill="#5a0090"/>
+
+  <!-- Crown band - blackened metal -->
+  <rect x="12" y="16" width="4" height="4" fill="#1a1a2a"/>
+  <rect x="16" y="16" width="4" height="4" fill="#2a2a3a"/>
+  <rect x="20" y="16" width="4" height="4" fill="#3a3a4a"/>
+  <rect x="24" y="16" width="4" height="4" fill="#4a4a5a"/>
+  <rect x="28" y="16" width="4" height="4" fill="#5a0090"/>
+  <rect x="32" y="16" width="4" height="4" fill="#5a0090"/>
+  <rect x="36" y="16" width="4" height="4" fill="#4a4a5a"/>
+  <rect x="40" y="16" width="4" height="4" fill="#3a3a4a"/>
+  <rect x="44" y="16" width="4" height="4" fill="#2a2a3a"/>
+  <rect x="48" y="16" width="4" height="4" fill="#1a1a2a"/>
+
+  <!-- Purple gems -->
+  <rect x="20" y="20" width="4" height="4" fill="#a335ee"/>
+  <rect x="28" y="20" width="4" height="4" fill="#b345ff"/>
+  <rect x="32" y="20" width="4" height="4" fill="#b345ff"/>
+  <rect x="40" y="20" width="4" height="4" fill="#a335ee"/>
+
+  <rect x="12" y="20" width="4" height="4" fill="#1a1a2a"/>
+  <rect x="16" y="20" width="4" height="4" fill="#2a2a3a"/>
+  <rect x="24" y="20" width="4" height="4" fill="#3a3a4a"/>
+  <rect x="36" y="20" width="4" height="4" fill="#3a3a4a"/>
+  <rect x="44" y="20" width="4" height="4" fill="#2a2a3a"/>
+  <rect x="48" y="20" width="4" height="4" fill="#1a1a2a"/>
+
+  <!-- Lower band -->
+  <rect x="16" y="24" width="4" height="4" fill="#2a2a3a"/>
+  <rect x="20" y="24" width="4" height="4" fill="#3a3a4a"/>
+  <rect x="24" y="24" width="4" height="4" fill="#4a4a5a"/>
+  <rect x="28" y="24" width="4" height="4" fill="#5a5a6a"/>
+  <rect x="32" y="24" width="4" height="4" fill="#5a5a6a"/>
+  <rect x="36" y="24" width="4" height="4" fill="#4a4a5a"/>
+  <rect x="40" y="24" width="4" height="4" fill="#3a3a4a"/>
+  <rect x="44" y="24" width="4" height="4" fill="#2a2a3a"/>
+
+  <!-- Skull detail -->
+  <rect x="28" y="28" width="8" height="4" fill="#e0e0e0"/>
+  <rect x="28" y="32" width="4" height="4" fill="#101010"/>
+  <rect x="32" y="32" width="4" height="4" fill="#101010"/>
+</svg>

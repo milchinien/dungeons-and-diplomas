@@ -11,7 +11,8 @@ interface LoginModalProps {
 }
 
 export default function LoginModal({ onLogin, storage = defaultStorage }: LoginModalProps) {
-  const [username, setUsername] = useState('');
+  // Pre-fill with last used username if available
+  const [username, setUsername] = useState(() => storage.get('username') || '');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 

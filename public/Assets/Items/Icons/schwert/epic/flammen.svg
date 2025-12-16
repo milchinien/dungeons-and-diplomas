@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Pixel Art Style: Flame Blade (Epic) -->
+
+  <!-- Flame effects around blade -->
+  <rect x="22" y="6" width="4" height="4" fill="#ff6b00" opacity="0.7"/>
+  <rect x="38" y="10" width="4" height="4" fill="#ff9500" opacity="0.6"/>
+  <rect x="18" y="14" width="4" height="4" fill="#ffcc00" opacity="0.5"/>
+  <rect x="42" y="18" width="4" height="4" fill="#ff6b00" opacity="0.7"/>
+  <rect x="20" y="26" width="4" height="4" fill="#ff9500" opacity="0.6"/>
+  <rect x="40" y="30" width="4" height="4" fill="#ffcc00" opacity="0.5"/>
+
+  <!-- Blade tip -->
+  <rect x="30" y="4" width="4" height="4" fill="#ffcc00"/>
+
+  <!-- Main blade - fiery orange/red gradient -->
+  <rect x="30" y="8" width="4" height="4" fill="#ff6b00"/>
+  <rect x="30" y="12" width="4" height="4" fill="#ff5500"/>
+  <rect x="30" y="16" width="4" height="4" fill="#ff4400"/>
+  <rect x="30" y="20" width="4" height="4" fill="#ff3300"/>
+  <rect x="30" y="24" width="4" height="4" fill="#ff4400"/>
+  <rect x="30" y="28" width="4" height="4" fill="#ff5500"/>
+  <rect x="30" y="32" width="4" height="4" fill="#ff6b00"/>
+  <rect x="30" y="36" width="4" height="4" fill="#cc3300"/>
+
+  <!-- Blade glow (left) -->
+  <rect x="26" y="8" width="4" height="4" fill="#ffcc00"/>
+  <rect x="26" y="12" width="4" height="4" fill="#ff9500"/>
+  <rect x="26" y="16" width="4" height="4" fill="#ffcc00"/>
+  <rect x="26" y="20" width="4" height="4" fill="#ff9500"/>
+  <rect x="26" y="24" width="4" height="4" fill="#ffcc00"/>
+  <rect x="26" y="28" width="4" height="4" fill="#ff9500"/>
+  <rect x="26" y="32" width="4" height="4" fill="#ffcc00"/>
+
+  <!-- Blade shadow (right) -->
+  <rect x="34" y="8" width="4" height="4" fill="#cc2200"/>
+  <rect x="34" y="12" width="4" height="4" fill="#aa1100"/>
+  <rect x="34" y="16" width="4" height="4" fill="#cc2200"/>
+  <rect x="34" y="20" width="4" height="4" fill="#aa1100"/>
+  <rect x="34" y="24" width="4" height="4" fill="#cc2200"/>
+  <rect x="34" y="28" width="4" height="4" fill="#aa1100"/>
+  <rect x="34" y="32" width="4" height="4" fill="#cc2200"/>
+
+  <!-- Ornate crossguard - purple/gold (epic colors) -->
+  <rect x="14" y="40" width="4" height="4" fill="#a335ee"/>
+  <rect x="18" y="40" width="4" height="4" fill="#ffd700"/>
+  <rect x="22" y="40" width="4" height="4" fill="#a335ee"/>
+  <rect x="26" y="40" width="4" height="4" fill="#ffd700"/>
+  <rect x="30" y="40" width="4" height="4" fill="#a335ee"/>
+  <rect x="34" y="40" width="4" height="4" fill="#ffd700"/>
+  <rect x="38" y="40" width="4" height="4" fill="#a335ee"/>
+  <rect x="42" y="40" width="4" height="4" fill="#ffd700"/>
+  <rect x="46" y="40" width="4" height="4" fill="#a335ee"/>
+
+  <!-- Handle - wrapped in purple leather -->
+  <rect x="30" y="44" width="4" height="4" fill="#7b2d8e"/>
+  <rect x="30" y="48" width="4" height="4" fill="#5a1d6e"/>
+  <rect x="30" y="52" width="4" height="4" fill="#7b2d8e"/>
+
+  <!-- Jeweled pommel -->
+  <rect x="26" y="56" width="4" height="4" fill="#ffd700"/>
+  <rect x="30" y="56" width="4" height="4" fill="#ff0066"/><!-- ruby -->
+  <rect x="34" y="56" width="4" height="4" fill="#ffd700"/>
+</svg>

@@ -7,6 +7,7 @@ import { VisibilityCalculator } from '../visibility';
 import { BrightnessCalculator } from './BrightnessCalculator';
 import { RENDER_COLORS } from '../ui/colors';
 import type { Enemy } from '../enemy';
+import { getFogOfWarRenderer } from '../effects/FogOfWarRenderer';
 
 /**
  * Responsible for rendering individual tiles to a canvas context.
@@ -176,7 +177,9 @@ export class TileRenderer {
   }
 
   /**
-   * Render fog of war dimming effect for non-player rooms
+   * Render fog of war with animated fog based on room exploration state
+   * @param playerTileX - Player's tile X coordinate
+   * @param playerTileY - Player's tile Y coordinate
    */
   renderFogOfWar(
     ctx: CanvasRenderingContext2D,
@@ -190,8 +193,12 @@ export class TileRenderer {
     startRow: number,
     endRow: number,
     dungeonWidth: number,
-    dungeonHeight: number
+    dungeonHeight: number,
+    playerTileX: number = -1,
+    playerTileY: number = -1
   ): void {
+    const fogRenderer = getFogOfWarRenderer();
+
     for (let y = startRow; y < endRow; y++) {
       for (let x = startCol; x < endCol; x++) {
         if (x < 0 || x >= dungeonWidth || y < 0 || y >= dungeonHeight) continue;
@@ -201,15 +208,42 @@ export class TileRenderer {
 
         const roomId = roomMap[y][x];
 
+        // Check if tile is visible at all (room has been discovered)
         const isVisible = VisibilityCalculator.isTileVisible(x, y, roomId, roomMap, rooms, dungeonWidth, dungeonHeight);
         if (!isVisible) continue;
 
-        const shouldDim = VisibilityCalculator.shouldDimTile(
-          x, y, roomId, roomMap, playerRoomIds, dungeonWidth, dungeonHeight
-        );
+        // Get the room for this tile
+        const room = roomId >= 0 ? rooms[roomId] : null;
 
-        if (shouldDim) {
-          this.renderFogOverlay(ctx, x, y, tileSize);
+        // Calculate fog intensity based on room state and player distance
+        let fogIntensity: number;
+
+        if (roomId >= 0 && room) {
+          // Floor tile in a room
+          fogIntensity = VisibilityCalculator.getTileFogIntensity(
+            x, y, playerTileX, playerTileY, room
+          );
+        } else {
+          // Wall or door - use adjacent room logic
+          fogIntensity = VisibilityCalculator.getWallFogIntensity(
+            x, y, playerTileX, playerTileY, roomMap, rooms, dungeonWidth, dungeonHeight
+          );
+        }
+
+        // Render fog if intensity > 0
+        if (fogIntensity > 0) {
+          fogRenderer.renderFogAtTile(ctx, x, y, tileSize, fogIntensity);
+        } else {
+          // For explored rooms not in player's current room, apply light dimming
+          const shouldDim = VisibilityCalculator.shouldDimTile(
+            x, y, roomId, roomMap, playerRoomIds, dungeonWidth, dungeonHeight
+          );
+
+          if (shouldDim && room?.state === 'explored') {
+            // Light dimming for explored rooms (less intense than fog)
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+            ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+          }
         }
       }
     }

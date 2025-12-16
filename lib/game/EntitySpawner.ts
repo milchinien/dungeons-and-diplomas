@@ -173,7 +173,7 @@ export async function spawnEnemies(
   const playerRoomId = roomMap[playerTileY]?.[playerTileX] ?? -1;
 
   // Load user ELO data for subject weighting and level distribution
-  let subjectElos: { [key: string]: number } = {};
+  const subjectElos: { [key: string]: number } = {};
   let subjectWeights: { [key: string]: number } = {};
 
   if (userId) {

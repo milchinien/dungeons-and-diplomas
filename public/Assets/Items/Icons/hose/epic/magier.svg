@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Pixel Art: Beinkleider des Erzmagiers (Epic/Purple) -->
+  <!-- Magical sash -->
+  <rect x="16" y="4" width="32" height="4" fill="#5a2d8e"/>
+  <rect x="28" y="4" width="8" height="4" fill="#ffd700"/>
+  <!-- Flowing robe legs -->
+  <rect x="14" y="8" width="36" height="8" fill="#6a3d9e"/>
+  <!-- Left robe leg -->
+  <rect x="12" y="16" width="16" height="20" fill="#7a4dae"/>
+  <rect x="12" y="36" width="16" height="8" fill="#6a3d9e"/>
+  <rect x="8" y="40" width="8" height="4" fill="#5a2d8e"/>
+  <!-- Right robe leg -->
+  <rect x="36" y="16" width="16" height="20" fill="#7a4dae"/>
+  <rect x="36" y="36" width="16" height="8" fill="#6a3d9e"/>
+  <rect x="48" y="40" width="8" height="4" fill="#5a2d8e"/>
+  <!-- Arcane symbols -->
+  <rect x="18" y="24" width="4" height="4" fill="#80c0ff"/>
+  <rect x="42" y="28" width="4" height="4" fill="#80c0ff"/>
+</svg>

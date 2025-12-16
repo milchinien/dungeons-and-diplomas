@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Pixel Art: Beinschienen der Goetter (Legendary/Orange) -->
+  <rect x="16" y="0" width="32" height="4" fill="#ffdd00" opacity="0.4"/>
+  <!-- Divine belt -->
+  <rect x="16" y="4" width="32" height="4" fill="#ddaa00"/>
+  <rect x="28" y="4" width="8" height="4" fill="#ffffff"/>
+  <!-- Main body golden -->
+  <rect x="16" y="8" width="32" height="8" fill="#eebb00"/>
+  <!-- Left leg -->
+  <rect x="16" y="16" width="12" height="20" fill="#ffcc00"/>
+  <rect x="16" y="36" width="12" height="8" fill="#ddaa00"/>
+  <!-- Right leg -->
+  <rect x="36" y="16" width="12" height="20" fill="#ffcc00"/>
+  <rect x="36" y="36" width="12" height="8" fill="#ddaa00"/>
+  <!-- Divine symbols -->
+  <rect x="20" y="24" width="4" height="4" fill="#ffffff"/>
+  <rect x="40" y="24" width="4" height="4" fill="#ffffff"/>
+</svg>

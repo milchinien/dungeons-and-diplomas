@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Pixel Art: Helm der Unsterblichen (Legendary/Orange) -->
+
+  <!-- Ethereal glow -->
+  <rect x="24" y="0" width="4" height="4" fill="#ffcc00" opacity="0.5"/>
+  <rect x="36" y="0" width="4" height="4" fill="#ffcc00" opacity="0.5"/>
+
+  <!-- Ornate crest -->
+  <rect x="28" y="0" width="8" height="4" fill="#ff8000"/>
+  <rect x="24" y="4" width="4" height="4" fill="#ffaa00"/>
+  <rect x="28" y="4" width="4" height="4" fill="#ffcc00"/>
+  <rect x="32" y="4" width="4" height="4" fill="#ffcc00"/>
+  <rect x="36" y="4" width="4" height="4" fill="#ffaa00"/>
+
+  <!-- Plume -->
+  <rect x="28" y="8" width="4" height="4" fill="#ff4400"/>
+  <rect x="32" y="8" width="4" height="4" fill="#ff6600"/>
+  <rect x="24" y="12" width="4" height="4" fill="#ff2200"/>
+  <rect x="28" y="12" width="4" height="4" fill="#ff4400"/>
+  <rect x="32" y="12" width="4" height="4" fill="#ff6600"/>
+  <rect x="36" y="12" width="4" height="4" fill="#ff8800"/>
+
+  <!-- Main helmet dome -->
+  <rect x="12" y="16" width="4" height="4" fill="#cc6600"/>
+  <rect x="16" y="16" width="4" height="4" fill="#ff8000"/>
+  <rect x="20" y="16" width="4" height="4" fill="#ffaa00"/>
+  <rect x="24" y="16" width="4" height="4" fill="#ffcc00"/>
+  <rect x="28" y="16" width="4" height="4" fill="#ffdd00"/>
+  <rect x="32" y="16" width="4" height="4" fill="#ffdd00"/>
+  <rect x="36" y="16" width="4" height="4" fill="#ffcc00"/>
+  <rect x="40" y="16" width="4" height="4" fill="#ffaa00"/>
+  <rect x="44" y="16" width="4" height="4" fill="#ff8000"/>
+  <rect x="48" y="16" width="4" height="4" fill="#cc6600"/>
+
+  <rect x="8" y="20" width="4" height="4" fill="#aa4400"/>
+  <rect x="12" y="20" width="4" height="4" fill="#dd6600"/>
+  <rect x="16" y="20" width="4" height="4" fill="#ff8800"/>
+  <rect x="20" y="20" width="4" height="4" fill="#ffaa00"/>
+  <rect x="24" y="20" width="4" height="4" fill="#ffcc00"/>
+  <rect x="28" y="20" width="4" height="4" fill="#ffee00"/>
+  <rect x="32" y="20" width="4" height="4" fill="#ffee00"/>
+  <rect x="36" y="20" width="4" height="4" fill="#ffcc00"/>
+  <rect x="40" y="20" width="4" height="4" fill="#ffaa00"/>
+  <rect x="44" y="20" width="4" height="4" fill="#ff8800"/>
+  <rect x="48" y="20" width="4" height="4" fill="#dd6600"/>
+  <rect x="52" y="20" width="4" height="4" fill="#aa4400"/>
+
+  <!-- Eye slit -->
+  <rect x="20" y="24" width="24" height="4" fill="#331100"/>
+
+  <!-- Cheek guards -->
+  <rect x="8" y="24" width="4" height="4" fill="#cc5500"/>
+  <rect x="12" y="24" width="4" height="4" fill="#ee7700"/>
+  <rect x="16" y="24" width="4" height="4" fill="#ff8800"/>
+  <rect x="44" y="24" width="4" height="4" fill="#ff8800"/>
+  <rect x="48" y="24" width="4" height="4" fill="#ee7700"/>
+  <rect x="52" y="24" width="4" height="4" fill="#cc5500"/>
+
+  <!-- Chin guard -->
+  <rect x="12" y="28" width="4" height="4" fill="#cc5500"/>
+  <rect x="16" y="28" width="4" height="4" fill="#dd6600"/>
+  <rect x="20" y="28" width="4" height="4" fill="#ee7700"/>
+  <rect x="24" y="28" width="4" height="4" fill="#ff8800"/>
+  <rect x="28" y="28" width="4" height="4" fill="#ff9900"/>
+  <rect x="32" y="28" width="4" height="4" fill="#ff9900"/>
+  <rect x="36" y="28" width="4" height="4" fill="#ff8800"/>
+  <rect x="40" y="28" width="4" height="4" fill="#ee7700"/>
+  <rect x="44" y="28" width="4" height="4" fill="#dd6600"/>
+  <rect x="48" y="28" width="4" height="4" fill="#cc5500"/>
+
+  <rect x="20" y="32" width="24" height="4" fill="#cc5500"/>
+</svg>

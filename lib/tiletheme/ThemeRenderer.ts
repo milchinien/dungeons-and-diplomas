@@ -71,7 +71,7 @@ export class ThemeRenderer {
    * @param viewportY - Camera Y position
    * @param viewportWidth - Viewport width
    * @param viewportHeight - Viewport height
-   * @param useBrightTilesetFn - Optional function to determine if bright (light) tiles should be used for a position
+   * @param brightTilesetFn - Optional function to determine if bright (light) tiles should be used for a position
    */
   render(
     ctx: CanvasRenderingContext2D,
@@ -81,7 +81,7 @@ export class ThemeRenderer {
     viewportY: number,
     viewportWidth: number,
     viewportHeight: number,
-    useBrightTilesetFn?: (x: number, y: number) => boolean
+    brightTilesetFn?: (x: number, y: number) => boolean
   ): void {
     // Calculate visible area in tile coordinates
     const startCol = Math.floor(viewportX / tileSize);
@@ -103,7 +103,7 @@ export class ThemeRenderer {
         }
 
         // Determine if we should use light tiles
-        const useBright = useBrightTilesetFn ? useBrightTilesetFn(x, y) : false;
+        const useBright = brightTilesetFn ? brightTilesetFn(x, y) : false;
         const useLight = useBright && renderTile.lightTilesetId !== null;
 
         const tilesetId = useLight ? renderTile.lightTilesetId! : renderTile.darkTilesetId;

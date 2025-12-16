@@ -9,6 +9,7 @@ import { getTileRenderer } from './TileRenderer';
 import { getContext2D } from './canvasUtils';
 import { RENDER_COLORS } from '../ui/colors';
 import { getEffectsManager } from '../effects';
+import { getEntityTilePosition } from '../physics/TileCoordinates';
 
 /**
  * Main game renderer that orchestrates all rendering passes.
@@ -248,6 +249,7 @@ export class GameRenderer {
     const endRow = startRow + Math.ceil(canvas.height / tileSize) + 1;
 
     const playerRoomIds = VisibilityCalculator.getPlayerRoomIds(player, tileSize, roomMap, dungeonWidth, dungeonHeight);
+    const { tx: playerTileX, ty: playerTileY } = getEntityTilePosition(player, tileSize);
 
     this.tileRenderer.renderTiles(
       ctx, dungeon, roomMap, rooms, enemies, tileSize, renderMap, doorStates, darkTheme,
@@ -256,7 +258,8 @@ export class GameRenderer {
 
     this.tileRenderer.renderFogOfWar(
       ctx, dungeon, roomMap, rooms, playerRoomIds, tileSize,
-      startCol, endCol, startRow, endRow, dungeonWidth, dungeonHeight
+      startCol, endCol, startRow, endRow, dungeonWidth, dungeonHeight,
+      playerTileX, playerTileY
     );
 
     this.renderShrines(ctx, shrines, rooms, tileSize, playerRoomIds);

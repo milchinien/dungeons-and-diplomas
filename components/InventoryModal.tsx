@@ -9,7 +9,7 @@ import { RARITY_COLORS, SLOT_DISPLAY_NAMES, RARITY_CONFIG } from '@/lib/items/ty
 export type EquipmentSlot = EquipmentSlotKey;
 
 // Inventory item type (simplified from ItemDefinition)
-export interface Item extends ItemDefinition {}
+export type Item = ItemDefinition;
 
 // Equipment state
 export interface Equipment {

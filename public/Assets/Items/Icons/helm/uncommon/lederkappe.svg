@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Pixel Art: Gefuetterte Lederkappe (Uncommon/Green) -->
+
+  <!-- Top of cap -->
+  <rect x="24" y="12" width="4" height="4" fill="#4a6a4a"/>
+  <rect x="28" y="8" width="4" height="4" fill="#5a7a5a"/>
+  <rect x="32" y="8" width="4" height="4" fill="#4a6a4a"/>
+  <rect x="36" y="12" width="4" height="4" fill="#3a5a3a"/>
+
+  <!-- Main leather body -->
+  <rect x="20" y="16" width="4" height="4" fill="#3a5a3a"/>
+  <rect x="24" y="16" width="4" height="4" fill="#5a7a5a"/>
+  <rect x="28" y="16" width="4" height="4" fill="#6a8a6a"/>
+  <rect x="32" y="16" width="4" height="4" fill="#5a7a5a"/>
+  <rect x="36" y="16" width="4" height="4" fill="#4a6a4a"/>
+  <rect x="40" y="16" width="4" height="4" fill="#3a5a3a"/>
+
+  <rect x="16" y="20" width="4" height="4" fill="#3a5a3a"/>
+  <rect x="20" y="20" width="4" height="4" fill="#4a6a4a"/>
+  <rect x="24" y="20" width="4" height="4" fill="#6a8a6a"/>
+  <rect x="28" y="20" width="4" height="4" fill="#7a9a7a"/>
+  <rect x="32" y="20" width="4" height="4" fill="#6a8a6a"/>
+  <rect x="36" y="20" width="4" height="4" fill="#5a7a5a"/>
+  <rect x="40" y="20" width="4" height="4" fill="#4a6a4a"/>
+  <rect x="44" y="20" width="4" height="4" fill="#2a4a2a"/>
+
+  <rect x="16" y="24" width="4" height="4" fill="#2a4a2a"/>
+  <rect x="20" y="24" width="4" height="4" fill="#4a6a4a"/>
+  <rect x="24" y="24" width="4" height="4" fill="#5a7a5a"/>
+  <rect x="28" y="24" width="4" height="4" fill="#6a8a6a"/>
+  <rect x="32" y="24" width="4" height="4" fill="#5a7a5a"/>
+  <rect x="36" y="24" width="4" height="4" fill="#4a6a4a"/>
+  <rect x="40" y="24" width="4" height="4" fill="#3a5a3a"/>
+  <rect x="44" y="24" width="4" height="4" fill="#1a3a1a"/>
+
+  <!-- Wool lining visible at bottom -->
+  <rect x="16" y="28" width="4" height="4" fill="#d4c4b4"/>
+  <rect x="20" y="28" width="4" height="4" fill="#e4d4c4"/>
+  <rect x="24" y="28" width="4" height="4" fill="#f4e4d4"/>
+  <rect x="28" y="28" width="4" height="4" fill="#e4d4c4"/>
+  <rect x="32" y="28" width="4" height="4" fill="#f4e4d4"/>
+  <rect x="36" y="28" width="4" height="4" fill="#e4d4c4"/>
+  <rect x="40" y="28" width="4" height="4" fill="#d4c4b4"/>
+  <rect x="44" y="28" width="4" height="4" fill="#c4b4a4"/>
+
+  <!-- Ear flaps -->
+  <rect x="12" y="32" width="4" height="4" fill="#3a5a3a"/>
+  <rect x="16" y="32" width="4" height="4" fill="#4a6a4a"/>
+  <rect x="44" y="32" width="4" height="4" fill="#3a5a3a"/>
+  <rect x="48" y="32" width="4" height="4" fill="#2a4a2a"/>
+
+  <rect x="12" y="36" width="4" height="4" fill="#2a4a2a"/>
+  <rect x="16" y="36" width="4" height="4" fill="#3a5a3a"/>
+  <rect x="44" y="36" width="4" height="4" fill="#2a4a2a"/>
+  <rect x="48" y="36" width="4" height="4" fill="#1a3a1a"/>
+</svg>

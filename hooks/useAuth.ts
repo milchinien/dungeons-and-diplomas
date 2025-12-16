@@ -16,24 +16,11 @@ export function useAuth(options: UseAuthOptions = {}) {
   const [userXp, setUserXp] = useState<number>(0);
   const [showLogin, setShowLogin] = useState(true);
 
-  // Check storage for existing user on mount and reload XP from server
+  // Always show login on mount - user must enter username each time
+  // Storage is only used to remember the username for convenience
   useEffect(() => {
-    const storedUserId = storage.get('userId');
-    const storedUsername = storage.get('username');
-
-    if (storedUserId && storedUsername) {
-      const id = parseInt(storedUserId, 10);
-      setUserId(id);
-      setUsername(storedUsername);
-      setShowLogin(false);
-
-      // Reload XP from server on mount (e.g. after page refresh)
-      api.auth.login(storedUsername).then(userData => {
-        setUserXp(userData.xp || 0);
-      }).catch(err => {
-        logHookError('useAuth', err, 'Failed to reload user XP');
-      });
-    }
+    // Keep showLogin true - user must always log in
+    setShowLogin(true);
   }, []);
 
   const handleLogin = async (id: number, name: string, xp?: number) => {

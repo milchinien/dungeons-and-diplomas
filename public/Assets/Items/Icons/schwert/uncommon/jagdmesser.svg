@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Pixel Art: Scharfes Jagdmesser (Uncommon/Green) -->
+
+  <!-- Sharp blade tip -->
+  <rect x="30" y="8" width="4" height="4" fill="#c0c0c0"/>
+  <rect x="30" y="12" width="4" height="4" fill="#d0d0d0"/>
+
+  <!-- Main blade - polished steel -->
+  <rect x="30" y="16" width="4" height="4" fill="#b0b0b0"/>
+  <rect x="30" y="20" width="4" height="4" fill="#c0c0c0"/>
+  <rect x="30" y="24" width="4" height="4" fill="#b0b0b0"/>
+  <rect x="30" y="28" width="4" height="4" fill="#c0c0c0"/>
+
+  <!-- Blade highlight left -->
+  <rect x="26" y="12" width="4" height="4" fill="#e0e0e0"/>
+  <rect x="26" y="16" width="4" height="4" fill="#d0d0d0"/>
+  <rect x="26" y="20" width="4" height="4" fill="#e0e0e0"/>
+  <rect x="26" y="24" width="4" height="4" fill="#d0d0d0"/>
+
+  <!-- Blade shadow right -->
+  <rect x="34" y="16" width="4" height="4" fill="#808080"/>
+  <rect x="34" y="20" width="4" height="4" fill="#707070"/>
+  <rect x="34" y="24" width="4" height="4" fill="#808080"/>
+
+  <!-- Green leather handle (uncommon color) -->
+  <rect x="28" y="32" width="8" height="4" fill="#505050"/>
+  <rect x="30" y="36" width="4" height="4" fill="#2d5a2d"/>
+  <rect x="30" y="40" width="4" height="4" fill="#1e4a1e"/>
+  <rect x="30" y="44" width="4" height="4" fill="#2d5a2d"/>
+  <rect x="30" y="48" width="4" height="4" fill="#1e4a1e"/>
+
+  <!-- Pommel -->
+  <rect x="28" y="52" width="8" height="4" fill="#505050"/>
+</svg>

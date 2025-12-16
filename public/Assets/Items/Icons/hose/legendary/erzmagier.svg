@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Pixel Art: Beinkleider des Obersten Erzmagiers (Legendary/Orange) -->
+  <rect x="16" y="0" width="32" height="4" fill="#ffaa00" opacity="0.4"/>
+  <!-- Arcane belt -->
+  <rect x="16" y="4" width="32" height="4" fill="#ff8000"/>
+  <rect x="28" y="4" width="8" height="4" fill="#ffd700"/>
+  <!-- Flowing robe -->
+  <rect x="12" y="8" width="40" height="8" fill="#ff9000"/>
+  <!-- Left flowing leg -->
+  <rect x="8" y="16" width="20" height="20" fill="#ffaa00"/>
+  <rect x="8" y="36" width="16" height="8" fill="#ff8000"/>
+  <rect x="4" y="40" width="8" height="4" fill="#ee7000"/>
+  <!-- Right flowing leg -->
+  <rect x="36" y="16" width="20" height="20" fill="#ffaa00"/>
+  <rect x="40" y="36" width="16" height="8" fill="#ff8000"/>
+  <rect x="52" y="40" width="8" height="4" fill="#ee7000"/>
+  <!-- Arcane energy -->
+  <rect x="16" y="24" width="4" height="4" fill="#80c0ff"/>
+  <rect x="44" y="28" width="4" height="4" fill="#ff80ff"/>
+</svg>

@@ -6,6 +6,8 @@ import { PLAYER_MAX_HP, DIRECTION, INITIAL_PLAYER_BUFFS } from '@/lib/constants'
 import type { Player } from '@/lib/enemy';
 import type { Shrine } from '@/lib/constants';
 import LoginModal from './LoginModal';
+import DungeonSelectMenu from './DungeonSelectMenu';
+import SubcategoryMenu from './SubcategoryMenu';
 import SkillDashboard from './SkillDashboard';
 import CharacterPanel from './CharacterPanel';
 import CombatModal from './CombatModal';
@@ -68,6 +70,12 @@ export default function GameCanvas() {
   const [showPauseMenu, setShowPauseMenu] = useState(false);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
 
+  // Menu navigation states
+  const [showDungeonSelect, setShowDungeonSelect] = useState(false);
+  const [showSubcategorySelect, setShowSubcategorySelect] = useState(false);
+  const [selectedDungeonType, setSelectedDungeonType] = useState<string>('');
+  const [gameStarted, setGameStarted] = useState(false);
+
   // Audio settings
   const audioSettings = useAudioSettings();
 
@@ -112,6 +120,13 @@ export default function GameCanvas() {
       loadSessionElos(userId);
     }
   }, [userId]);
+
+  // Show dungeon select menu when user is already logged in (e.g. page reload)
+  useEffect(() => {
+    if (userId && !showLogin && !gameStarted && !showDungeonSelect && !showSubcategorySelect) {
+      setShowDungeonSelect(true);
+    }
+  }, [userId, showLogin, gameStarted, showDungeonSelect, showSubcategorySelect]);
 
   // Background music state
   const musicTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -375,6 +390,7 @@ export default function GameCanvas() {
     questionDatabase,
     availableSubjects,
     userId,
+    gameStarted,
     onPlayerHpUpdate: setPlayerHp,
     onXpGained: handleXpGained,
     onTreasureCollected: handleTreasureCollected,
@@ -554,7 +570,9 @@ export default function GameCanvas() {
   const handlePauseMenuMainMenu = () => {
     setShowPauseMenu(false);
     gameState.gamePausedRef.current = false;
-    handleLogout();
+    // Reset to dungeon select instead of full logout
+    setGameStarted(false);
+    setShowDungeonSelect(true);
   };
 
   const handlePauseMenuOptions = () => {
@@ -632,6 +650,31 @@ export default function GameCanvas() {
   const handleLoginWithElo = async (id: number, name: string, xp?: number) => {
     await handleLogin(id, name, xp);
     await loadSessionElos(id);
+    // Show dungeon select menu after login
+    setShowDungeonSelect(true);
+  };
+
+  // Menu navigation handlers
+  const handleDungeonSelect = (dungeonType: string) => {
+    setSelectedDungeonType(dungeonType);
+    setShowDungeonSelect(false);
+    setShowSubcategorySelect(true);
+  };
+
+  const handleDungeonSelectBack = () => {
+    setShowDungeonSelect(false);
+    handleLogout();
+  };
+
+  const handleSubcategorySelect = (subcategory: string) => {
+    setShowSubcategorySelect(false);
+    setGameStarted(true);
+    // Game starts automatically when gameStarted is true
+  };
+
+  const handleSubcategoryBack = () => {
+    setShowSubcategorySelect(false);
+    setShowDungeonSelect(true);
   };
 
   // Calculate level info from current XP
@@ -657,7 +700,24 @@ export default function GameCanvas() {
 
       {showLogin && <LoginModal onLogin={handleLoginWithElo} />}
 
-      {!questionDatabase && !showLogin && (
+      {/* Dungeon Select Menu (Green) */}
+      {showDungeonSelect && !showLogin && (
+        <DungeonSelectMenu
+          onSelectDungeon={handleDungeonSelect}
+          onBack={handleDungeonSelectBack}
+        />
+      )}
+
+      {/* Subcategory Menu (Gray) */}
+      {showSubcategorySelect && !showLogin && (
+        <SubcategoryMenu
+          dungeonType={selectedDungeonType}
+          onSelectSubcategory={handleSubcategorySelect}
+          onBack={handleSubcategoryBack}
+        />
+      )}
+
+      {!questionDatabase && !showLogin && gameStarted && (
         <div style={{
           position: 'fixed',
           top: 0,
@@ -677,7 +737,7 @@ export default function GameCanvas() {
       )}
 
       <div style={{ position: 'relative', width: '100vw', height: '100vh', backgroundColor: '#000000' }}>
-        {username && (
+        {username && gameStarted && (
           <CharacterPanel
             username={username}
             scores={sessionScores}
@@ -693,33 +753,37 @@ export default function GameCanvas() {
           />
         )}
 
-        <canvas
-          ref={gameState.canvasRef}
-          onClick={handleCanvasClick}
-          style={{
-            display: 'block',
-            imageRendering: 'pixelated'
-          } as React.CSSProperties}
-        />
+        {gameStarted && (
+          <>
+            <canvas
+              ref={gameState.canvasRef}
+              onClick={handleCanvasClick}
+              style={{
+                display: 'block',
+                imageRendering: 'pixelated'
+              } as React.CSSProperties}
+            />
 
-        <canvas
-          ref={gameState.minimapRef}
-          width={200}
-          height={200}
-          style={{
-            position: 'absolute',
-            top: '10px',
-            right: '10px',
-            border: `3px solid ${COLORS.success}`,
-            borderRadius: '4px',
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            zIndex: 100,
-            imageRendering: 'pixelated'
-          } as React.CSSProperties}
-        />
+            <canvas
+              ref={gameState.minimapRef}
+              width={200}
+              height={200}
+              style={{
+                position: 'absolute',
+                top: '10px',
+                right: '10px',
+                border: `3px solid ${COLORS.success}`,
+                borderRadius: '4px',
+                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                zIndex: 100,
+                imageRendering: 'pixelated'
+              } as React.CSSProperties}
+            />
+          </>
+        )}
 
-{/* Shrine Interaction Hint */}
-        {shrineHook.proximityState.isInRange && shrineHook.proximityState.nearestShrine && !combat.inCombat && (
+        {/* Shrine Interaction Hint */}
+        {gameStarted && shrineHook.proximityState.isInRange && shrineHook.proximityState.nearestShrine && !combat.inCombat && (
           <div style={{
             position: 'fixed',
             bottom: '100px',

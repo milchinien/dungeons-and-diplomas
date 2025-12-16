@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Pixel Art: Staehernes Langschwert (Rare/Blue) -->
+
+  <!-- Polished blade tip -->
+  <rect x="30" y="4" width="4" height="4" fill="#e0e8f0"/>
+
+  <!-- Long polished blade -->
+  <rect x="30" y="8" width="4" height="4" fill="#c0d0e0"/>
+  <rect x="30" y="12" width="4" height="4" fill="#d0e0f0"/>
+  <rect x="30" y="16" width="4" height="4" fill="#c0d0e0"/>
+  <rect x="30" y="20" width="4" height="4" fill="#d0e0f0"/>
+  <rect x="30" y="24" width="4" height="4" fill="#c0d0e0"/>
+  <rect x="30" y="28" width="4" height="4" fill="#d0e0f0"/>
+  <rect x="30" y="32" width="4" height="4" fill="#c0d0e0"/>
+
+  <!-- Blade highlight left -->
+  <rect x="26" y="8" width="4" height="4" fill="#e0f0ff"/>
+  <rect x="26" y="12" width="4" height="4" fill="#f0f8ff"/>
+  <rect x="26" y="16" width="4" height="4" fill="#e0f0ff"/>
+  <rect x="26" y="20" width="4" height="4" fill="#f0f8ff"/>
+  <rect x="26" y="24" width="4" height="4" fill="#e0f0ff"/>
+  <rect x="26" y="28" width="4" height="4" fill="#f0f8ff"/>
+
+  <!-- Blade shadow right -->
+  <rect x="34" y="8" width="4" height="4" fill="#8090a0"/>
+  <rect x="34" y="12" width="4" height="4" fill="#7080a0"/>
+  <rect x="34" y="16" width="4" height="4" fill="#8090a0"/>
+  <rect x="34" y="20" width="4" height="4" fill="#7080a0"/>
+  <rect x="34" y="24" width="4" height="4" fill="#8090a0"/>
+  <rect x="34" y="28" width="4" height="4" fill="#7080a0"/>
+
+  <!-- Blue steel crossguard (rare) -->
+  <rect x="18" y="36" width="4" height="4" fill="#0070dd"/>
+  <rect x="22" y="36" width="4" height="4" fill="#0080ed"/>
+  <rect x="26" y="36" width="4" height="4" fill="#0070dd"/>
+  <rect x="30" y="36" width="4" height="4" fill="#0080ed"/>
+  <rect x="34" y="36" width="4" height="4" fill="#0070dd"/>
+  <rect x="38" y="36" width="4" height="4" fill="#0080ed"/>
+  <rect x="42" y="36" width="4" height="4" fill="#0070dd"/>
+
+  <!-- Blue leather handle -->
+  <rect x="30" y="40" width="4" height="4" fill="#1a3a5c"/>
+  <rect x="30" y="44" width="4" height="4" fill="#0a2a4c"/>
+  <rect x="30" y="48" width="4" height="4" fill="#1a3a5c"/>
+
+  <!-- Gold pommel -->
+  <rect x="28" y="52" width="8" height="4" fill="#ffd700"/>
+</svg>

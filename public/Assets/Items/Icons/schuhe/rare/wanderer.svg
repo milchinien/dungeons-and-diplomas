@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Pixel Art: Stiefel des Wanderers (Rare/Blue) -->
+  <rect x="4" y="4" width="56" height="4" fill="#4080ff" opacity="0.3"/>
+  <!-- Left boot -->
+  <rect x="4" y="8" width="20" height="4" fill="#4080ff"/>
+  <rect x="4" y="12" width="24" height="8" fill="#3a5a7a"/>
+  <rect x="4" y="20" width="24" height="8" fill="#4a6a8a"/>
+  <rect x="4" y="28" width="24" height="8" fill="#5a7a9a"/>
+  <rect x="4" y="36" width="24" height="8" fill="#3a5a7a"/>
+  <!-- Right boot -->
+  <rect x="36" y="8" width="20" height="4" fill="#4080ff"/>
+  <rect x="36" y="12" width="24" height="8" fill="#3a5a7a"/>
+  <rect x="36" y="20" width="24" height="8" fill="#4a6a8a"/>
+  <rect x="36" y="28" width="24" height="8" fill="#5a7a9a"/>
+  <rect x="36" y="36" width="24" height="8" fill="#3a5a7a"/>
+  <!-- Compass symbols -->
+  <rect x="12" y="24" width="4" height="4" fill="#c0d0e0"/>
+  <rect x="48" y="24" width="4" height="4" fill="#c0d0e0"/>
+</svg>

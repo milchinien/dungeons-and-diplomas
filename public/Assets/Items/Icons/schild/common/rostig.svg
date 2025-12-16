@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Pixel Art: Rostiger Schild (Common/Gray) -->
+  <rect x="20" y="4" width="24" height="4" fill="#7a6a5a"/>
+  <rect x="16" y="8" width="32" height="4" fill="#8a7a6a"/>
+  <rect x="12" y="12" width="40" height="4" fill="#9a8a7a"/>
+  <rect x="12" y="16" width="40" height="4" fill="#8a7a6a"/>
+  <rect x="16" y="16" width="4" height="4" fill="#8a5030"/>
+  <rect x="44" y="16" width="4" height="4" fill="#7a4020"/>
+  <rect x="12" y="20" width="40" height="4" fill="#7a6a5a"/>
+  <rect x="20" y="20" width="4" height="4" fill="#9a5030"/>
+  <rect x="12" y="24" width="40" height="4" fill="#8a7a6a"/>
+  <rect x="16" y="28" width="32" height="4" fill="#7a6a5a"/>
+  <rect x="20" y="28" width="4" height="4" fill="#7a5030"/>
+  <rect x="20" y="32" width="24" height="4" fill="#6a5a4a"/>
+  <rect x="24" y="36" width="16" height="4" fill="#5a4a3a"/>
+  <rect x="28" y="40" width="8" height="4" fill="#4a3a2a"/>
+</svg>

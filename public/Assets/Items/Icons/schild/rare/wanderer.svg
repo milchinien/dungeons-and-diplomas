@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Pixel Art: Schild des Wanderers (Rare/Blue) -->
+  <rect x="24" y="0" width="16" height="4" fill="#4080ff" opacity="0.3"/>
+  <rect x="20" y="4" width="24" height="4" fill="#4a6a8a"/>
+  <rect x="16" y="8" width="32" height="4" fill="#5a7a9a"/>
+  <rect x="12" y="12" width="40" height="4" fill="#6a8aaa"/>
+  <rect x="12" y="16" width="40" height="4" fill="#7a9aba"/>
+  <rect x="28" y="12" width="8" height="12" fill="#c0d0e0"/>
+  <rect x="30" y="14" width="4" height="8" fill="#4080ff"/>
+  <rect x="30" y="16" width="4" height="4" fill="#ffffff"/>
+  <rect x="12" y="20" width="40" height="4" fill="#6a8aaa"/>
+  <rect x="16" y="24" width="32" height="4" fill="#5a7a9a"/>
+  <rect x="20" y="28" width="24" height="4" fill="#4a6a8a"/>
+  <rect x="24" y="32" width="16" height="4" fill="#3a5a7a"/>
+  <rect x="28" y="36" width="8" height="4" fill="#2a4a6a"/>
+  <rect x="28" y="40" width="8" height="4" fill="#1a3a5a"/>
+</svg>

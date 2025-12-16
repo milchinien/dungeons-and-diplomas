@@ -7,6 +7,9 @@ import { DEFAULT_EFFECT_SETTINGS } from './types';
 import { getParticleSystem } from './ParticleSystem';
 import { getScreenShake } from './ScreenShake';
 import { getRoomTransition } from './RoomTransition';
+import { getFogOfWarRenderer } from './FogOfWarRenderer';
+import type { Room } from '../constants';
+import type { Player } from '../enemy';
 
 /**
  * Storage key for effect settings
@@ -185,6 +188,7 @@ export class EffectsManager {
 
   /**
    * Trigger room reveal effects (particles + black overlay, only in the new room)
+   * Legacy method - use onRoomEntered for new exploration system
    * @param roomX - Room top-left X in tiles
    * @param roomY - Room top-left Y in tiles
    * @param roomWidth - Room width in tiles
@@ -212,6 +216,52 @@ export class EffectsManager {
   }
 
   /**
+   * Trigger circular room reveal when player enters an unexplored room
+   * @param room - The room being entered
+   * @param player - Player position (center of reveal)
+   * @param tileSize - Tile size in pixels
+   */
+  onRoomEntered(room: Room, player: Player, tileSize: number): void {
+    // Convert tile coordinates to pixels for particles
+    const pixelX = room.x * tileSize;
+    const pixelY = room.y * tileSize;
+    const pixelWidth = room.width * tileSize;
+    const pixelHeight = room.height * tileSize;
+
+    // Spawn reveal particles within the room
+    getParticleSystem().spawnRoomReveal(pixelX, pixelY, pixelWidth, pixelHeight, 15);
+
+    // Start circular reveal from player position
+    getRoomTransition().startCircularReveal(room, player, tileSize);
+  }
+
+  /**
+   * Trigger effect when room is fully explored (all enemies defeated)
+   * @param room - The room that was cleared
+   * @param tileSize - Tile size in pixels
+   */
+  onRoomCleared(room: Room, tileSize: number): void {
+    // Convert tile coordinates to pixels
+    const pixelX = room.x * tileSize;
+    const pixelY = room.y * tileSize;
+    const pixelWidth = room.width * tileSize;
+    const pixelHeight = room.height * tileSize;
+
+    // Spawn celebration particles (gold glitter)
+    const centerX = pixelX + pixelWidth / 2;
+    const centerY = pixelY + pixelHeight / 2;
+
+    // Spawn multiple glitter particles around room center
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2;
+      const radius = Math.min(pixelWidth, pixelHeight) / 4;
+      const x = centerX + Math.cos(angle) * radius;
+      const y = centerY + Math.sin(angle) * radius;
+      getParticleSystem().spawnGlitter(x, y);
+    }
+  }
+
+  /**
    * Reset room tracking (call on new game)
    */
   resetRoomTracking(): void {
@@ -230,6 +280,7 @@ export class EffectsManager {
     getParticleSystem().update(dt);
     getScreenShake().update(dt);
     getRoomTransition().update(dt);
+    getFogOfWarRenderer().update(dt);
   }
 
   /**

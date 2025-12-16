@@ -148,6 +148,9 @@ export const TRASHMOB_COLORS: Record<TrashmobType, string> = {
 // Room types including shrine
 export type RoomType = 'empty' | 'treasure' | 'combat' | 'shrine';
 
+// Room exploration states
+export type RoomState = 'unexplored' | 'exploring' | 'explored';
+
 export interface Room {
   id: number;
   x: number;
@@ -157,6 +160,7 @@ export interface Room {
   visible: boolean;
   neighbors: number[];
   type: RoomType;
+  state: RoomState;
 }
 
 export interface TileCoord {

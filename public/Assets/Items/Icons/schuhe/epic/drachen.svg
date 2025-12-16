@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Pixel Art: Drachenschuppen-Stiefel (Epic/Purple) -->
+  <rect x="4" y="4" width="56" height="4" fill="#a335ee" opacity="0.3"/>
+  <!-- Left boot with scales -->
+  <rect x="4" y="8" width="20" height="4" fill="#a335ee"/>
+  <rect x="4" y="12" width="24" height="4" fill="#5a4a6a"/>
+  <rect x="4" y="16" width="24" height="4" fill="#6a5a7a"/>
+  <rect x="4" y="20" width="24" height="4" fill="#5a4a6a"/>
+  <rect x="4" y="24" width="24" height="4" fill="#7a6a8a"/>
+  <rect x="4" y="28" width="24" height="4" fill="#5a4a6a"/>
+  <rect x="4" y="32" width="24" height="4" fill="#6a5a7a"/>
+  <rect x="4" y="36" width="24" height="8" fill="#4a3a5a"/>
+  <!-- Right boot with scales -->
+  <rect x="36" y="8" width="20" height="4" fill="#a335ee"/>
+  <rect x="36" y="12" width="24" height="4" fill="#6a5a7a"/>
+  <rect x="36" y="16" width="24" height="4" fill="#5a4a6a"/>
+  <rect x="36" y="20" width="24" height="4" fill="#7a6a8a"/>
+  <rect x="36" y="24" width="24" height="4" fill="#5a4a6a"/>
+  <rect x="36" y="28" width="24" height="4" fill="#6a5a7a"/>
+  <rect x="36" y="32" width="24" height="4" fill="#5a4a6a"/>
+  <rect x="36" y="36" width="24" height="8" fill="#4a3a5a"/>
+</svg>

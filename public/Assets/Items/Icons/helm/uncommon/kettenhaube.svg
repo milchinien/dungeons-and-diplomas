@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Pixel Art: Flickwerk-Kettenhaube (Uncommon/Green) -->
+
+  <!-- Top of chainmail coif -->
+  <rect x="24" y="8" width="4" height="4" fill="#608060"/>
+  <rect x="28" y="8" width="4" height="4" fill="#709070"/>
+  <rect x="32" y="8" width="4" height="4" fill="#608060"/>
+  <rect x="36" y="8" width="4" height="4" fill="#507050"/>
+
+  <!-- Chainmail pattern (alternating for chain effect) -->
+  <rect x="20" y="12" width="4" height="4" fill="#507050"/>
+  <rect x="24" y="12" width="4" height="4" fill="#709070"/>
+  <rect x="28" y="12" width="4" height="4" fill="#80a080"/>
+  <rect x="32" y="12" width="4" height="4" fill="#709070"/>
+  <rect x="36" y="12" width="4" height="4" fill="#608060"/>
+  <rect x="40" y="12" width="4" height="4" fill="#406040"/>
+
+  <rect x="16" y="16" width="4" height="4" fill="#406040"/>
+  <rect x="20" y="16" width="4" height="4" fill="#608060"/>
+  <rect x="24" y="16" width="4" height="4" fill="#80a080"/>
+  <rect x="28" y="16" width="4" height="4" fill="#90b090"/>
+  <rect x="32" y="16" width="4" height="4" fill="#80a080"/>
+  <rect x="36" y="16" width="4" height="4" fill="#709070"/>
+  <rect x="40" y="16" width="4" height="4" fill="#507050"/>
+  <rect x="44" y="16" width="4" height="4" fill="#305030"/>
+
+  <!-- Missing rings (holes) -->
+  <rect x="24" y="20" width="4" height="4" fill="#203020"/>
+  <rect x="40" y="24" width="4" height="4" fill="#102010"/>
+
+  <rect x="16" y="20" width="4" height="4" fill="#305030"/>
+  <rect x="20" y="20" width="4" height="4" fill="#507050"/>
+  <rect x="28" y="20" width="4" height="4" fill="#80a080"/>
+  <rect x="32" y="20" width="4" height="4" fill="#709070"/>
+  <rect x="36" y="20" width="4" height="4" fill="#608060"/>
+  <rect x="44" y="20" width="4" height="4" fill="#203020"/>
+
+  <rect x="12" y="24" width="4" height="4" fill="#305030"/>
+  <rect x="16" y="24" width="4" height="4" fill="#406040"/>
+  <rect x="20" y="24" width="4" height="4" fill="#608060"/>
+  <rect x="24" y="24" width="4" height="4" fill="#709070"/>
+  <rect x="28" y="24" width="4" height="4" fill="#80a080"/>
+  <rect x="32" y="24" width="4" height="4" fill="#709070"/>
+  <rect x="36" y="24" width="4" height="4" fill="#507050"/>
+  <rect x="44" y="24" width="4" height="4" fill="#305030"/>
+  <rect x="48" y="24" width="4" height="4" fill="#203020"/>
+
+  <!-- Face opening -->
+  <rect x="20" y="28" width="4" height="4" fill="#203020"/>
+  <rect x="24" y="28" width="4" height="4" fill="#102010"/>
+  <rect x="28" y="28" width="4" height="4" fill="#102010"/>
+  <rect x="32" y="28" width="4" height="4" fill="#102010"/>
+  <rect x="36" y="28" width="4" height="4" fill="#203020"/>
+
+  <!-- Neck guard -->
+  <rect x="12" y="28" width="4" height="4" fill="#406040"/>
+  <rect x="16" y="28" width="4" height="4" fill="#507050"/>
+  <rect x="40" y="28" width="4" height="4" fill="#406040"/>
+  <rect x="44" y="28" width="4" height="4" fill="#305030"/>
+
+  <rect x="16" y="32" width="4" height="4" fill="#406040"/>
+  <rect x="20" y="32" width="4" height="4" fill="#507050"/>
+  <rect x="24" y="32" width="4" height="4" fill="#608060"/>
+  <rect x="28" y="32" width="4" height="4" fill="#507050"/>
+  <rect x="32" y="32" width="4" height="4" fill="#608060"/>
+  <rect x="36" y="32" width="4" height="4" fill="#507050"/>
+  <rect x="40" y="32" width="4" height="4" fill="#305030"/>
+</svg>

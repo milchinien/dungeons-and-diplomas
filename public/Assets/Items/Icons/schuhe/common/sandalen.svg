@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Pixel Art: Kaputte Sandalen (Common/Gray) -->
+  <!-- Left sandal -->
+  <rect x="8" y="28" width="20" height="4" fill="#5a4a3a"/>
+  <rect x="8" y="32" width="20" height="8" fill="#6a5a4a"/>
+  <rect x="12" y="24" width="4" height="4" fill="#4a3a2a"/>
+  <rect x="20" y="24" width="4" height="4" fill="#4a3a2a"/>
+  <!-- Right sandal -->
+  <rect x="36" y="28" width="20" height="4" fill="#5a4a3a"/>
+  <rect x="36" y="32" width="20" height="8" fill="#6a5a4a"/>
+  <rect x="40" y="24" width="4" height="4" fill="#4a3a2a"/>
+  <rect x="48" y="24" width="4" height="4" fill="#4a3a2a"/>
+  <!-- Worn spots -->
+  <rect x="12" y="32" width="4" height="4" fill="#4a3a2a"/>
+  <rect x="44" y="36" width="4" height="4" fill="#4a3a2a"/>
+</svg>

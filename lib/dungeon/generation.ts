@@ -15,7 +15,7 @@ export function getWeightedRandomVariant(variants: { x: number; y: number; weigh
   let random = rng.next() * totalWeight;
 
   // Select variant based on weight
-  for (let variant of variants) {
+  for (const variant of variants) {
     random -= variant.weight;
     if (random <= 0) {
       return { x: variant.x, y: variant.y };

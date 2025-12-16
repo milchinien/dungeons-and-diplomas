@@ -1,16 +1,37 @@
 // =============================================================================
-// Room Transition System - Fade effect only on newly discovered room
+// Room Transition System - Circular reveal effect from player position
 // =============================================================================
 
-import type { RoomTransition } from './types';
+import type { Room } from '../constants';
+import type { Player } from '../enemy';
+import { getFogOfWarRenderer } from './FogOfWarRenderer';
 
 /**
- * Room transition manager - shows fade effect only on newly discovered rooms
+ * Circular reveal transition state
+ */
+interface CircularReveal {
+  active: boolean;
+  progress: number;
+  duration: number;
+  // Room bounds in pixels
+  roomX: number;
+  roomY: number;
+  roomWidth: number;
+  roomHeight: number;
+  // Player position (center of reveal) in pixels
+  centerX: number;
+  centerY: number;
+  // Maximum radius to reach all corners
+  maxRadius: number;
+}
+
+/**
+ * Room transition manager - circular reveal effect from player position
  */
 export class RoomTransitionSystem {
-  private transition: RoomTransition | null = null;
+  private reveal: CircularReveal | null = null;
   private enabled: boolean = true;
-  private duration: number = 1.2; // Slower duration (1.2 seconds)
+  private duration: number = 0.35; // Fast reveal (0.35 seconds)
 
   /**
    * Enable or disable transitions
@@ -18,7 +39,7 @@ export class RoomTransitionSystem {
   setEnabled(enabled: boolean): void {
     this.enabled = enabled;
     if (!enabled) {
-      this.transition = null;
+      this.reveal = null;
     }
   }
 
@@ -37,11 +58,47 @@ export class RoomTransitionSystem {
   }
 
   /**
-   * Start a room reveal transition (only for newly discovered rooms)
-   * @param roomX - Room top-left X in pixels
-   * @param roomY - Room top-left Y in pixels
-   * @param roomWidth - Room width in pixels
-   * @param roomHeight - Room height in pixels
+   * Start a circular room reveal from player position
+   * @param room - The room being revealed
+   * @param player - Player position (center of reveal)
+   * @param tileSize - Tile size in pixels
+   */
+  startCircularReveal(room: Room, player: Player, tileSize: number): void {
+    if (!this.enabled) return;
+
+    // Calculate room bounds in pixels
+    const roomX = room.x * tileSize;
+    const roomY = room.y * tileSize;
+    const roomWidth = room.width * tileSize;
+    const roomHeight = room.height * tileSize;
+
+    // Player center position
+    const centerX = player.x + tileSize / 2;
+    const centerY = player.y + tileSize / 2;
+
+    // Calculate max radius to reach all corners
+    const maxRadius = this.calculateMaxRadius(
+      centerX, centerY,
+      roomX, roomY,
+      roomWidth, roomHeight
+    );
+
+    this.reveal = {
+      active: true,
+      progress: 0,
+      duration: this.duration,
+      roomX,
+      roomY,
+      roomWidth,
+      roomHeight,
+      centerX,
+      centerY,
+      maxRadius
+    };
+  }
+
+  /**
+   * Legacy method for compatibility
    */
   startRoomReveal(
     roomX: number,
@@ -51,42 +108,78 @@ export class RoomTransitionSystem {
   ): void {
     if (!this.enabled) return;
 
-    // Random direction for visual variety
-    const directions: Array<'left' | 'right' | 'up' | 'down'> = ['left', 'right', 'up', 'down'];
-    const direction = directions[Math.floor(Math.random() * directions.length)];
+    // Use center of room as fallback
+    const centerX = roomX + roomWidth / 2;
+    const centerY = roomY + roomHeight / 2;
 
-    this.transition = {
+    const maxRadius = this.calculateMaxRadius(
+      centerX, centerY,
+      roomX, roomY,
+      roomWidth, roomHeight
+    );
+
+    this.reveal = {
       active: true,
       progress: 0,
       duration: this.duration,
-      direction,
-      fromRoomId: -1,
-      toRoomId: -1,
       roomX,
       roomY,
       roomWidth,
-      roomHeight
+      roomHeight,
+      centerX,
+      centerY,
+      maxRadius
     };
   }
 
   /**
-   * Legacy start method (kept for compatibility but does nothing now)
+   * Calculate the maximum radius needed to reveal entire room from a point
+   */
+  private calculateMaxRadius(
+    centerX: number,
+    centerY: number,
+    roomX: number,
+    roomY: number,
+    roomWidth: number,
+    roomHeight: number
+  ): number {
+    // Calculate distance to all four corners
+    const corners = [
+      { x: roomX, y: roomY },
+      { x: roomX + roomWidth, y: roomY },
+      { x: roomX, y: roomY + roomHeight },
+      { x: roomX + roomWidth, y: roomY + roomHeight }
+    ];
+
+    let maxDist = 0;
+    for (const corner of corners) {
+      const dx = corner.x - centerX;
+      const dy = corner.y - centerY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      maxDist = Math.max(maxDist, dist);
+    }
+
+    return maxDist;
+  }
+
+  /**
+   * Legacy start method (kept for compatibility)
    */
   start(_fromRoomId: number, _toRoomId: number): void {
-    // No longer used - black overlay only on room reveal now
+    // No longer used
   }
 
   /**
    * Update the transition
    */
   update(dt: number): void {
-    if (!this.transition || !this.transition.active) return;
+    if (!this.reveal || !this.reveal.active) return;
 
-    this.transition.progress += dt / this.transition.duration;
+    this.reveal.progress += dt / this.reveal.duration;
 
-    if (this.transition.progress >= 1) {
-      this.transition.active = false;
-      this.transition = null;
+    if (this.reveal.progress >= 1) {
+      this.reveal.active = false;
+      this.reveal = null;
     }
   }
 
@@ -94,117 +187,95 @@ export class RoomTransitionSystem {
    * Check if transition is active
    */
   isActive(): boolean {
-    return this.transition?.active ?? false;
+    return this.reveal?.active ?? false;
   }
 
   /**
    * Get current transition progress (0-1)
    */
   getProgress(): number {
-    return this.transition?.progress ?? 0;
+    return this.reveal?.progress ?? 0;
   }
 
   /**
-   * Get current direction
+   * Get current reveal radius
    */
-  getDirection(): 'left' | 'right' | 'up' | 'down' | null {
-    return this.transition?.direction ?? null;
+  getCurrentRadius(): number {
+    if (!this.reveal) return 0;
+    const eased = this.easeOutCubic(this.reveal.progress);
+    return this.reveal.maxRadius * eased;
   }
 
   /**
-   * Render the transition overlay (only on the room area)
-   * Starts fully black and reveals the room
+   * Render the circular reveal transition
+   * Uses clip path to show revealed area and fog for unrevealed
    * @param ctx - Canvas context (should be in world-space, already translated by camera)
    */
   renderInWorldSpace(ctx: CanvasRenderingContext2D): void {
-    if (!this.transition || !this.transition.active) return;
+    if (!this.reveal || !this.reveal.active) return;
 
-    const { progress, direction, roomX, roomY, roomWidth, roomHeight } = this.transition;
+    const { progress, roomX, roomY, roomWidth, roomHeight, centerX, centerY, maxRadius } = this.reveal;
 
-    // Ease out function for smooth reveal
-    const eased = this.easeOutQuad(progress);
+    // Ease out for fast start, smooth end
+    const eased = this.easeOutCubic(progress);
+    const currentRadius = maxRadius * eased;
 
     ctx.save();
 
-    // Draw sliding black overlay only on the room area
-    ctx.fillStyle = '#000000';
+    // Clip to room bounds first
+    ctx.beginPath();
+    ctx.rect(roomX, roomY, roomWidth, roomHeight);
+    ctx.clip();
 
-    // Start fully covered (black), then reveal the room
-    // progress 0 = fully black, progress 1 = fully revealed
-    const coverProgress = 1 - eased; // 1 to 0 (black shrinks away)
-    this.drawRoomReveal(ctx, roomX, roomY, roomWidth, roomHeight, direction, coverProgress);
+    // Create path for the area OUTSIDE the reveal circle (but inside room)
+    ctx.beginPath();
+    ctx.rect(roomX, roomY, roomWidth, roomHeight);
+    // Cut out the revealed circle (counter-clockwise for subtraction)
+    ctx.arc(centerX, centerY, currentRadius, 0, Math.PI * 2, true);
+    ctx.closePath();
+
+    // Fill the unrevealed area with animated fog
+    const fogRenderer = getFogOfWarRenderer();
+    const fogIntensity = 1 - eased * 0.3; // Fog fades slightly as reveal progresses
+
+    // Draw base dark layer
+    ctx.fillStyle = `rgba(8, 8, 15, ${fogIntensity * 0.9})`;
+    ctx.fill();
+
+    // Add some animated texture on top
+    const wave = Math.sin(fogRenderer.getTime() * 2) * 0.5 + 0.5;
+    ctx.fillStyle = `rgba(20, 20, 35, ${fogIntensity * 0.3 * wave})`;
+    ctx.fill();
 
     ctx.restore();
   }
 
   /**
-   * Legacy render method (renders in screen space - no longer used for room transitions)
+   * Legacy render method
    */
   render(_ctx: CanvasRenderingContext2D, _width: number, _height: number): void {
-    // No longer renders full-screen overlays
     // Use renderInWorldSpace instead
   }
 
   /**
-   * Draw the reveal effect - black shrinks away from room
-   * @param progress - 1 = fully black, 0 = fully revealed
+   * Get current direction (legacy compatibility)
    */
-  private drawRoomReveal(
-    ctx: CanvasRenderingContext2D,
-    roomX: number,
-    roomY: number,
-    roomWidth: number,
-    roomHeight: number,
-    direction: 'left' | 'right' | 'up' | 'down',
-    progress: number
-  ): void {
-    if (progress <= 0) return; // Fully revealed, nothing to draw
-
-    let x = roomX;
-    let y = roomY;
-    let w = roomWidth;
-    let h = roomHeight;
-
-    // Black slides away in the given direction
-    switch (direction) {
-      case 'left':
-        // Black shrinks from right to left
-        w = roomWidth * progress;
-        break;
-
-      case 'right':
-        // Black shrinks from left to right
-        x = roomX + roomWidth * (1 - progress);
-        w = roomWidth * progress;
-        break;
-
-      case 'up':
-        // Black shrinks from bottom to top
-        h = roomHeight * progress;
-        break;
-
-      case 'down':
-        // Black shrinks from top to bottom
-        y = roomY + roomHeight * (1 - progress);
-        h = roomHeight * progress;
-        break;
-    }
-
-    ctx.fillRect(x, y, w, h);
+  getDirection(): 'left' | 'right' | 'up' | 'down' | null {
+    return null; // No longer using directional reveals
   }
 
   /**
-   * Ease out quadratic function (fast start, slow end)
+   * Ease out cubic function (faster than quadratic)
    */
-  private easeOutQuad(t: number): number {
-    return 1 - (1 - t) * (1 - t);
+  private easeOutCubic(t: number): number {
+    return 1 - Math.pow(1 - t, 3);
   }
 
   /**
    * Force stop the transition
    */
   stop(): void {
-    this.transition = null;
+    this.reveal = null;
   }
 }
 

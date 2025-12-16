@@ -158,6 +158,102 @@ export class GameEngine {
   }
 
   /**
+   * Update room exploration states based on player position and enemies.
+   * Handles the new exploration mechanic:
+   * - unexplored → exploring (when player enters)
+   * - exploring → explored (when all enemies defeated)
+   */
+  public updateRoomState(
+    player: Player,
+    tileSize: number,
+    roomMap: number[][],
+    rooms: Room[],
+    enemies: Enemy[],
+    trashmobs: Trashmob[]
+  ): void {
+    const { tx: playerTileX, ty: playerTileY } = getEntityTilePosition(player, tileSize);
+
+    if (playerTileX < 0 || playerTileX >= DUNGEON_WIDTH ||
+        playerTileY < 0 || playerTileY >= DUNGEON_HEIGHT) {
+      return;
+    }
+
+    const playerRoomId = roomMap[playerTileY][playerTileX];
+    if (playerRoomId < 0 || !rooms[playerRoomId]) return;
+
+    const room = rooms[playerRoomId];
+
+    // Count enemies in this room
+    const enemiesInRoom = this.countEnemiesInRoom(playerRoomId, enemies, trashmobs, roomMap, tileSize);
+
+    // Handle state transitions
+    if (room.state === 'unexplored') {
+      // Player enters unexplored room → start exploring
+      room.state = 'exploring';
+      room.visible = true;
+
+      // Trigger circular reveal effect
+      getEffectsManager().onRoomEntered(room, player, tileSize);
+
+      // If no enemies, immediately transition to explored after reveal
+      if (enemiesInRoom === 0) {
+        // Small delay before marking as explored (let reveal animation play)
+        setTimeout(() => {
+          if (room.state === 'exploring') {
+            room.state = 'explored';
+            getEffectsManager().onRoomCleared(room, tileSize);
+          }
+        }, 400); // Match reveal animation duration
+      }
+    } else if (room.state === 'exploring') {
+      // Check if all enemies in room are defeated
+      if (enemiesInRoom === 0) {
+        room.state = 'explored';
+        getEffectsManager().onRoomCleared(room, tileSize);
+      }
+    }
+  }
+
+  /**
+   * Count alive enemies (both quiz enemies and trashmobs) in a specific room
+   */
+  private countEnemiesInRoom(
+    roomId: number,
+    enemies: Enemy[],
+    trashmobs: Trashmob[],
+    roomMap: number[][],
+    tileSize: number
+  ): number {
+    let count = 0;
+
+    // Count quiz enemies
+    for (const enemy of enemies) {
+      if (enemy.alive) {
+        const { tx, ty } = getEntityTilePosition(enemy, tileSize);
+        if (tx >= 0 && tx < DUNGEON_WIDTH && ty >= 0 && ty < DUNGEON_HEIGHT) {
+          if (roomMap[ty][tx] === roomId) {
+            count++;
+          }
+        }
+      }
+    }
+
+    // Count trashmobs
+    for (const trashmob of trashmobs) {
+      if (trashmob.alive) {
+        const { tx, ty } = getEntityTilePosition(trashmob, tileSize);
+        if (tx >= 0 && tx < DUNGEON_WIDTH && ty >= 0 && ty < DUNGEON_HEIGHT) {
+          if (roomMap[ty][tx] === roomId) {
+            count++;
+          }
+        }
+      }
+    }
+
+    return count;
+  }
+
+  /**
    * Find adjacent door to player (within 1 tile in facing direction or any adjacent)
    */
   private findAdjacentDoor(

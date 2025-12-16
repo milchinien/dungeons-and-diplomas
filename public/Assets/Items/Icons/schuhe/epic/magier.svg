@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Pixel Art: Schuhe des Erzmagiers (Epic/Purple) -->
+  <!-- Left shoe - curled toe -->
+  <rect x="4" y="20" width="4" height="4" fill="#5a2d8e"/>
+  <rect x="4" y="24" width="8" height="4" fill="#6a3d9e"/>
+  <rect x="4" y="28" width="24" height="8" fill="#7a4dae"/>
+  <rect x="4" y="36" width="24" height="8" fill="#6a3d9e"/>
+  <rect x="8" y="16" width="16" height="8" fill="#5a2d8e"/>
+  <!-- Curled toe -->
+  <rect x="0" y="24" width="4" height="4" fill="#8a5dbe"/>
+  <!-- Right shoe - curled toe -->
+  <rect x="56" y="20" width="4" height="4" fill="#5a2d8e"/>
+  <rect x="52" y="24" width="8" height="4" fill="#6a3d9e"/>
+  <rect x="36" y="28" width="24" height="8" fill="#7a4dae"/>
+  <rect x="36" y="36" width="24" height="8" fill="#6a3d9e"/>
+  <rect x="40" y="16" width="16" height="8" fill="#5a2d8e"/>
+  <!-- Curled toe -->
+  <rect x="60" y="24" width="4" height="4" fill="#8a5dbe"/>
+  <!-- Arcane symbols -->
+  <rect x="16" y="32" width="4" height="4" fill="#80c0ff"/>
+  <rect x="44" y="32" width="4" height="4" fill="#80c0ff"/>
+</svg>

@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Pixel Art: Abgenutztes Breitschwert (Uncommon/Green) -->
+
+  <!-- Wide blade tip -->
+  <rect x="26" y="4" width="12" height="4" fill="#909090"/>
+
+  <!-- Wide blade body -->
+  <rect x="24" y="8" width="16" height="4" fill="#808080"/>
+  <rect x="24" y="12" width="16" height="4" fill="#909090"/>
+  <rect x="24" y="16" width="16" height="4" fill="#808080"/>
+  <rect x="24" y="20" width="16" height="4" fill="#909090"/>
+  <rect x="24" y="24" width="16" height="4" fill="#808080"/>
+  <rect x="26" y="28" width="12" height="4" fill="#909090"/>
+  <rect x="28" y="32" width="8" height="4" fill="#808080"/>
+
+  <!-- Fuller (groove in blade) -->
+  <rect x="30" y="8" width="4" height="4" fill="#606060"/>
+  <rect x="30" y="12" width="4" height="4" fill="#707070"/>
+  <rect x="30" y="16" width="4" height="4" fill="#606060"/>
+  <rect x="30" y="20" width="4" height="4" fill="#707070"/>
+  <rect x="30" y="24" width="4" height="4" fill="#606060"/>
+
+  <!-- Green crossguard (uncommon) -->
+  <rect x="18" y="36" width="4" height="4" fill="#2d5a2d"/>
+  <rect x="22" y="36" width="4" height="4" fill="#3d6a3d"/>
+  <rect x="26" y="36" width="4" height="4" fill="#2d5a2d"/>
+  <rect x="30" y="36" width="4" height="4" fill="#3d6a3d"/>
+  <rect x="34" y="36" width="4" height="4" fill="#2d5a2d"/>
+  <rect x="38" y="36" width="4" height="4" fill="#3d6a3d"/>
+  <rect x="42" y="36" width="4" height="4" fill="#2d5a2d"/>
+
+  <!-- Handle -->
+  <rect x="30" y="40" width="4" height="4" fill="#5a4030"/>
+  <rect x="30" y="44" width="4" height="4" fill="#4a3020"/>
+  <rect x="30" y="48" width="4" height="4" fill="#5a4030"/>
+
+  <!-- Round pommel -->
+  <rect x="28" y="52" width="8" height="4" fill="#3d6a3d"/>
+</svg>

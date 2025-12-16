@@ -39,6 +39,7 @@ export function createDatabase(options: DatabaseOptions = {}): Database.Database
   const database = new Database(dbPath);
 
   // Import and run initialization (avoid circular dependency)
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { initializeDatabase } = require('./init');
   initializeDatabase(database, { seed: shouldSeed });
 
