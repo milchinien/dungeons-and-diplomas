@@ -11,6 +11,7 @@ import CharacterPanel from './CharacterPanel';
 import CombatModal from './CombatModal';
 import VictoryOverlay from './VictoryOverlay';
 import DefeatOverlay from './DefeatOverlay';
+import DamageFlash from './DamageFlash';
 import FloatingXpBubble from './FloatingXpBubble';
 import InventoryModal, { Equipment, Item, EquipmentSlot } from './InventoryModal';
 import ItemDropNotification from './ItemDropNotification';
@@ -70,6 +71,9 @@ export default function GameCanvas() {
 
   // Game state
   const [gameStarted, setGameStarted] = useState(false);
+
+  // Damage flash trigger (incremented each time player takes trashmob damage)
+  const [damageFlashTrigger, setDamageFlashTrigger] = useState(0);
 
   // Audio settings
   const audioSettings = useAudioSettings();
@@ -380,6 +384,11 @@ export default function GameCanvas() {
     setIsInCombatForCombo(combat.inCombat);
   }, [combat.inCombat]);
 
+  // Handler for trashmob damage visual feedback
+  const handleTrashmobDamage = () => {
+    setDamageFlashTrigger(prev => prev + 1);
+  };
+
   // Game state - receives combat refs via props
   const gameState = useGameState({
     questionDatabase,
@@ -392,6 +401,8 @@ export default function GameCanvas() {
     onItemDropped: handleItemDropped,
     inCombatRef: combat.inCombatRef,
     onStartCombat: combat.startCombat,
+    onPlayerDeath: combat.triggerDefeat,
+    onTrashmobDamage: handleTrashmobDamage,
     playerRef
   });
 // Handle shrine enemy defeated - tracks progress toward shrine completion
@@ -814,6 +825,9 @@ export default function GameCanvas() {
             }}
           />
         )}
+
+        {/* Damage Flash (trashmob damage) */}
+        <DamageFlash trigger={damageFlashTrigger} />
 
         {/* Treasure XP Bubbles */}
         {treasureBubbles.map(bubble => (
