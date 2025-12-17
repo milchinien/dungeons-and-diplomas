@@ -275,8 +275,15 @@ export function useGameState({
 
   const gameLoop = (timestamp: number) => {
     if (!gamePausedRef.current) {
-      const dt = (timestamp - lastTimeRef.current) / 1000;
+      let dt = (timestamp - lastTimeRef.current) / 1000;
       lastTimeRef.current = timestamp;
+
+      // Cap dt to prevent entities moving through walls after alt+tab or window blur
+      // Max 100ms (0.1s) per frame - if longer, game was paused/tabbed out
+      const MAX_DT = 0.1;
+      if (dt > MAX_DT) {
+        dt = MAX_DT;
+      }
 
       update(dt);
       render();

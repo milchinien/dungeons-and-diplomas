@@ -118,7 +118,7 @@ export type TrashmobType = typeof TRASHMOB_TYPE[keyof typeof TRASHMOB_TYPE];
 
 export const TRASHMOB_HP: Record<TrashmobType, number> = {
   rat: 2,
-  slime: 2,
+  slime: 3,
   bat: 1
 };
 
