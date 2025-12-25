@@ -33,10 +33,14 @@ export class SupabaseAdapter implements DatabaseAdapter {
 
   constructor() {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    // Use service role key if available, otherwise fall back to anon key
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (!url || !key) {
-      throw new Error('Supabase environment variables not configured');
+      throw new Error(
+        'Supabase environment variables not configured. ' +
+        'Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.'
+      );
     }
 
     this.client = createClient(url, key, {

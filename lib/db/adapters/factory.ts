@@ -13,13 +13,38 @@ import type { DatabaseAdapter, AdapterType } from './types';
 let adapterInstance: DatabaseAdapter | null = null;
 
 /**
+ * Check if running on Vercel
+ */
+export function isVercel(): boolean {
+  return !!process.env.VERCEL;
+}
+
+/**
+ * Check if Supabase is configured
+ */
+export function isSupabaseConfigured(): boolean {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  return !!(url && key);
+}
+
+/**
  * Determine which adapter type to use based on environment
  */
 export function getAdapterType(): AdapterType {
-  // Use Supabase if both URL and service role key are configured
-  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  // Use Supabase if URL and any key (service role or anon) are configured
+  if (isSupabaseConfigured()) {
     return 'supabase';
   }
+
+  // On Vercel, SQLite is not available - require Supabase configuration
+  if (isVercel()) {
+    throw new Error(
+      'Database not configured for Vercel deployment. ' +
+      'Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables.'
+    );
+  }
+
   return 'sqlite';
 }
 
