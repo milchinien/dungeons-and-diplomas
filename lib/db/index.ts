@@ -5,16 +5,11 @@
  * Import from '@/lib/db' to access all database functions.
  *
  * Note: All database functions are now async and return Promises.
+ *
+ * IMPORTANT: Connection functions (getDatabase, createDatabase, etc.) are NOT exported
+ * here to avoid loading better-sqlite3 on Vercel. Import directly from './connection'
+ * only in local development or test code.
  */
-
-// Connection (for SQLite-only usage, testing, etc.)
-export {
-  getDatabase,
-  createDatabase,
-  createTestDatabase,
-  resetDatabase,
-  type DatabaseOptions
-} from './connection';
 
 // Adapters
 export {

@@ -10,6 +10,11 @@ const nextConfig = {
     // Keep TypeScript checking during builds
     ignoreBuildErrors: false,
   },
+  experimental: {
+    // Exclude better-sqlite3 from webpack bundling (native module, not available on Vercel)
+    // This prevents build errors when the module can't be resolved
+    serverComponentsExternalPackages: ['better-sqlite3'],
+  },
 }
 
 module.exports = nextConfig
