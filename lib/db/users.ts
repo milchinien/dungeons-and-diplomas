@@ -1,7 +1,10 @@
 /**
  * User-related database operations
+ *
+ * Uses database adapter for backend-agnostic operations.
  */
-import { getDatabase } from './connection';
+
+import { getAdapter } from './adapters';
 
 export interface User {
   id: number;
@@ -14,28 +17,15 @@ export interface User {
 /**
  * Login or create a user
  */
-export function loginUser(username: string): User {
-  const db = getDatabase();
-
-  // Try to find existing user (case-insensitive)
-  let user = db.prepare('SELECT * FROM users WHERE username = ? COLLATE NOCASE').get(username) as User | undefined;
-
-  if (!user) {
-    // Create new user
-    const result = db.prepare('INSERT INTO users (username) VALUES (?)').run(username);
-    user = db.prepare('SELECT * FROM users WHERE id = ?').get(result.lastInsertRowid) as User;
-  } else {
-    // Update last_login
-    db.prepare('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?').run(user.id);
-  }
-
-  return user;
+export async function loginUser(username: string): Promise<User> {
+  const adapter = await getAdapter();
+  return adapter.loginUser(username);
 }
 
 /**
  * Get user by ID
  */
-export function getUserById(id: number): User | undefined {
-  const db = getDatabase();
-  return db.prepare('SELECT * FROM users WHERE id = ?').get(id) as User | undefined;
+export async function getUserById(id: number): Promise<User | undefined> {
+  const adapter = await getAdapter();
+  return adapter.getUserById(id);
 }

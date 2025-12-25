@@ -34,7 +34,7 @@ export const POST = withErrorHandler(async (request: Request) => {
     timeout_occurred: timeout_occurred || false
   };
 
-  logAnswer(entry);
+  await logAnswer(entry);
 
   return NextResponse.json({ success: true });
 }, 'log answer');

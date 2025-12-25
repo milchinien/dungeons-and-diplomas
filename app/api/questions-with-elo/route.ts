@@ -12,6 +12,6 @@ export const GET = withErrorHandler(async (request: Request) => {
   const userIdResult = getRequiredIntParam(searchParams, 'userId');
   if (!userIdResult.success) return userIdResult.error;
 
-  const questions = getQuestionsWithEloBySubject(subjectResult.value, userIdResult.value);
+  const questions = await getQuestionsWithEloBySubject(subjectResult.value, userIdResult.value);
   return NextResponse.json(questions);
 }, 'fetch questions with ELO');

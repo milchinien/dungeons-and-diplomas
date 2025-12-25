@@ -7,7 +7,7 @@ export const GET = withErrorHandler(async (request: Request) => {
   const userIdParam = url.searchParams.get('userId');
   const userId = userIdParam ? parseInt(userIdParam, 10) : undefined;
 
-  const levels = getEditorLevels(userId);
+  const levels = await getEditorLevels(userId);
 
   return NextResponse.json(levels);
 }, 'fetch editor levels');
@@ -21,7 +21,7 @@ export const POST = withErrorHandler(async (request: Request) => {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 
-  const levelId = saveEditorLevel({
+  const levelId = await saveEditorLevel({
     name: body.name,
     structure_seed: body.structure_seed,
     decoration_seed: body.decoration_seed,

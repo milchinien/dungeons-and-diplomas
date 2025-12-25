@@ -15,7 +15,7 @@ export const GET = withErrorHandler(async (request: Request) => {
     );
   }
 
-  const stats = getUserStats(parseInt(userId, 10));
+  const stats = await getUserStats(parseInt(userId, 10));
 
   return NextResponse.json(stats);
 }, 'fetch stats');

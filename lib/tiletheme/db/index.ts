@@ -1,17 +1,27 @@
 /**
- * Tiletheme database module
+ * Tiletheme Database Operations
  *
- * Re-exports all database operations for tile themes
+ * Re-exports all tiletheme CRUD operations.
+ * Note: initializeTilethemeTables is now handled automatically by the SQLite adapter.
  */
-
-// Initialization
-export { initializeTilethemeTables } from './init';
 
 // Tileset CRUD
 export { saveTileset, getTilesets, getTileset, deleteTileset } from './tilesets';
 
 // Tile Theme CRUD
-export { saveTileTheme, getTileThemes, getTileTheme, updateTileTheme, deleteTileTheme } from './tileThemes';
+export {
+  saveTileTheme,
+  getTileThemes,
+  getTileTheme,
+  updateTileTheme,
+  deleteTileTheme,
+} from './tileThemes';
 
 // Dungeon Theme CRUD
-export { saveDungeonTheme, getDungeonThemes, getDungeonTheme, updateDungeonTheme, deleteDungeonTheme } from './dungeonThemes';
+export {
+  saveDungeonTheme,
+  getDungeonThemes,
+  getDungeonTheme,
+  updateDungeonTheme,
+  deleteDungeonTheme,
+} from './dungeonThemes';

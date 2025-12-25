@@ -3,7 +3,7 @@ import { getDungeonThemes, saveDungeonTheme } from '@/lib/tiletheme/db';
 import { withErrorHandler } from '@/lib/api/errorHandler';
 
 export const GET = withErrorHandler(async () => {
-  const themes = getDungeonThemes();
+  const themes = await getDungeonThemes();
   return NextResponse.json(themes);
 }, 'fetch dungeon themes');
 
@@ -19,7 +19,7 @@ export const POST = withErrorHandler(async (request: Request) => {
     );
   }
 
-  const id = saveDungeonTheme({
+  const id = await saveDungeonTheme({
     name,
     darkThemeId,
     lightThemeId

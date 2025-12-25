@@ -28,11 +28,11 @@ export const GET = withErrorHandler(async (request: Request) => {
     const userIdResult = validatePositiveInt(parseInt(userIdParam, 10), 'userId');
     if (!userIdResult.success) return userIdResult.error;
 
-    const highscores = getUserHighscores(userIdResult.value, limit);
+    const highscores = await getUserHighscores(userIdResult.value, limit);
     return NextResponse.json({ highscores });
   }
 
-  const highscores = getTopHighscores(limit);
+  const highscores = await getTopHighscores(limit);
   return NextResponse.json({ highscores });
 }, 'get-highscores');
 
@@ -66,10 +66,10 @@ export const POST = withErrorHandler(async (request: Request) => {
   });
 
   // Check if this is a personal best
-  const isNewPersonalBest = isPersonalBest(userIdResult.value, score);
+  const isNewPersonalBest = await isPersonalBest(userIdResult.value, score);
 
   // Save the highscore
-  const highscore = saveHighscore({
+  const highscore = await saveHighscore({
     user_id: userIdResult.value,
     score,
     enemies_defeated,
@@ -80,7 +80,7 @@ export const POST = withErrorHandler(async (request: Request) => {
   });
 
   // Get the rank of this score
-  const rank = getScoreRank(score);
+  const rank = await getScoreRank(score);
 
   return NextResponse.json({
     highscore,

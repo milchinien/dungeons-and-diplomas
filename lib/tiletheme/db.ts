@@ -3,13 +3,12 @@
  *
  * Re-exports all database operations from the db/ subdirectory.
  * This file maintains backwards compatibility with existing imports.
+ *
+ * Note: initializeTilethemeTables is now handled automatically by the SQLite adapter.
  */
 
 // Re-export everything from the db module
 export {
-  // Initialization
-  initializeTilethemeTables,
-
   // Tileset CRUD
   saveTileset,
   getTilesets,

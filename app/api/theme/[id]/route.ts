@@ -13,14 +13,14 @@ export const GET = withErrorHandler(async (
     return NextResponse.json({ error: 'Invalid theme ID' }, { status: 400 });
   }
 
-  const theme = getTileTheme(themeId);
+  const theme = await getTileTheme(themeId);
 
   if (!theme) {
     return NextResponse.json({ error: 'Theme not found' }, { status: 404 });
   }
 
   // Also return tilesets so the client can load the images
-  const tilesets = getTilesets();
+  const tilesets = await getTilesets();
 
   return NextResponse.json({ theme, tilesets });
 }, 'fetch theme');

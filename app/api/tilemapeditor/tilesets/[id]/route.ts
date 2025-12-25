@@ -7,7 +7,7 @@ export const GET = withErrorHandler(async (
   { params }: { params: Promise<{ id: string }> }
 ) => {
   const { id } = await params;
-  const tileset = getTileset(parseInt(id));
+  const tileset = await getTileset(parseInt(id));
 
   if (!tileset) {
     return NextResponse.json({ error: 'Tileset not found' }, { status: 404 });
@@ -21,6 +21,6 @@ export const DELETE = withErrorHandler(async (
   { params }: { params: Promise<{ id: string }> }
 ) => {
   const { id } = await params;
-  deleteTileset(parseInt(id));
+  await deleteTileset(parseInt(id));
   return NextResponse.json({ success: true });
 }, 'delete tileset');

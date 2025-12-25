@@ -9,7 +9,7 @@ export const POST = withErrorHandler(async (request: Request) => {
   const usernameResult = validateNonEmptyString(username, 'username');
   if (!usernameResult.success) return usernameResult.error;
 
-  const user = loginUser(usernameResult.value.trim());
+  const user = await loginUser(usernameResult.value.trim());
 
   return NextResponse.json({
     id: user.id,

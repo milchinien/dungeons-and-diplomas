@@ -3,9 +3,11 @@
  *
  * This module consolidates all database operations from domain-specific modules.
  * Import from '@/lib/db' to access all database functions.
+ *
+ * Note: All database functions are now async and return Promises.
  */
 
-// Connection
+// Connection (for SQLite-only usage, testing, etc.)
 export {
   getDatabase,
   createDatabase,
@@ -13,6 +15,16 @@ export {
   resetDatabase,
   type DatabaseOptions
 } from './connection';
+
+// Adapters
+export {
+  getAdapter,
+  getAdapterType,
+  isSupabaseMode,
+  resetAdapter,
+  type DatabaseAdapter,
+  type AdapterType
+} from './adapters';
 
 // Users
 export { loginUser, getUserById, type User } from './users';

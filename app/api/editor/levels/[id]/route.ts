@@ -7,7 +7,7 @@ export const GET = withErrorHandler(async (
   { params }: { params: { id: string } }
 ) => {
   const id = parseInt(params.id, 10);
-  const level = getEditorLevel(id);
+  const level = await getEditorLevel(id);
 
   if (!level) {
     return NextResponse.json({ error: 'Level not found' }, { status: 404 });
@@ -23,7 +23,7 @@ export const PUT = withErrorHandler(async (
   const id = parseInt(params.id, 10);
   const body = await request.json();
 
-  updateEditorLevel(id, body);
+  await updateEditorLevel(id, body);
 
   return NextResponse.json({ success: true });
 }, 'update editor level');
@@ -33,7 +33,7 @@ export const DELETE = withErrorHandler(async (
   { params }: { params: { id: string } }
 ) => {
   const id = parseInt(params.id, 10);
-  deleteEditorLevel(id);
+  await deleteEditorLevel(id);
 
   return NextResponse.json({ success: true });
 }, 'delete editor level');

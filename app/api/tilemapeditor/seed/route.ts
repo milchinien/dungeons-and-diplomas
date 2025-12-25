@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getTilesets, saveTileset, initializeTilethemeTables } from '@/lib/tiletheme/db';
+import { getTilesets, saveTileset } from '@/lib/tiletheme/db';
 import { withErrorHandler } from '@/lib/api/errorHandler';
 
 // Default tilesets to seed
@@ -25,11 +25,8 @@ const DEFAULT_TILESETS = [
 ];
 
 export const GET = withErrorHandler(async () => {
-  // Initialize tables first
-  initializeTilethemeTables();
-
   // Check existing tilesets
-  const existing = getTilesets();
+  const existing = await getTilesets();
   const existingPaths = new Set(existing.map((t) => t.path));
 
   const added: string[] = [];
@@ -37,12 +34,12 @@ export const GET = withErrorHandler(async () => {
   // Add default tilesets that don't exist yet
   for (const tileset of DEFAULT_TILESETS) {
     if (!existingPaths.has(tileset.path)) {
-      saveTileset(tileset);
+      await saveTileset(tileset);
       added.push(tileset.name);
     }
   }
 
-  const allTilesets = getTilesets();
+  const allTilesets = await getTilesets();
 
   return NextResponse.json({
     message: added.length > 0

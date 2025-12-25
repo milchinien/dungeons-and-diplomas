@@ -3,7 +3,7 @@ import { getTilesets, saveTileset } from '@/lib/tiletheme/db';
 import { withErrorHandler } from '@/lib/api/errorHandler';
 
 export const GET = withErrorHandler(async () => {
-  const tilesets = getTilesets();
+  const tilesets = await getTilesets();
   return NextResponse.json(tilesets);
 }, 'fetch tilesets');
 
@@ -19,7 +19,7 @@ export const POST = withErrorHandler(async (request: Request) => {
     );
   }
 
-  const id = saveTileset({
+  const id = await saveTileset({
     name,
     path,
     widthTiles,

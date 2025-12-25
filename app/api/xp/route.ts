@@ -20,10 +20,10 @@ export const POST = withErrorHandler(async (request: Request) => {
     enemy_level
   };
 
-  addXp(entry);
+  await addXp(entry);
 
   // Return updated user data
-  const user = getUserById(user_id);
+  const user = await getUserById(user_id);
 
   return NextResponse.json({
     success: true,

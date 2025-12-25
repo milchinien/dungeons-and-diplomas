@@ -9,6 +9,6 @@ export const GET = withErrorHandler(async (request: Request) => {
   const userIdResult = getRequiredIntParam(searchParams, 'userId');
   if (!userIdResult.success) return userIdResult.error;
 
-  const scores = getSessionEloScores(userIdResult.value);
+  const scores = await getSessionEloScores(userIdResult.value);
   return NextResponse.json(scores);
 }, 'fetch session ELO');

@@ -7,7 +7,7 @@ export const GET = withErrorHandler(async (
   { params }: { params: Promise<{ id: string }> }
 ) => {
   const { id } = await params;
-  const theme = getTileTheme(parseInt(id));
+  const theme = await getTileTheme(parseInt(id));
 
   if (!theme) {
     return NextResponse.json({ error: 'Theme not found' }, { status: 404 });
@@ -23,14 +23,14 @@ export const PUT = withErrorHandler(async (
   const { id } = await params;
   const body = await request.json();
 
-  const theme = getTileTheme(parseInt(id));
+  const theme = await getTileTheme(parseInt(id));
   if (!theme) {
     return NextResponse.json({ error: 'Theme not found' }, { status: 404 });
   }
 
-  updateTileTheme(parseInt(id), body);
+  await updateTileTheme(parseInt(id), body);
 
-  const updatedTheme = getTileTheme(parseInt(id));
+  const updatedTheme = await getTileTheme(parseInt(id));
   return NextResponse.json(updatedTheme);
 }, 'update theme');
 
@@ -39,6 +39,6 @@ export const DELETE = withErrorHandler(async (
   { params }: { params: Promise<{ id: string }> }
 ) => {
   const { id } = await params;
-  deleteTileTheme(parseInt(id));
+  await deleteTileTheme(parseInt(id));
   return NextResponse.json({ success: true });
 }, 'delete theme');
