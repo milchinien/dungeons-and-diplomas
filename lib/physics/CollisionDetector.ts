@@ -114,11 +114,23 @@ export class CollisionDetector {
         return true;
       }
 
-      // Doors: block if closed
+      // Doors: block if closed, but use smaller hitbox to prevent getting stuck
       if (tile === TILE.DOOR) {
         const isOpen = doorStates.get(`${tileX},${tileY}`) ?? false;
         if (!isOpen) {
-          return true;
+          // Use smaller door hitbox (60% of tile, centered) for collision
+          const doorHitboxSize = tileSize * 0.6;
+          const doorMargin = (tileSize - doorHitboxSize) / 2;
+          const doorLeft = tileX * tileSize + doorMargin;
+          const doorRight = tileX * tileSize + tileSize - doorMargin;
+          const doorTop = tileY * tileSize + doorMargin;
+          const doorBottom = tileY * tileSize + tileSize - doorMargin;
+
+          // Check if player hitbox overlaps with door hitbox (rectangle intersection)
+          if (right > doorLeft && left < doorRight &&
+              bottom > doorTop && top < doorBottom) {
+            return true;
+          }
         }
       }
     }

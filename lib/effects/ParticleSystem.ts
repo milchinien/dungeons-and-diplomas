@@ -13,7 +13,10 @@ const PARTICLE_COLORS = {
   spark: ['#FFD700', '#FFA500', '#FFFF00', '#FF8C00'], // Golden sparks
   damage: ['#FF0000', '#CC0000', '#FF3333', '#990000'], // Red damage
   glitter: ['#FFD700', '#FFFFFF', '#FFF8DC', '#FFFACD'], // Gold/white glitter
-  roomReveal: ['#87CEEB', '#ADD8E6', '#B0E0E6', '#E0FFFF'] // Light blue reveal
+  roomReveal: ['#87CEEB', '#ADD8E6', '#B0E0E6', '#E0FFFF'], // Light blue reveal
+  ash: ['#2A2A2A', '#3D3D3D', '#4A4A4A', '#1A1A1A', '#555555'], // Dark ash/charcoal
+  slash: ['#FFFFFF', '#FFFFCC', '#FFFF99', '#FFFFEE'], // White/yellow slash trails
+  warning: ['#FF0000', '#FF3300', '#FF6600', '#CC0000'] // Red warning glow
 };
 
 /**
@@ -217,6 +220,155 @@ export class ParticleSystem {
   }
 
   /**
+   * Spawn ash particles (when enemy dies - disintegration effect)
+   * Creates a burst of dark ash particles that rise and fade
+   * @param x - Center X position
+   * @param y - Center Y position
+   * @param width - Width of the entity (for spread)
+   * @param height - Height of the entity (for spread)
+   * @param count - Number of particles to spawn
+   */
+  spawnAsh(
+    x: number,
+    y: number,
+    width: number = 40,
+    height: number = 40,
+    count: number = 25
+  ): void {
+    if (this.quality === 'off') return;
+
+    const adjustedCount = Math.ceil(count * this.getQualityMultiplier());
+
+    for (let i = 0; i < adjustedCount && this.canSpawn(); i++) {
+      // Spawn particles across the entity's body area
+      const spawnX = x + (Math.random() - 0.5) * width;
+      const spawnY = y + (Math.random() - 0.5) * height;
+
+      // Particles rise upward and drift slightly
+      const angle = -Math.PI / 2 + (Math.random() - 0.5) * 0.8; // Mostly upward
+      const speed = 30 + Math.random() * 50;
+
+      this.particles.push({
+        x: spawnX,
+        y: spawnY,
+        vx: Math.cos(angle) * speed + (Math.random() - 0.5) * 20,
+        vy: Math.sin(angle) * speed - 20, // Upward bias
+        life: 1,
+        maxLife: 0.8 + Math.random() * 0.6, // 0.8-1.4 seconds
+        size: 3 + Math.random() * 5,
+        color: this.getRandomColor('ash'),
+        alpha: 0.9,
+        type: 'ash',
+        gravity: -15, // Negative = floats up (ash rises)
+        friction: 0.96
+      });
+    }
+  }
+
+  /**
+   * Spawn slash particles (melee attack visual)
+   * Creates sweeping arc lines in attack direction
+   * @param x - Attacker center X
+   * @param y - Attacker center Y
+   * @param targetX - Target X position
+   * @param targetY - Target Y position
+   * @param count - Number of slash lines
+   */
+  spawnSlash(
+    x: number,
+    y: number,
+    targetX: number,
+    targetY: number,
+    count: number = 8
+  ): void {
+    if (this.quality === 'off') return;
+
+    const adjustedCount = Math.ceil(count * this.getQualityMultiplier());
+
+    // Calculate direction to target
+    const dx = targetX - x;
+    const dy = targetY - y;
+    const baseAngle = Math.atan2(dy, dx);
+
+    for (let i = 0; i < adjustedCount && this.canSpawn(); i++) {
+      // Arc spread around the attack direction (100 degree arc)
+      const arcSpread = (Math.random() - 0.5) * Math.PI * 0.55;
+      const angle = baseAngle + arcSpread;
+
+      // Start from player center, move outward
+      const startDist = 15 + Math.random() * 25;
+      const startX = x + Math.cos(angle) * startDist;
+      const startY = y + Math.sin(angle) * startDist;
+
+      // Speed outward
+      const speed = 250 + Math.random() * 150;
+
+      // Rotation perpendicular to movement (slash across the swing)
+      const slashRotation = angle + Math.PI / 2 + (Math.random() - 0.5) * 0.5;
+
+      this.particles.push({
+        x: startX,
+        y: startY,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 1,
+        maxLife: 0.12 + Math.random() * 0.08, // Very short-lived (0.12-0.2s)
+        size: 3 + Math.random() * 2, // Line thickness
+        color: this.getRandomColor('slash'),
+        alpha: 1,
+        type: 'slash',
+        gravity: 0,
+        friction: 0.75,
+        rotation: slashRotation,
+        length: 25 + Math.random() * 35 // Slash line length
+      });
+    }
+  }
+
+  /**
+   * Spawn warning particles (attack wind-up indicator)
+   * Creates a pulsing ring of red particles around the attacker
+   * @param x - Center X
+   * @param y - Center Y
+   * @param radius - Ring radius
+   * @param count - Number of particles
+   */
+  spawnWarning(
+    x: number,
+    y: number,
+    radius: number = 20,
+    count: number = 8
+  ): void {
+    if (this.quality === 'off') return;
+
+    const adjustedCount = Math.ceil(count * this.getQualityMultiplier());
+    const angleStep = (Math.PI * 2) / adjustedCount;
+
+    for (let i = 0; i < adjustedCount && this.canSpawn(); i++) {
+      const angle = angleStep * i + Math.random() * 0.3;
+
+      // Particles start on the ring and move slightly outward
+      const startX = x + Math.cos(angle) * radius;
+      const startY = y + Math.sin(angle) * radius;
+
+      this.particles.push({
+        x: startX,
+        y: startY,
+        vx: Math.cos(angle) * 30,
+        vy: Math.sin(angle) * 30 - 20, // Slight upward drift
+        life: 1,
+        maxLife: 0.3 + Math.random() * 0.2,
+        size: 3 + Math.random() * 4,
+        color: this.getRandomColor('warning'),
+        alpha: 0.9,
+        type: 'warning',
+        gravity: -10,
+        friction: 0.9
+      });
+    }
+  }
+
+  /**
    * Get quality multiplier for particle count
    */
   private getQualityMultiplier(): number {
@@ -284,6 +436,9 @@ export class ParticleSystem {
       if (p.type === 'spark') {
         // Draw spark as a small star/cross shape
         this.drawSpark(ctx, screenX, screenY, p.size);
+      } else if (p.type === 'slash') {
+        // Draw slash as a line with rounded ends
+        this.drawSlash(ctx, screenX, screenY, p);
       } else {
         // Draw as circle
         ctx.beginPath();
@@ -293,6 +448,50 @@ export class ParticleSystem {
     }
 
     ctx.restore();
+  }
+
+  /**
+   * Draw a slash line particle
+   */
+  private drawSlash(ctx: CanvasRenderingContext2D, x: number, y: number, p: Particle): void {
+    const rotation = p.rotation ?? 0;
+    const length = p.length ?? 30;
+    const halfLength = length / 2;
+
+    // Calculate line endpoints
+    const x1 = x - Math.cos(rotation) * halfLength;
+    const y1 = y - Math.sin(rotation) * halfLength;
+    const x2 = x + Math.cos(rotation) * halfLength;
+    const y2 = y + Math.sin(rotation) * halfLength;
+
+    // Draw the slash line with glow effect
+    ctx.strokeStyle = p.color;
+    ctx.lineCap = 'round';
+
+    // Outer glow
+    ctx.lineWidth = p.size + 4;
+    ctx.globalAlpha = p.alpha * 0.3;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+
+    // Inner bright line
+    ctx.lineWidth = p.size;
+    ctx.globalAlpha = p.alpha;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+
+    // Core white line
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = p.size * 0.4;
+    ctx.globalAlpha = p.alpha * 0.8;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
   }
 
   /**

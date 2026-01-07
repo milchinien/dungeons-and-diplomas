@@ -21,6 +21,7 @@ import { DirectionCalculator } from '../movement/DirectionCalculator';
 import { getTargetsInAttackCone, angleToDirection, type PlayerAttackState, createAttackState, canAttack } from '../combat/MeleeAttack';
 import type { UpdatePlayerContext, UpdateEnemiesContext, UpdateTrashmobsContext } from '../types/game';
 import { getEffectsManager } from '../effects';
+import { startSlash, updateSlash } from '../effects/SlashAnimation';
 
 export class GameEngine {
   private lastSpacePressed: boolean = false;
@@ -67,6 +68,13 @@ export class GameEngine {
     // Use attack angle if provided, otherwise fall back to player direction
     const attackDirection = attackAngle ?? player.direction;
 
+    // Start slash animation in the attack direction
+    const angle = typeof attackDirection === 'number'
+      ? attackDirection
+      : { up: -Math.PI / 2, down: Math.PI / 2, left: Math.PI, right: 0 }[attackDirection];
+
+    startSlash(angle);
+
     // Find targets in attack cone
     const targets = getTargetsInAttackCone(
       player.x,
@@ -88,6 +96,9 @@ export class GameEngine {
    * Update attack cooldown and state
    */
   public updateAttackState(dt: number): void {
+    // Update slash animation
+    updateSlash(dt);
+
     if (this.attackState.cooldownRemaining > 0) {
       this.attackState.cooldownRemaining -= dt;
     }
