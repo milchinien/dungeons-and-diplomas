@@ -19,6 +19,7 @@ import {
 import type { TrashmobType, Direction, AIStateType, TileType, Room } from '../constants';
 import { CollisionDetector } from '../physics/CollisionDetector';
 import { TrashmobSpriteRenderer } from '../rendering/TrashmobSprites';
+import { getParticleSystem } from '../effects/ParticleSystem';
 import type { Player } from './types';
 
 // Attack cooldowns per type (in seconds)
@@ -47,6 +48,14 @@ export class Trashmob {
   maxHp: number;
   alive: boolean = true;
 
+  // Death animation state
+  isDying: boolean = false;
+  deathTimer: number = 0;
+  deathAlpha: number = 1;
+  deathScale: number = 1; // Shrink effect
+  private static readonly DEATH_DURATION = 1.2; // seconds for fade-out (slower)
+  private ashSpawned: boolean = false;
+
   // Movement
   direction: Direction = DIRECTION.DOWN;
   isMoving: boolean = false;
@@ -70,6 +79,9 @@ export class Trashmob {
   private static readonly ATTACK_WINDUP_TIME = 0.3; // seconds
   // IMPORTANT: Only true during active attack phase after wind-up, must be reset when attack ends
   canDealDamage: boolean = false;
+  // Attack animation tracking
+  private warningSpawned: boolean = false;
+  private slashSpawned: boolean = false;
 
   // Type-specific movement state
   // Slime hop state
@@ -164,14 +176,69 @@ export class Trashmob {
   }
 
   /**
-   * Mark as dead
+   * Start death animation - trashmob will fade out and turn to ash
    */
   die(): void {
-    this.alive = false;
+    if (this.isDying) return; // Already dying
+
+    this.isDying = true;
+    this.deathTimer = 0;
+    this.deathAlpha = 1;
     this.aiState = AI_STATE.IDLE;
     this.isMoving = false;
     this.isAttacking = false;
-    this.canDealDamage = false; // Reset damage flag
+    this.canDealDamage = false;
+  }
+
+  /**
+   * Update death animation
+   * @returns true if death animation is complete
+   */
+  updateDeathAnimation(dt: number, tileSize: number): boolean {
+    if (!this.isDying) return false;
+
+    this.deathTimer += dt;
+    const progress = this.deathTimer / Trashmob.DEATH_DURATION;
+
+    // Spawn initial ash burst
+    if (!this.ashSpawned) {
+      this.ashSpawned = true;
+      const particleSystem = getParticleSystem();
+      const centerX = this.x + tileSize / 2;
+      const centerY = this.y + tileSize / 2;
+      const spriteSize = tileSize * 0.8;
+      particleSystem.spawnAsh(centerX, centerY, spriteSize, spriteSize, 20);
+    }
+
+    // Smooth fade out using easing (starts slow, accelerates)
+    // Use cubic easing for smoother transition
+    const easedProgress = progress * progress * progress;
+    this.deathAlpha = Math.max(0, 1 - easedProgress);
+
+    // Shrink effect - starts after 30% of animation
+    if (progress > 0.3) {
+      const shrinkProgress = (progress - 0.3) / 0.7; // 0 to 1 over remaining 70%
+      this.deathScale = Math.max(0.1, 1 - shrinkProgress * 0.8); // Shrink to 20%
+    }
+
+    // Continuously spawn ash particles during the animation
+    // More particles at the beginning, fewer towards the end
+    const spawnChance = 0.5 * (1 - progress);
+    if (progress < 0.9 && Math.random() < spawnChance) {
+      const particleSystem = getParticleSystem();
+      const centerX = this.x + tileSize / 2;
+      const centerY = this.y + tileSize / 2;
+      const currentSize = tileSize * 0.8 * this.deathScale;
+      particleSystem.spawnAsh(centerX, centerY, currentSize, currentSize, 2 + Math.floor(Math.random() * 3));
+    }
+
+    // Check if animation is complete
+    if (this.deathTimer >= Trashmob.DEATH_DURATION) {
+      this.alive = false;
+      return true;
+    }
+
+    return false;
   }
 
   /**
@@ -215,6 +282,12 @@ export class Trashmob {
     dungeon: TileType[][],
     doorStates: Map<string, boolean>
   ): void {
+    // Handle death animation
+    if (this.isDying) {
+      this.updateDeathAnimation(dt, tileSize);
+      return;
+    }
+
     if (!this.alive) return;
 
     const room = rooms[this.roomId];
@@ -412,6 +485,8 @@ export class Trashmob {
     this.isAttacking = true;
     this.attackTimer = 0;
     this.canDealDamage = false; // Wind-up - can't deal damage yet
+    this.warningSpawned = false;
+    this.slashSpawned = false;
     this.attackTarget = { x: player.x, y: player.y };
     this.hopPhase = 'rising';
     this.hopHeight = 0;
@@ -425,6 +500,13 @@ export class Trashmob {
     } else {
       this.direction = dy > 0 ? DIRECTION.DOWN : DIRECTION.UP;
     }
+
+    // Spawn warning particles
+    const particleSystem = getParticleSystem();
+    const centerX = this.x + tileSize / 2;
+    const centerY = this.y + tileSize / 2;
+    particleSystem.spawnWarning(centerX, centerY, tileSize * 0.4, 10);
+    this.warningSpawned = true;
   }
 
   private updateSlimeAttack(
@@ -436,9 +518,18 @@ export class Trashmob {
   ): void {
     this.attackTimer += dt;
 
-    // Enable damage after wind-up time
+    // Enable damage after wind-up time and spawn slash effect
     if (!this.canDealDamage && this.attackTimer >= Trashmob.ATTACK_WINDUP_TIME) {
       this.canDealDamage = true;
+
+      // Spawn slash particles when attack becomes active
+      if (!this.slashSpawned) {
+        this.slashSpawned = true;
+        const particleSystem = getParticleSystem();
+        const centerX = this.x + tileSize / 2;
+        const centerY = this.y + tileSize / 2;
+        particleSystem.spawnSlash(centerX, centerY, player.x + tileSize / 2, player.y + tileSize / 2, 15);
+      }
     }
 
     // Faster hop during attack
@@ -593,6 +684,8 @@ export class Trashmob {
     this.isAttacking = true;
     this.attackTimer = 0;
     this.canDealDamage = false; // Wind-up - can't deal damage yet
+    this.warningSpawned = false;
+    this.slashSpawned = false;
     this.attackTarget = { x: player.x, y: player.y };
     this.isMoving = true;
 
@@ -604,6 +697,13 @@ export class Trashmob {
     } else {
       this.direction = dy > 0 ? DIRECTION.DOWN : DIRECTION.UP;
     }
+
+    // Spawn warning particles
+    const particleSystem = getParticleSystem();
+    const centerX = this.x + tileSize / 2;
+    const centerY = this.y + tileSize / 2;
+    particleSystem.spawnWarning(centerX, centerY, tileSize * 0.4, 10);
+    this.warningSpawned = true;
   }
 
   private updateBatAttack(
@@ -615,9 +715,18 @@ export class Trashmob {
   ): void {
     this.attackTimer += dt;
 
-    // Enable damage after wind-up time
+    // Enable damage after wind-up time and spawn slash effect
     if (!this.canDealDamage && this.attackTimer >= Trashmob.ATTACK_WINDUP_TIME) {
       this.canDealDamage = true;
+
+      // Spawn slash particles when attack becomes active
+      if (!this.slashSpawned) {
+        this.slashSpawned = true;
+        const particleSystem = getParticleSystem();
+        const centerX = this.x + tileSize / 2;
+        const centerY = this.y + tileSize / 2;
+        particleSystem.spawnSlash(centerX, centerY, player.x + tileSize / 2, player.y + tileSize / 2, 15);
+      }
     }
 
     // Swoop attack lasts 0.5 seconds
@@ -820,6 +929,8 @@ export class Trashmob {
     this.isAttacking = true;
     this.attackTimer = 0;
     this.canDealDamage = false; // Wind-up - can't deal damage yet
+    this.warningSpawned = false;
+    this.slashSpawned = false;
     this.isMoving = false;
 
     // Face player
@@ -830,6 +941,13 @@ export class Trashmob {
     } else {
       this.direction = dy > 0 ? DIRECTION.DOWN : DIRECTION.UP;
     }
+
+    // Spawn warning particles
+    const particleSystem = getParticleSystem();
+    const centerX = this.x + tileSize / 2;
+    const centerY = this.y + tileSize / 2;
+    particleSystem.spawnWarning(centerX, centerY, tileSize * 0.4, 10);
+    this.warningSpawned = true;
   }
 
   private startRatLeap(player: Player, tileSize: number): void {
@@ -849,6 +967,15 @@ export class Trashmob {
         x: (dx / dist) * leapSpeed,
         y: (dy / dist) * leapSpeed
       };
+    }
+
+    // Spawn slash particles when leap starts
+    if (!this.slashSpawned) {
+      this.slashSpawned = true;
+      const particleSystem = getParticleSystem();
+      const centerX = this.x + tileSize / 2;
+      const centerY = this.y + tileSize / 2;
+      particleSystem.spawnSlash(centerX, centerY, player.x + tileSize / 2, player.y + tileSize / 2, 15);
     }
   }
 
@@ -999,12 +1126,25 @@ export class Trashmob {
    * Draw trashmob with pixel-art sprite animation
    */
   draw(ctx: CanvasRenderingContext2D, tileSize: number, dt: number = 0.016): void {
-    if (!this.alive) return;
+    // Don't draw if completely dead (after death animation)
+    if (!this.alive && !this.isDying) return;
+
+    // Save context for transformations during death
+    ctx.save();
+
+    // Apply fade-out during death animation
+    if (this.isDying) {
+      ctx.globalAlpha = this.deathAlpha;
+    }
 
     // Update sprite animation
     this.spriteRenderer.update(dt);
 
-    const spriteSize = tileSize * 0.8;
+    // Calculate sprite size (with shrink effect during death)
+    const baseSize = tileSize * 0.8;
+    const spriteSize = this.isDying ? baseSize * this.deathScale : baseSize;
+
+    // Center the sprite (adjust for shrinking)
     const offsetX = (tileSize - spriteSize) / 2;
     let offsetY = (tileSize - spriteSize) / 2;
 
@@ -1038,41 +1178,47 @@ export class Trashmob {
       this.direction
     );
 
-    // Draw attack indicator
-    if (this.isAttacking) {
+    // Don't draw UI elements during death animation
+    if (!this.isDying) {
+      // Draw attack indicator
+      if (this.isAttacking) {
+        const centerX = this.x + tileSize / 2;
+        const centerY = this.y + tileSize / 2 - this.hopHeight;
+        ctx.strokeStyle = 'rgba(255, 50, 50, 0.8)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, spriteSize / 2 + 6, 0, Math.PI * 2);
+        ctx.stroke();
+      } else if (this.aiState === AI_STATE.FOLLOWING) {
+        // Aggro indicator
+        const centerX = this.x + tileSize / 2;
+        const centerY = this.y + tileSize / 2 - this.hopHeight;
+        ctx.strokeStyle = 'rgba(255, 150, 0, 0.5)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, spriteSize / 2 + 4, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // Draw HP bar above sprite
       const centerX = this.x + tileSize / 2;
-      const centerY = this.y + tileSize / 2 - this.hopHeight;
-      ctx.strokeStyle = 'rgba(255, 50, 50, 0.8)';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, spriteSize / 2 + 6, 0, Math.PI * 2);
-      ctx.stroke();
-    } else if (this.aiState === AI_STATE.FOLLOWING) {
-      // Aggro indicator
-      const centerX = this.x + tileSize / 2;
-      const centerY = this.y + tileSize / 2 - this.hopHeight;
-      ctx.strokeStyle = 'rgba(255, 150, 0, 0.5)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, spriteSize / 2 + 4, 0, Math.PI * 2);
-      ctx.stroke();
+      this.drawHpBar(ctx, centerX, this.y - 6 - this.hopHeight, spriteSize);
+
+      // Draw cooldown indicator if on cooldown
+      if (this.attackCooldown > 0) {
+        const cooldownPercent = this.attackCooldown / ATTACK_COOLDOWNS[this.type];
+        ctx.fillStyle = 'rgba(100, 100, 255, 0.5)';
+        ctx.fillRect(
+          centerX - spriteSize / 2,
+          this.y - 2 - this.hopHeight,
+          spriteSize * (1 - cooldownPercent),
+          2
+        );
+      }
     }
 
-    // Draw HP bar above sprite
-    const centerX = this.x + tileSize / 2;
-    this.drawHpBar(ctx, centerX, this.y - 6 - this.hopHeight, spriteSize);
-
-    // Draw cooldown indicator if on cooldown
-    if (this.attackCooldown > 0) {
-      const cooldownPercent = this.attackCooldown / ATTACK_COOLDOWNS[this.type];
-      ctx.fillStyle = 'rgba(100, 100, 255, 0.5)';
-      ctx.fillRect(
-        centerX - spriteSize / 2,
-        this.y - 2 - this.hopHeight,
-        spriteSize * (1 - cooldownPercent),
-        2
-      );
-    }
+    // Restore context
+    ctx.restore();
   }
 
   /**

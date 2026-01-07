@@ -1,5 +1,6 @@
 import type { TileType, Room, Shrine, Direction } from '../constants';
-import { SHRINE_RENDER_SIZE, PLAYER_ATTACK_CONE_ANGLE, PLAYER_ATTACK_RANGE } from '../constants';
+import { SHRINE_RENDER_SIZE } from '../constants';
+import { renderSlash, isSlashActive } from '../effects/SlashAnimation';
 import type { Player } from '../enemy';
 import { SpriteSheetLoader } from '../SpriteSheetLoader';
 import { Enemy, Trashmob } from '../enemy';
@@ -150,53 +151,18 @@ export class GameRenderer {
   };
 
   /**
-   * Render attack cone visual indicator
-   * @param aimAngle - Angle in radians toward cursor (0 = right, PI/2 = down)
+   * Render attack visual indicator (now handled by particle system)
+   * This method is kept for signature compatibility but does nothing
    */
   private renderAttackCone(
-    ctx: CanvasRenderingContext2D,
-    player: Player,
-    tileSize: number,
-    isAttacking: boolean,
-    aimAngle?: number
+    _ctx: CanvasRenderingContext2D,
+    _player: Player,
+    _tileSize: number,
+    _isAttacking: boolean,
+    _aimAngle?: number
   ): void {
-    const centerX = player.x + tileSize / 2;
-    const centerY = player.y + tileSize / 2;
-    const range = PLAYER_ATTACK_RANGE * tileSize;
-    const halfAngle = (PLAYER_ATTACK_CONE_ANGLE / 2) * (Math.PI / 180);
-    // Use aimAngle if provided (continuous), otherwise fall back to player direction
-    const direction = aimAngle ?? this.directionAngles[player.direction];
-
-    ctx.save();
-
-    // Draw attack cone
-    ctx.beginPath();
-    ctx.moveTo(centerX, centerY);
-    ctx.arc(
-      centerX,
-      centerY,
-      range,
-      direction - halfAngle,
-      direction + halfAngle
-    );
-    ctx.closePath();
-
-    if (isAttacking) {
-      // Attacking - bright red flash
-      ctx.fillStyle = 'rgba(255, 100, 100, 0.5)';
-      ctx.strokeStyle = 'rgba(255, 50, 50, 0.8)';
-      ctx.lineWidth = 3;
-    } else {
-      // Not attacking - subtle indicator
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-      ctx.lineWidth = 1;
-    }
-
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.restore();
+    // Attack visuals are now handled by the particle system (slash effect)
+    // See GameEngine.performAttack() for particle spawning
   }
 
   /**
@@ -269,11 +235,15 @@ export class GameRenderer {
     // Render trashmobs
     this.renderTrashmobs(ctx, trashmobs, rooms, tileSize, playerRoomIds);
 
-    // Render attack cone (before player so it's behind)
-    this.renderAttackCone(ctx, player, tileSize, isAttacking, aimAngle);
-
     // Render player
     this.renderPlayer(ctx, playerSprite, player, tileSize);
+
+    // Render slash animation (after player so it's in front)
+    if (isSlashActive()) {
+      const playerCenterX = player.x + tileSize / 2;
+      const playerCenterY = player.y + tileSize / 2;
+      renderSlash(ctx, playerCenterX, playerCenterY, tileSize);
+    }
 
     // Render particles (after game objects, before UI)
     effectsManager.renderParticles(ctx, 0, 0); // Already translated by camera

@@ -332,3 +332,4 @@ export const TRASHMOB_HP = {
 4. Linke Maustaste druecken um anzugreifen (75 Grad Kegel vor Spieler)
 5. Bei Kontakt mit Trashmob: 3-4 HP Schaden (1 Sekunde Unverwundbarkeit danach)
 6. Waehrend Angriff: Bewegung ist 50% langsamer
+///
