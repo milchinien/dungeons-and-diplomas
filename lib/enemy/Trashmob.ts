@@ -194,20 +194,22 @@ export class Trashmob {
    * Update death animation
    * @returns true if death animation is complete
    */
-  updateDeathAnimation(dt: number, tileSize: number): boolean {
+  updateDeathAnimation(dt: number, tileSize: number, roomVisible: boolean): boolean {
     if (!this.isDying) return false;
 
     this.deathTimer += dt;
     const progress = this.deathTimer / Trashmob.DEATH_DURATION;
 
-    // Spawn initial ash burst
+    // Spawn initial ash burst (only if room visible)
     if (!this.ashSpawned) {
       this.ashSpawned = true;
-      const particleSystem = getParticleSystem();
-      const centerX = this.x + tileSize / 2;
-      const centerY = this.y + tileSize / 2;
-      const spriteSize = tileSize * 0.8;
-      particleSystem.spawnAsh(centerX, centerY, spriteSize, spriteSize, 20);
+      if (roomVisible) {
+        const particleSystem = getParticleSystem();
+        const centerX = this.x + tileSize / 2;
+        const centerY = this.y + tileSize / 2;
+        const spriteSize = tileSize * 0.8;
+        particleSystem.spawnAsh(centerX, centerY, spriteSize, spriteSize, 20);
+      }
     }
 
     // Smooth fade out using easing (starts slow, accelerates)
@@ -221,10 +223,10 @@ export class Trashmob {
       this.deathScale = Math.max(0.1, 1 - shrinkProgress * 0.8); // Shrink to 20%
     }
 
-    // Continuously spawn ash particles during the animation
+    // Continuously spawn ash particles during the animation (only if room visible)
     // More particles at the beginning, fewer towards the end
     const spawnChance = 0.5 * (1 - progress);
-    if (progress < 0.9 && Math.random() < spawnChance) {
+    if (roomVisible && progress < 0.9 && Math.random() < spawnChance) {
       const particleSystem = getParticleSystem();
       const centerX = this.x + tileSize / 2;
       const centerY = this.y + tileSize / 2;
@@ -282,15 +284,17 @@ export class Trashmob {
     dungeon: TileType[][],
     doorStates: Map<string, boolean>
   ): void {
+    const room = rooms[this.roomId];
+    const roomVisible = room?.visible ?? false;
+
     // Handle death animation
     if (this.isDying) {
-      this.updateDeathAnimation(dt, tileSize);
+      this.updateDeathAnimation(dt, tileSize, roomVisible);
       return;
     }
 
     if (!this.alive) return;
 
-    const room = rooms[this.roomId];
     if (!room) {
       return;
     }
@@ -346,7 +350,7 @@ export class Trashmob {
 
     if (this.isAttacking) {
       // Attack hop toward player
-      this.updateSlimeAttack(dt, player, tileSize, dungeon, doorStates);
+      this.updateSlimeAttack(dt, player, tileSize, dungeon, doorStates, room.visible);
       return;
     }
 
@@ -354,7 +358,7 @@ export class Trashmob {
     if (this.aiState === AI_STATE.FOLLOWING &&
         this.canAttack() &&
         distanceToPlayer <= this.getAttackRange()) {
-      this.startSlimeAttack(player, tileSize);
+      this.startSlimeAttack(player, tileSize, room.visible);
       return;
     }
 
@@ -481,7 +485,7 @@ export class Trashmob {
     }
   }
 
-  private startSlimeAttack(player: Player, tileSize: number): void {
+  private startSlimeAttack(player: Player, tileSize: number, roomVisible: boolean): void {
     this.isAttacking = true;
     this.attackTimer = 0;
     this.canDealDamage = false; // Wind-up - can't deal damage yet
@@ -501,11 +505,13 @@ export class Trashmob {
       this.direction = dy > 0 ? DIRECTION.DOWN : DIRECTION.UP;
     }
 
-    // Spawn warning particles
-    const particleSystem = getParticleSystem();
-    const centerX = this.x + tileSize / 2;
-    const centerY = this.y + tileSize / 2;
-    particleSystem.spawnWarning(centerX, centerY, tileSize * 0.4, 10);
+    // Spawn warning particles only if room is visible
+    if (roomVisible) {
+      const particleSystem = getParticleSystem();
+      const centerX = this.x + tileSize / 2;
+      const centerY = this.y + tileSize / 2;
+      particleSystem.spawnWarning(centerX, centerY, tileSize * 0.4, 10);
+    }
     this.warningSpawned = true;
   }
 
@@ -514,7 +520,8 @@ export class Trashmob {
     player: Player,
     tileSize: number,
     dungeon: TileType[][],
-    doorStates: Map<string, boolean>
+    doorStates: Map<string, boolean>,
+    roomVisible: boolean
   ): void {
     this.attackTimer += dt;
 
@@ -522,13 +529,15 @@ export class Trashmob {
     if (!this.canDealDamage && this.attackTimer >= Trashmob.ATTACK_WINDUP_TIME) {
       this.canDealDamage = true;
 
-      // Spawn slash particles when attack becomes active
+      // Spawn slash particles when attack becomes active (only if room visible)
       if (!this.slashSpawned) {
         this.slashSpawned = true;
-        const particleSystem = getParticleSystem();
-        const centerX = this.x + tileSize / 2;
-        const centerY = this.y + tileSize / 2;
-        particleSystem.spawnSlash(centerX, centerY, player.x + tileSize / 2, player.y + tileSize / 2, 15);
+        if (roomVisible) {
+          const particleSystem = getParticleSystem();
+          const centerX = this.x + tileSize / 2;
+          const centerY = this.y + tileSize / 2;
+          particleSystem.spawnSlash(centerX, centerY, player.x + tileSize / 2, player.y + tileSize / 2, 15);
+        }
       }
     }
 
@@ -589,7 +598,7 @@ export class Trashmob {
     const distanceToPlayer = this.getDistanceToPlayer(player, tileSize);
 
     if (this.isAttacking) {
-      this.updateBatAttack(dt, player, tileSize, dungeon, doorStates);
+      this.updateBatAttack(dt, player, tileSize, dungeon, doorStates, room.visible);
       return;
     }
 
@@ -597,7 +606,7 @@ export class Trashmob {
     if (this.aiState === AI_STATE.FOLLOWING &&
         this.canAttack() &&
         distanceToPlayer <= this.getAttackRange()) {
-      this.startBatAttack(player, tileSize);
+      this.startBatAttack(player, tileSize, room.visible);
       return;
     }
 
@@ -680,7 +689,7 @@ export class Trashmob {
     this.isMoving = moved;
   }
 
-  private startBatAttack(player: Player, tileSize: number): void {
+  private startBatAttack(player: Player, tileSize: number, roomVisible: boolean): void {
     this.isAttacking = true;
     this.attackTimer = 0;
     this.canDealDamage = false; // Wind-up - can't deal damage yet
@@ -698,11 +707,13 @@ export class Trashmob {
       this.direction = dy > 0 ? DIRECTION.DOWN : DIRECTION.UP;
     }
 
-    // Spawn warning particles
-    const particleSystem = getParticleSystem();
-    const centerX = this.x + tileSize / 2;
-    const centerY = this.y + tileSize / 2;
-    particleSystem.spawnWarning(centerX, centerY, tileSize * 0.4, 10);
+    // Spawn warning particles only if room is visible
+    if (roomVisible) {
+      const particleSystem = getParticleSystem();
+      const centerX = this.x + tileSize / 2;
+      const centerY = this.y + tileSize / 2;
+      particleSystem.spawnWarning(centerX, centerY, tileSize * 0.4, 10);
+    }
     this.warningSpawned = true;
   }
 
@@ -711,7 +722,8 @@ export class Trashmob {
     player: Player,
     tileSize: number,
     dungeon: TileType[][],
-    doorStates: Map<string, boolean>
+    doorStates: Map<string, boolean>,
+    roomVisible: boolean
   ): void {
     this.attackTimer += dt;
 
@@ -719,13 +731,15 @@ export class Trashmob {
     if (!this.canDealDamage && this.attackTimer >= Trashmob.ATTACK_WINDUP_TIME) {
       this.canDealDamage = true;
 
-      // Spawn slash particles when attack becomes active
+      // Spawn slash particles when attack becomes active (only if room visible)
       if (!this.slashSpawned) {
         this.slashSpawned = true;
-        const particleSystem = getParticleSystem();
-        const centerX = this.x + tileSize / 2;
-        const centerY = this.y + tileSize / 2;
-        particleSystem.spawnSlash(centerX, centerY, player.x + tileSize / 2, player.y + tileSize / 2, 15);
+        if (roomVisible) {
+          const particleSystem = getParticleSystem();
+          const centerX = this.x + tileSize / 2;
+          const centerY = this.y + tileSize / 2;
+          particleSystem.spawnSlash(centerX, centerY, player.x + tileSize / 2, player.y + tileSize / 2, 15);
+        }
       }
     }
 
@@ -793,7 +807,7 @@ export class Trashmob {
       // Wind-up before leap
       this.attackTimer += dt;
       if (this.attackTimer >= 0.3) {
-        this.startRatLeap(player, tileSize);
+        this.startRatLeap(player, tileSize, room.visible);
       }
       return;
     }
@@ -802,7 +816,7 @@ export class Trashmob {
     if (this.aiState === AI_STATE.FOLLOWING &&
         this.canAttack() &&
         distanceToPlayer <= this.getAttackRange()) {
-      this.startRatAttack(player, tileSize);
+      this.startRatAttack(player, tileSize, room.visible);
       return;
     }
 
@@ -925,7 +939,7 @@ export class Trashmob {
     this.isMoving = moved;
   }
 
-  private startRatAttack(player: Player, tileSize: number): void {
+  private startRatAttack(player: Player, tileSize: number, roomVisible: boolean): void {
     this.isAttacking = true;
     this.attackTimer = 0;
     this.canDealDamage = false; // Wind-up - can't deal damage yet
@@ -942,15 +956,17 @@ export class Trashmob {
       this.direction = dy > 0 ? DIRECTION.DOWN : DIRECTION.UP;
     }
 
-    // Spawn warning particles
-    const particleSystem = getParticleSystem();
-    const centerX = this.x + tileSize / 2;
-    const centerY = this.y + tileSize / 2;
-    particleSystem.spawnWarning(centerX, centerY, tileSize * 0.4, 10);
+    // Spawn warning particles only if room is visible
+    if (roomVisible) {
+      const particleSystem = getParticleSystem();
+      const centerX = this.x + tileSize / 2;
+      const centerY = this.y + tileSize / 2;
+      particleSystem.spawnWarning(centerX, centerY, tileSize * 0.4, 10);
+    }
     this.warningSpawned = true;
   }
 
-  private startRatLeap(player: Player, tileSize: number): void {
+  private startRatLeap(player: Player, tileSize: number, roomVisible: boolean): void {
     this.isLeaping = true;
     this.isMoving = true;
     this.canDealDamage = true; // Leap is the damaging part
@@ -969,13 +985,15 @@ export class Trashmob {
       };
     }
 
-    // Spawn slash particles when leap starts
+    // Spawn slash particles when leap starts (only if room visible)
     if (!this.slashSpawned) {
       this.slashSpawned = true;
-      const particleSystem = getParticleSystem();
-      const centerX = this.x + tileSize / 2;
-      const centerY = this.y + tileSize / 2;
-      particleSystem.spawnSlash(centerX, centerY, player.x + tileSize / 2, player.y + tileSize / 2, 15);
+      if (roomVisible) {
+        const particleSystem = getParticleSystem();
+        const centerX = this.x + tileSize / 2;
+        const centerY = this.y + tileSize / 2;
+        particleSystem.spawnSlash(centerX, centerY, player.x + tileSize / 2, player.y + tileSize / 2, 15);
+      }
     }
   }
 
