@@ -33,6 +33,8 @@ export interface Particle {
   type: ParticleType;
   gravity?: number;
   friction?: number;
+  rotation?: number; // rotation angle in radians (for slash particles)
+  length?: number; // length of line (for slash particles)
 }
 
 /**
@@ -43,7 +45,10 @@ export type ParticleType =
   | 'spark'       // Hit sparks (star-shaped)
   | 'damage'      // Player damage (red)
   | 'glitter'     // Item glitter
-  | 'roomReveal'; // Room discovery effect
+  | 'roomReveal'  // Room discovery effect
+  | 'ash'         // Enemy death ash particles
+  | 'slash'       // Melee attack slash effect
+  | 'warning';    // Attack wind-up warning
 
 /**
  * Screen shake configuration
