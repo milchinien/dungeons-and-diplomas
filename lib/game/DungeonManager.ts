@@ -21,6 +21,7 @@ import { ThemeLoader } from '../tiletheme/ThemeLoader';
 import { generateDungeonStructure } from './DungeonInitializer';
 import { spawnPlayer, spawnEnemies, spawnTreasures, createShrines, spawnTrashmobs } from './EntitySpawner';
 import type { DroppedItem } from '../items/types';
+import { initializeShopDoorStates } from '../shop/ShopDoor';
 
 export class DungeonManager {
   // Dungeon structure
@@ -138,5 +139,8 @@ export class DungeonManager {
     this.treasures = spawnTreasures(spawnContext);
     this.shrines = createShrines(spawnContext);
     this.trashmobs = spawnTrashmobs(spawnContext, this.player);
+    
+    // Initialize shop door states based on enemy positions
+    initializeShopDoorStates(this.rooms, this.enemies);
   }
 }

@@ -7,6 +7,9 @@ import { MasteryCircles } from './character/MasteryCircles';
 import { ActionButtons } from './character/ActionButtons';
 import { MEDIEVAL_COLORS, MEDIEVAL_STYLES } from '@/lib/ui/medieval-styles';
 import type { SubjectScore } from './character/MasteryCircles';
+import { ShopItemsDisplay } from './character/ShopItemsDisplay';
+import type { Item } from '@/lib/shop/Item';
+import type { Perk } from '@/lib/shop/Perk';
 
 interface CharacterPanelProps {
   username: string;
@@ -21,6 +24,8 @@ interface CharacterPanelProps {
   onRestart: () => void;
   onSkills: () => void;
   onSettings?: () => void;
+  equippedItems?: Item[];
+  activePerks?: Perk[];
 }
 
 /**
@@ -38,7 +43,9 @@ export default function CharacterPanel({
   onLogout,
   onRestart,
   onSkills,
-  onSettings
+  onSettings,
+  equippedItems = [],
+  activePerks = []
 }: CharacterPanelProps) {
   return (
     <div style={{
@@ -107,6 +114,11 @@ export default function CharacterPanel({
       />
 
       <MasteryCircles scores={scores} />
+
+      <ShopItemsDisplay
+        equippedItems={equippedItems}
+        activePerks={activePerks}
+      />
 
       <ActionButtons
         onRestart={onRestart}

@@ -1,8 +1,9 @@
-import { DUNGEON_WIDTH, DUNGEON_HEIGHT, TILE, FLOOR_VARIANTS, WALL_VARIANTS, DEFAULT_DUNGEON_CONFIG } from '../constants';
+import { DUNGEON_WIDTH, DUNGEON_HEIGHT, TILE, FLOOR_VARIANTS, WALL_VARIANTS, DEFAULT_DUNGEON_CONFIG, SHOP_SPAWN_CHANCE, SHOP_MIN_ROOM_SIZE, SHOP_MAX_PER_DUNGEON } from '../constants';
 import type { TileType, TileVariant, Room, TileCoord, DungeonConfig } from '../constants';
 import { BSPNode } from './BSPNode';
 import { UnionFind } from './UnionFind';
 import { getDecorationRng, getStructureRng } from './DungeonRNG';
+import { generateShopInventory } from '../shop/ShopInventory';
 
 // Weighted random selection function
 export function getWeightedRandomVariant(variants: { x: number; y: number; weight: number }[]): TileCoord {
@@ -244,5 +245,55 @@ export function addWalls(dungeon: TileType[][], config?: Partial<DungeonConfig>)
   for (let y = 0; y < height; y++) {
     if (dungeon[y][0] === TILE.EMPTY) dungeon[y][0] = TILE.WALL;
     if (dungeon[y][width - 1] === TILE.EMPTY) dungeon[y][width - 1] = TILE.WALL;
+  }
+}
+
+
+// =============================================================================
+// Shop Room Assignment
+// =============================================================================
+
+/**
+ * Checks if a room is large enough for a shop.
+ */
+function isRoomLargeEnough(room: Room): boolean {
+  return room.width >= SHOP_MIN_ROOM_SIZE && room.height >= SHOP_MIN_ROOM_SIZE;
+}
+
+/**
+ * Assigns shop rooms after normal room types have been assigned.
+ * @param rooms - Array of all rooms
+ * @param startRoomIndex - Index of the start room (never becomes a shop)
+ * @param randomFn - Random function
+ */
+export function assignShopRooms(
+  rooms: Room[],
+  startRoomIndex: number,
+  randomFn: () => number = Math.random
+): void {
+  let shopCount = 0;
+
+  for (let i = 0; i < rooms.length; i++) {
+    // Never make start room a shop
+    if (i === startRoomIndex) continue;
+
+    // Maximum reached?
+    if (shopCount >= SHOP_MAX_PER_DUNGEON) break;
+
+    // Room large enough?
+    if (!isRoomLargeEnough(rooms[i])) continue;
+
+    // Random chance
+    if (randomFn() < SHOP_SPAWN_CHANCE) {
+      rooms[i].type = 'shop';
+      rooms[i].shopInventory = generateShopInventory(rooms[i].id, randomFn);
+      rooms[i].shopDoorOpen = false;
+      shopCount++;
+    }
+  }
+
+  // Debug log
+  if (shopCount > 0) {
+    console.log(`Dungeon: ${rooms.length} rooms, ${shopCount} shop(s) assigned`);
   }
 }

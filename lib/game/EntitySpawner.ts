@@ -470,6 +470,9 @@ export function spawnTrashmobs(
     // Skip shrine rooms
     if (room.type === 'shrine') continue;
 
+    // Skip shop rooms - safe zone for players
+    if (room.type === 'shop') continue;
+
     // Collect floor tiles in this room
     const roomFloorTiles: { x: number; y: number }[] = [];
     for (let y = room.y; y < room.y + room.height; y++) {

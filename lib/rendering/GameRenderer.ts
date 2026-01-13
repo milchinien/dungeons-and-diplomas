@@ -12,6 +12,10 @@ import { RENDER_COLORS } from '../ui/colors';
 import { getEffectsManager } from '../effects';
 import { getEntityTilePosition } from '../physics/TileCoordinates';
 
+import { renderShopRoom, type ShopAssets } from './ShopRenderer';
+import { getPlayerShopRoom, getInteractionTarget, type InteractionTarget } from '../shop/ShopInteraction';
+import { renderTooltip, createItemTooltip, createPerkTooltip } from './TooltipRenderer';
+
 /**
  * Main game renderer that orchestrates all rendering passes.
  * Uses TileRenderer for tile-specific rendering operations.
@@ -21,6 +25,9 @@ export class GameRenderer {
   private pulsePhase = 0;
   private shrineImage: HTMLImageElement | null = null;
   private shrineImageLoaded = false;
+  private gameTime = 0;
+  private shopAssets: ShopAssets = {};
+  private currentInteractionTarget: InteractionTarget | null = null;
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -129,6 +136,82 @@ export class GameRenderer {
   }
 
   /**
+   * Render all visible shop rooms
+   */
+  private renderShops(
+    ctx: CanvasRenderingContext2D,
+    rooms: Room[],
+    camera: { x: number; y: number }
+  ): void {
+    for (const room of rooms) {
+      if (room.type === 'shop' && room.visible && room.shopInventory) {
+        renderShopRoom(ctx, room, this.gameTime, camera, this.shopAssets);
+      }
+    }
+  }
+
+  /**
+   * Updates the current interaction target based on player position.
+   */
+  private updateInteractionTarget(
+    player: Player,
+    rooms: Room[],
+    tileSize: number
+  ): void {
+    // Convert player position to world coordinates (center of player)
+    const playerWorldX = player.x + tileSize / 2;
+    const playerWorldY = player.y + tileSize / 2;
+
+    // Find which shop room the player is in
+    const shopRoom = getPlayerShopRoom(playerWorldX, playerWorldY, rooms);
+
+    if (shopRoom) {
+      this.currentInteractionTarget = getInteractionTarget(
+        playerWorldX,
+        playerWorldY,
+        shopRoom
+      );
+    } else {
+      this.currentInteractionTarget = null;
+    }
+  }
+
+  /**
+   * Renders the tooltip for the current interaction target.
+   * Called after ctx.restore() since tooltips are in screen space.
+   */
+  private renderShopTooltip(
+    ctx: CanvasRenderingContext2D,
+    camera: { x: number; y: number }
+  ): void {
+    if (!this.currentInteractionTarget) return;
+
+    const target = this.currentInteractionTarget;
+
+    // Convert world position to screen position
+    const screenX = target.worldX - camera.x;
+    const screenY = target.worldY - camera.y;
+
+    // Create tooltip based on type
+    const tooltip = target.type === 'item' && target.item
+      ? createItemTooltip(target.item)
+      : target.type === 'perk' && target.perk
+        ? createPerkTooltip(target.perk)
+        : null;
+
+    if (tooltip) {
+      renderTooltip(ctx, tooltip, screenX, screenY);
+    }
+  }
+
+  /**
+   * Returns the current interaction target (for purchase handling).
+   */
+  getCurrentInteractionTarget(): InteractionTarget | null {
+    return this.currentInteractionTarget;
+  }
+
+  /**
    * Render the player sprite
    */
   private renderPlayer(
@@ -190,6 +273,8 @@ export class GameRenderer {
       throw new Error('Failed to get 2D context from canvas');
     }
 
+    this.gameTime += 1 / 60;
+
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
@@ -229,6 +314,10 @@ export class GameRenderer {
     );
 
     this.renderShrines(ctx, shrines, rooms, tileSize, playerRoomIds);
+    this.renderShops(ctx, rooms, { x: camX, y: camY });
+
+    // Update interaction target for shop tooltips
+    this.updateInteractionTarget(player, rooms, tileSize);
 
     this.renderEnemies(ctx, enemies, rooms, tileSize, player, playerRoomIds);
 
@@ -252,5 +341,8 @@ export class GameRenderer {
     effectsManager.renderTransitionInWorldSpace(ctx);
 
     ctx.restore();
+
+    // Render shop tooltips in screen space (after ctx.restore)
+    this.renderShopTooltip(ctx, { x: camX, y: camY });
   }
 }

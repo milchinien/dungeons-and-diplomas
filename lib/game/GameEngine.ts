@@ -22,6 +22,8 @@ import { getTargetsInAttackCone, angleToDirection, type PlayerAttackState, creat
 import type { UpdatePlayerContext, UpdateEnemiesContext, UpdateTrashmobsContext } from '../types/game';
 import { getEffectsManager } from '../effects';
 import { startSlash, updateSlash } from '../effects/SlashAnimation';
+import { checkShopCounterCollision, getShopRoomAtPosition } from '../shop/ShopCollision';
+import { canEnterShop, getLockedDoorMessage, updateShopDoorStates, isRoomCleared } from '../shop/ShopDoor';
 
 export class GameEngine {
   private lastSpacePressed: boolean = false;
@@ -133,7 +135,9 @@ export class GameEngine {
     tileSize: number,
     dungeon: TileType[][],
     doorStates: Map<string, boolean>,
-    shrines?: Shrine[]
+    shrines?: Shrine[],
+    rooms?: Room[],
+    roomMap?: number[][]
   ): boolean {
     // Check tile collision first
     if (CollisionDetector.checkPlayerCollision(x, y, tileSize, dungeon, doorStates)) {
@@ -142,6 +146,13 @@ export class GameEngine {
     // Check shrine collision if shrines are provided
     if (shrines && shrines.length > 0) {
       if (checkShrineCollision(x, y, tileSize, shrines)) {
+        return true;
+      }
+    }
+    // Check shop counter collision if rooms and roomMap are provided
+    if (rooms && roomMap) {
+      const shopRoom = getShopRoomAtPosition(x, y, tileSize, roomMap, rooms);
+      if (shopRoom && checkShopCounterCollision(x, y, tileSize, shopRoom)) {
         return true;
       }
     }
@@ -213,6 +224,8 @@ export class GameEngine {
           if (room.state === 'exploring') {
             room.state = 'explored';
             getEffectsManager().onRoomCleared(room, tileSize);
+            // Update shop door states when a room is cleared
+            updateShopDoorStates(rooms, enemies);
           }
         }, 400); // Match reveal animation duration
       }
@@ -221,6 +234,8 @@ export class GameEngine {
       if (enemiesInRoom === 0) {
         room.state = 'explored';
         getEffectsManager().onRoomCleared(room, tileSize);
+        // Update shop door states when a room is cleared
+        updateShopDoorStates(rooms, enemies);
       }
     }
   }
@@ -377,6 +392,42 @@ export class GameEngine {
       if (adjacentDoor) {
         const doorKey = `${adjacentDoor.x},${adjacentDoor.y}`;
         const isOpen = doorStates.get(doorKey) ?? false;
+
+        // Check if door leads to a shop and if player can enter
+        const { tx: playerTileX, ty: playerTileY } = getEntityTilePosition(player, tileSize);
+        const playerRoomId = roomMap[playerTileY]?.[playerTileX] ?? -1;
+        const playerRoom = playerRoomId >= 0 ? rooms[playerRoomId] : null;
+
+        // Find which room the door leads to (check adjacent tiles)
+        const doorNeighbors = [
+          { x: adjacentDoor.x - 1, y: adjacentDoor.y },
+          { x: adjacentDoor.x + 1, y: adjacentDoor.y },
+          { x: adjacentDoor.x, y: adjacentDoor.y - 1 },
+          { x: adjacentDoor.x, y: adjacentDoor.y + 1 }
+        ];
+
+        let targetShopRoom: Room | null = null;
+        for (const neighbor of doorNeighbors) {
+          const neighborRoomId = roomMap[neighbor.y]?.[neighbor.x] ?? -1;
+          if (neighborRoomId >= 0 && neighborRoomId !== playerRoomId) {
+            const neighborRoom = rooms[neighborRoomId];
+            if (neighborRoom?.type === 'shop') {
+              targetShopRoom = neighborRoom;
+              break;
+            }
+          }
+        }
+
+        // If door leads to shop, check if player can enter
+        if (targetShopRoom && playerRoom && !isOpen) {
+          if (!canEnterShop(targetShopRoom, playerRoom, enemies)) {
+            // Door stays closed - player needs to clear the room first
+            console.log(getLockedDoorMessage(playerRoom, enemies));
+            this.lastSpacePressed = spacePressed;
+            return;
+          }
+        }
+
         doorStates.set(doorKey, !isOpen);
 
         // If we just CLOSED the door, push entities away
@@ -417,10 +468,10 @@ export class GameEngine {
       const newY = player.y + dy;
 
       // Use player collision that respects door states and shrines
-      if (!this.checkPlayerCollision(newX, player.y, tileSize, dungeon, doorStates, shrines)) {
+      if (!this.checkPlayerCollision(newX, player.y, tileSize, dungeon, doorStates, shrines, rooms, roomMap)) {
         player.x = newX;
       }
-      if (!this.checkPlayerCollision(player.x, newY, tileSize, dungeon, doorStates, shrines)) {
+      if (!this.checkPlayerCollision(player.x, newY, tileSize, dungeon, doorStates, shrines, rooms, roomMap)) {
         player.y = newY;
       }
 

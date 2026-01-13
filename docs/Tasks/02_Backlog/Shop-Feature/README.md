@@ -137,21 +137,21 @@ Alle ──> SHOP-17 (Polish)
 
 | Task | Status | Bearbeiter | Datum |
 |------|--------|------------|-------|
-| SHOP-01 | ⬜ Offen | - | - |
-| SHOP-02 | ⬜ Offen | - | - |
-| SHOP-03 | ⬜ Offen | - | - |
-| SHOP-04 | ⬜ Offen | - | - |
-| SHOP-05 | ⬜ Offen | - | - |
-| SHOP-06 | ⬜ Offen | - | - |
-| SHOP-07 | ⬜ Offen | - | - |
-| SHOP-08 | ⬜ Offen | - | - |
-| SHOP-09 | ⬜ Offen | - | - |
-| SHOP-10 | ⬜ Offen | - | - |
-| SHOP-11 | ⬜ Offen | - | - |
-| SHOP-12 | ⬜ Offen | - | - |
-| SHOP-13 | ⬜ Offen | - | - |
-| SHOP-14 | ⬜ Offen | - | - |
-| SHOP-15 | ⬜ Offen | - | - |
+| SHOP-01 | ✅ Fertig | Michi | 2026-01-13 |
+| SHOP-02 | ✅ Fertig | Michi | 2026-01-13 |
+| SHOP-03 | ✅ Fertig | Michi | 2026-01-13 |
+| SHOP-04 | ✅ Fertig | Michi | 2026-01-13 |
+| SHOP-05 | ✅ Fertig | Michi | 2026-01-13 |
+| SHOP-06 | ✅ Fertig | Michi | 2026-01-13 |
+| SHOP-07 | ✅ Fertig | Michi | 2026-01-13 |
+| SHOP-08 | ✅ Fertig | Michi | 2026-01-13 |
+| SHOP-09 | ✅ Fertig | Michi | 2026-01-13 |
+| SHOP-10 | ✅ Fertig | Michi | 2026-01-13 |
+| SHOP-11 | ✅ Fertig | Claude | 2026-01-13 |
+| SHOP-12 | ✅ Fertig | Claude | 2026-01-13 |
+| SHOP-13 | ✅ Fertig | Michi | 2026-01-13 |
+| SHOP-14 | ✅ Fertig | Claude | 2026-01-13 |
+| SHOP-15 | ✅ Fertig | Claude | 2026-01-13 |
 | SHOP-16 | ⬜ Offen | - | - |
 | SHOP-17 | ⬜ Offen | - | - |
 

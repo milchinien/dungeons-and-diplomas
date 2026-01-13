@@ -142,11 +142,31 @@ export const TRASHMOB_COLORS: Record<TrashmobType, string> = {
 };
 
 // =============================================================================
+// Shop constants
+// =============================================================================
+/** Probability that a room becomes a shop (8%) */
+export const SHOP_SPAWN_CHANCE = 0.08;
+/** Minimum room size to become a shop (in tiles) */
+export const SHOP_MIN_ROOM_SIZE = 6;
+/** Number of items per shop */
+export const SHOP_ITEMS_COUNT = 3;
+/** Number of perks per shop */
+export const SHOP_PERKS_COUNT = 3;
+/** Maximum number of shops per dungeon */
+export const SHOP_MAX_PER_DUNGEON = 2;
+/** Amplitude of floating animation (in tiles) */
+export const FLOATING_ITEM_AMPLITUDE = 0.3;
+/** Speed of floating animation (cycles per second) */
+export const FLOATING_ITEM_SPEED = 2;
+/** Pulse speed for legendary items (cycles per second) */
+export const LEGENDARY_PULSE_SPEED = 1;
+
+// =============================================================================
 // Type definitions
 // =============================================================================
 
 // Room types including shrine
-export type RoomType = 'empty' | 'treasure' | 'combat' | 'shrine';
+export type RoomType = 'empty' | 'treasure' | 'combat' | 'shrine' | 'shop';
 
 // Room exploration states
 export type RoomState = 'unexplored' | 'exploring' | 'explored';
@@ -161,6 +181,9 @@ export interface Room {
   neighbors: number[];
   type: RoomType;
   state: RoomState;
+  // Shop-specific properties (only present when type === 'shop')
+  shopInventory?: import('./shop/ShopInventory').ShopInventory;
+  shopDoorOpen?: boolean;
 }
 
 export interface TileCoord {
@@ -295,3 +318,58 @@ export const BUFF_POOL: Buff[] = [
     tickInterval: 3,
   },
 ];
+
+// =============================================================================
+// BonusStats types (Shop system)
+// =============================================================================
+
+/** All bonus values granted by items and perks */
+export interface BonusStats {
+  /** Additional flat damage on correct answers */
+  damageFlat: number;
+
+  /** Percentage damage increase (0-100) */
+  damagePercent: number;
+
+  /** Percentage damage reduction on wrong answers (0-100) */
+  damageReduction: number;
+
+  /** Additional maximum HP */
+  maxHpBonus: number;
+
+  /** Speed multiplier (1.0 = normal) */
+  speedMultiplier: number;
+
+  /** Block chance in percent (0-100) */
+  blockChance: number;
+
+  /** Critical hit chance in percent (0-100) */
+  criticalChance: number;
+
+  /** Additional seconds for quiz questions */
+  timeBonus: number;
+
+  /** Number of extra lives */
+  extraLives: number;
+
+  /** ELO bonus for all subjects */
+  eloBonus: number;
+
+  /** HP regeneration per second */
+  regeneration: number;
+}
+
+/** Default values for BonusStats (no bonuses) */
+export const DEFAULT_BONUS_STATS: BonusStats = {
+  damageFlat: 0,
+  damagePercent: 0,
+  damageReduction: 0,
+  maxHpBonus: 0,
+  speedMultiplier: 1.0,
+  blockChance: 0,
+  criticalChance: 0,
+  timeBonus: 0,
+  extraLives: 0,
+  eloBonus: 0,
+  regeneration: 0
+};

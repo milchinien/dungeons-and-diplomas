@@ -9,6 +9,9 @@ import { getEntityTilePosition } from '../physics/TileCoordinates';
 import { getContext2D, clearCanvas } from './canvasUtils';
 import { RENDER_COLORS } from '../ui/colors';
 
+// Shop room color (cyan/turquoise)
+const SHOP_COLOR = '#00CED1';
+
 export interface MinimapRenderOptions {
   canvas: HTMLCanvasElement;
   player: Player;
@@ -84,6 +87,8 @@ export class MinimapRenderer {
               ctx.fillStyle = RENDER_COLORS.minimap.treasure;
             } else if (roomType === 'combat') {
               ctx.fillStyle = RENDER_COLORS.minimap.combat;
+            } else if (roomType === 'shop') {
+              ctx.fillStyle = SHOP_COLOR;
             } else {
               ctx.fillStyle = RENDER_COLORS.minimap.empty;
             }
@@ -107,6 +112,21 @@ export class MinimapRenderer {
       }
     }
 
+    // Render shop room icons ($ symbol)
+    rooms.forEach(room => {
+      if (room.type === 'shop' && room.visible) {
+        const centerX = offsetX + (room.x + room.width / 2) * scale;
+        const centerY = offsetY + (room.y + room.height / 2) * scale;
+        ctx.save();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold ' + Math.max(8, scale * 2) + 'px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('$', centerX, centerY);
+        ctx.restore();
+      }
+    });
+
     // Render treasures (yellow diamonds) - only in visible rooms
     treasures.forEach(treasureKey => {
       const [tx, ty] = treasureKey.split(',').map(Number);
@@ -116,7 +136,7 @@ export class MinimapRenderer {
         const centerX = offsetX + tx * scale + scale / 2;
         const centerY = offsetY + ty * scale + scale / 2;
         const size = Math.max(3, scale * 1.5);
-        
+
         // Draw diamond shape
         ctx.beginPath();
         ctx.moveTo(centerX, centerY - size);
@@ -132,16 +152,16 @@ export class MinimapRenderer {
     shrines.forEach(shrine => {
       const roomId = shrine.roomId;
       if (roomId >= 0 && rooms[roomId]?.visible) {
-        const color = shrine.isActive 
-          ? RENDER_COLORS.minimap.shrineActive 
+        const color = shrine.isActive
+          ? RENDER_COLORS.minimap.shrineActive
           : (shrine.isActivated ? RENDER_COLORS.minimap.empty : RENDER_COLORS.minimap.shrine);
-        
+
         if (!shrine.isActivated) {
           ctx.fillStyle = color;
           const centerX = offsetX + shrine.x * scale;
           const centerY = offsetY + shrine.y * scale;
           const size = Math.max(4, scale * 2);
-          
+
           // Draw star shape
           this.drawStar(ctx, centerX, centerY, 5, size, size / 2);
         }
@@ -152,13 +172,13 @@ export class MinimapRenderer {
     enemies.forEach(enemy => {
       const { tx: enemyTileX, ty: enemyTileY } = getEntityTilePosition(enemy, tileSize);
       const roomId = roomMap[enemyTileY]?.[enemyTileX];
-      
+
       if (roomId >= 0 && rooms[roomId]?.visible) {
         ctx.fillStyle = RENDER_COLORS.minimap.enemy;
         const centerX = offsetX + enemyTileX * scale + scale / 2;
         const centerY = offsetY + enemyTileY * scale + scale / 2;
         const radius = Math.max(2, scale * 1.2);
-        
+
         ctx.beginPath();
         ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
         ctx.fill();

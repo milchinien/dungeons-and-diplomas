@@ -10,6 +10,16 @@ import { Enemy } from './Enemy';
 
 /**
  * Handle AI state transitions (IDLE <-> WANDERING <-> FOLLOWING)
+ *
+ * @param enemy The enemy to update
+ * @param distanceToPlayer Distance to player in tiles
+ * @param aggroRadius Aggro radius in tiles
+ * @param deaggroRadius Deaggro radius in tiles
+ * @param sameRoom Whether player and enemy are in the same room
+ * @param dungeon The dungeon grid
+ * @param playerTileX Player's tile X position
+ * @param playerTileY Player's tile Y position
+ * @param playerRoomType The type of room the player is in (optional)
  */
 export function handleStateTransitions(
   enemy: Enemy,
@@ -19,16 +29,25 @@ export function handleStateTransitions(
   sameRoom: boolean,
   dungeon: TileType[][],
   playerTileX: number,
-  playerTileY: number
+  playerTileY: number,
+  playerRoomType?: string
 ): void {
+  // Shop rooms are safe zones - enemies immediately lose aggro
+  const playerInShop = playerRoomType === 'shop';
+
   if (enemy.aiState === AI_STATE.FOLLOWING) {
-    // Deaggro if player is too far away
-    if (distanceToPlayer > deaggroRadius) {
+    // Deaggro if player is too far away OR player entered a shop
+    if (distanceToPlayer > deaggroRadius || playerInShop) {
       enemy.aiState = AI_STATE.IDLE;
       enemy.idleTimer = ENEMY_IDLE_WAIT_TIME;
       enemy.path = [];
     }
   } else {
+    // Never aggro if player is in a shop
+    if (playerInShop) {
+      return;
+    }
+
     // Aggro only if player is in the SAME room AND close enough
     if (sameRoom && distanceToPlayer <= aggroRadius) {
       enemy.aiState = AI_STATE.FOLLOWING;

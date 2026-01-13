@@ -1,7 +1,9 @@
 /**
  * Types for the enemy module
  */
-import type { Direction, TileType, PlayerBuffs } from '../constants';
+import type { Direction, TileType, PlayerBuffs, BonusStats } from '../constants';
+import type { Item } from '../shop/Item';
+import type { Perk } from '../shop/Perk';
 
 /**
  * Player interface - represents the player entity

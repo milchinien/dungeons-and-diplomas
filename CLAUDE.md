@@ -771,6 +771,108 @@ Two different ELO calculation methods exist:
 - This is a **critical task** before production deployment
 - Supabase migrations already exist in `/supabase/migrations/`
 
+
+### 10. Shop System
+
+**Implementation**: lib/shop/, hooks/useShopPurchase.ts, components/ShopConfirmModal.tsx
+
+**Overview:**
+The shop system allows players to purchase items and perks from special shop rooms in the dungeon. Shops spawn during dungeon generation and offer random items/perks with varying rarities.
+
+**Room Generation:**
+- Shop rooms are assigned during dungeon generation (10% chance per room)
+- Each shop room gets a ShopInventory with 2-3 items and 1-2 perks
+- Items and perks have random rarities: Common (60%), Uncommon (25%), Rare (10%), Epic (4%), Legendary (1%)
+
+**Item System** (lib/shop/Item.ts):
+```typescript
+interface Item {
+  id: string;
+  definition: ItemDefinition;
+  rarity: Rarity;
+  effectValue: number;  // baseEffect * rarityMultiplier
+}
+
+// Item Types: sword, chestplate, helmet, shield, boots, amulet
+// Effect Types: damage_flat, damage_reduction, hp_flat, block_chance, speed, all_stats
+```
+
+**Perk System** (lib/shop/Perk.ts):
+```typescript
+interface Perk {
+  id: string;
+  definition: PerkDefinition;
+  rarity: Rarity;
+  effectValue: number;  // baseEffect * rarityMultiplier
+}
+
+// Perk Types: hp_flat, hp_percent, damage_flat, damage_percent, 
+//             regeneration, critical, time_bonus, extra_life, elo_boost
+```
+
+**Rarity System** (lib/shop/Rarity.ts):
+- Common: 1.0x multiplier, gray color
+- Uncommon: 1.5x multiplier, green color
+- Rare: 2.0x multiplier, blue color
+- Epic: 3.0x multiplier, purple color
+- Legendary: 5.0x multiplier, gold color
+
+**Shop Interaction:**
+- Player enters shop room → items/perks are rendered on canvas
+- Player presses E near item/perk → ShopConfirmModal appears
+- Player confirms → item/perk is purchased and applied to player stats
+
+**useShopPurchase Hook** (hooks/useShopPurchase.ts):
+- Manages shop state (current room, purchase target, modal visibility)
+- Handles E key for purchase interaction
+- Applies purchased items/perks to PlayerShopData
+- Updates player stats (HP, damage, etc.)
+
+**PlayerShopData:**
+```typescript
+interface PlayerShopData {
+  equippedItems: Item[];
+  activePerks: Perk[];
+  bonusStats: BonusStats;
+}
+```
+
+**BonusStats:**
+```typescript
+interface BonusStats {
+  damageFlat: number;
+  damagePercent: number;
+  damageReduction: number;
+  maxHpBonus: number;
+  blockChance: number;
+  speedMultiplier: number;
+  regeneration: number;
+  criticalChance: number;
+  timeBonus: number;
+  extraLives: number;
+  eloBonus: number;
+}
+```
+
+**UI Integration:**
+- CharacterPanel shows purchased items/perks with rarity-colored borders
+- Minimap shows shop rooms in cyan with "$" symbol
+- ShopRenderer renders items/perks in shop rooms on main canvas
+- TooltipRenderer shows item/perk details on hover
+
+**Key Files:**
+- `lib/shop/Item.ts` - Item definitions and types
+- `lib/shop/Perk.ts` - Perk definitions and types
+- `lib/shop/Rarity.ts` - Rarity system
+- `lib/shop/ShopInventory.ts` - Shop inventory generation
+- `lib/shop/ShopInteraction.ts` - Proximity detection
+- `lib/shop/ShopPurchase.ts` - Purchase execution
+- `hooks/useShopPurchase.ts` - React hook for shop state
+- `components/ShopConfirmModal.tsx` - Purchase confirmation UI
+- `components/character/ShopItemsDisplay.tsx` - CharacterPanel display
+- `lib/rendering/ShopRenderer.ts` - Canvas rendering for shop items
+
+
 ## Future Enhancements (Planned)
 
 1. **Database Abstraction Layer**

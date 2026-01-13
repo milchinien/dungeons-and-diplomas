@@ -23,9 +23,11 @@ import { useCombat } from '@/hooks/useCombat';
 import { useGameState } from '@/hooks/useGameState';
 import { useCombo } from '@/hooks/useCombo';
 import { useShrine } from '@/hooks/useShrine';
+import { useShopPurchase } from '@/hooks/useShopPurchase';
 import { spawnShrineEnemies, type ShrineSpawnContext } from '@/lib/game/EntitySpawner';
 import ComboDisplay from './ComboDisplay';
 import ShrineBuffModal from './ShrineBuffModal';
+import ShopConfirmModal from './ShopConfirmModal';
 import PauseMenu from './PauseMenu';
 import OptionsMenu from './OptionsMenu';
 import { getLevelInfo } from '@/lib/scoring/LevelCalculator';
@@ -513,13 +515,27 @@ export default function GameCanvas() {
     onShrineActivated: handleShrineActivated
   });
 
-  // Update shrine proximity periodically
+
+  // Shop purchase hook
+  const shopPurchase = useShopPurchase({
+    playerRef,
+    rooms: gameState.dungeonManagerRef.current?.rooms,
+    tileSize: gameState.dungeonManagerRef.current?.tileSize ?? 64,
+    inCombat: combat.inCombat,
+    gamePaused: gameState.gamePausedRef.current,
+    onHpChange: (increase) => {
+      playerRef.current.hp = Math.min(playerRef.current.hp + increase, playerRef.current.maxHp);
+      setPlayerHp(playerRef.current.hp);
+    }
+  });
+
+  // Update shrine and shop proximity periodically
   useEffect(() => {
     const interval = setInterval(() => {
       shrineHook.updateProximity();
     }, 100);
     return () => clearInterval(interval);
-  }, [shrineHook.updateProximity]);
+  }, [shrineHook.updateProximity, shopPurchase.updateProximity]);
 
   // Handle canvas click for shrine interaction
   const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -714,6 +730,8 @@ export default function GameCanvas() {
             onLogout={handleLogout}
             onRestart={handleRestart}
             onSkills={handleOpenSkills}
+            equippedItems={shopPurchase.shopData.equippedItems}
+            activePerks={shopPurchase.shopData.activePerks}
           />
         )}
 
@@ -864,6 +882,20 @@ export default function GameCanvas() {
           <ShrineBuffModal
             buffs={buffChoices}
             onSelectBuff={handleBuffSelected}
+          />
+        )}
+
+        {/* Shop Confirm Modal */}
+        {shopPurchase.showPurchaseModal && shopPurchase.purchaseTarget && (
+          <ShopConfirmModal
+            item={shopPurchase.purchaseTarget.type === 'item' 
+              ? shopPurchase.currentShopRoom?.shopInventory?.items[shopPurchase.purchaseTarget.index] ?? undefined
+              : undefined}
+            perk={shopPurchase.purchaseTarget.type === 'perk' 
+              ? shopPurchase.currentShopRoom?.shopInventory?.perks[shopPurchase.purchaseTarget.index] ?? undefined
+              : undefined}
+            onConfirm={shopPurchase.handlePurchaseConfirm}
+            onCancel={shopPurchase.handlePurchaseCancel}
           />
         )}
 

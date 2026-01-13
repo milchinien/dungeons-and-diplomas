@@ -18,7 +18,7 @@ import {
   calculateSpatialNeighbors,
   addWalls
 } from '../dungeon/generation';
-import { initializeDungeonRNG, generateRandomSeed, getDecorationRng } from '../dungeon/DungeonRNG';
+import { initializeDungeonRNG, generateRandomSeed, getDecorationRng, getStructureRng } from '../dungeon/DungeonRNG';
 import type { TileTheme, RenderMap } from '../tiletheme/types';
 import { generateRenderMap } from '../tiletheme/RenderMapGenerator';
 
