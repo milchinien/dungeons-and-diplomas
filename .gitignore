@@ -40,3 +40,7 @@ data/game.db
 /test-results/
 /playwright-report/
 /playwright/.cache/
+
+# claude code temporary files
+tmpclaude-*-cwd
+Volume*.lnk
