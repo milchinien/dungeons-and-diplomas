@@ -114,7 +114,8 @@ export class GameRenderer {
     trashmobs: Trashmob[],
     rooms: Room[],
     tileSize: number,
-    playerRoomIds: Set<number>
+    playerRoomIds: Set<number>,
+    roomMap: number[][]
   ): void {
     // Debug log every 120 frames
     this.trashmobRenderDebugCounter++;
@@ -127,9 +128,25 @@ export class GameRenderer {
     for (const trashmob of trashmobs) {
       if (!trashmob.alive) continue;
 
-      // Only render if trashmob's room is visible
-      const room = rooms[trashmob.roomId];
+      // Calculate current room based on trashmob's actual position (not spawn roomId)
+      const trashmobTileX = Math.floor((trashmob.x + tileSize / 2) / tileSize);
+      const trashmobTileY = Math.floor((trashmob.y + tileSize / 2) / tileSize);
+
+      // Check bounds and get current room
+      if (trashmobTileY < 0 || trashmobTileY >= roomMap.length ||
+          trashmobTileX < 0 || trashmobTileX >= roomMap[0]?.length) {
+        continue;
+      }
+
+      const currentRoomId = roomMap[trashmobTileY][trashmobTileX];
+
+      // Only render if trashmob is in a visible room
+      const room = currentRoomId >= 0 ? rooms[currentRoomId] : null;
       if (!room || !room.visible) continue;
+
+      // Additional check: only render if player is in the same room or an adjacent room
+      // This prevents seeing trashmobs through walls in distant but previously visited rooms
+      if (!playerRoomIds.has(currentRoomId)) continue;
 
       trashmob.draw(ctx, tileSize);
     }
@@ -266,7 +283,8 @@ export class GameRenderer {
     shrines: Shrine[] = [],
     trashmobs: Trashmob[] = [],
     isAttacking: boolean = false,
-    aimAngle?: number
+    aimAngle?: number,
+    fireballs: import('../projectiles').Fireball[] = []
   ) {
     const ctx = getContext2D(canvas);
     if (!ctx) {
@@ -299,7 +317,16 @@ export class GameRenderer {
     const startRow = Math.floor(camY / tileSize);
     const endRow = startRow + Math.ceil(canvas.height / tileSize) + 1;
 
-    const playerRoomIds = VisibilityCalculator.getPlayerRoomIds(player, tileSize, roomMap, dungeonWidth, dungeonHeight);
+    const playerRoomIds = VisibilityCalculator.getPlayerRoomIds(
+      player,
+      tileSize,
+      roomMap,
+      dungeonWidth,
+      dungeonHeight,
+      true,  // includeAdjacentThroughDoors - show trashmobs through open doors
+      doorStates,
+      rooms
+    );
     const { tx: playerTileX, ty: playerTileY } = getEntityTilePosition(player, tileSize);
 
     this.tileRenderer.renderTiles(
@@ -322,7 +349,14 @@ export class GameRenderer {
     this.renderEnemies(ctx, enemies, rooms, tileSize, player, playerRoomIds);
 
     // Render trashmobs
-    this.renderTrashmobs(ctx, trashmobs, rooms, tileSize, playerRoomIds);
+    this.renderTrashmobs(ctx, trashmobs, rooms, tileSize, playerRoomIds, roomMap);
+
+    // Render fireballs
+    for (const fireball of fireballs) {
+      if (fireball.alive) {
+        fireball.draw(ctx);
+      }
+    }
 
     // Render player
     this.renderPlayer(ctx, playerSprite, player, tileSize);
