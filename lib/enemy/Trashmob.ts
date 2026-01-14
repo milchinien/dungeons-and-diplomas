@@ -18,7 +18,7 @@ import {
 } from '../constants';
 import type { TrashmobType, Direction, AIStateType, TileType, Room } from '../constants';
 import { CollisionDetector } from '../physics/CollisionDetector';
-import { TrashmobSpriteRenderer } from '../rendering/TrashmobSprites';
+import { TrashmobSpriteRenderer, type TrashmobAnimationType } from '../rendering/TrashmobSprites';
 import { getParticleSystem } from '../effects/ParticleSystem';
 import type { Player } from './types';
 
@@ -1185,6 +1185,20 @@ export class Trashmob {
       ctx.fill();
     }
 
+    // Determine current animation based on state
+    let animation: TrashmobAnimationType = 'idle';
+    if (this.isDying) {
+      animation = 'death';
+    } else if (this.isAttacking) {
+      animation = 'attack';
+    } else if (this.isLeaping) {
+      animation = 'dash';
+    } else if (this.hopPhase !== 'grounded' && this.type === TRASHMOB_TYPE.SLIME) {
+      animation = 'jump';
+    } else if (this.isMoving) {
+      animation = 'move';
+    }
+
     // Draw pixel-art sprite
     this.spriteRenderer.draw(
       ctx,
@@ -1192,7 +1206,7 @@ export class Trashmob {
       this.x + offsetX,
       this.y + offsetY,
       spriteSize,
-      this.isMoving || this.isAttacking,
+      animation,
       this.direction
     );
 

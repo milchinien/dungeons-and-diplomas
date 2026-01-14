@@ -492,8 +492,17 @@ export class GameEngine {
       rooms,
       dungeon,
       doorStates,
-      onContactDamage
+      onContactDamage,
+      roomMap
     } = ctx;
+
+    // Get player's room ID
+    const playerTileX = Math.floor((player.x + tileSize / 2) / tileSize);
+    const playerTileY = Math.floor((player.y + tileSize / 2) / tileSize);
+    const playerRoomId = (roomMap && playerTileY >= 0 && playerTileY < roomMap.length &&
+                          playerTileX >= 0 && playerTileX < roomMap[0]?.length)
+      ? roomMap[playerTileY][playerTileX]
+      : -1;
 
     // Update each trashmob
     for (const trashmob of trashmobs) {
@@ -508,12 +517,27 @@ export class GameEngine {
       }
 
       // Check contact damage - only during attacks, after wind-up, and only once per attack
+      // IMPORTANT: Only deal damage if trashmob is in the SAME room as player (prevents damage through walls/doors)
       if (trashmob.isAttacking && trashmob.canDealDamage && !this.trashmobDamageDealt.has(trashmob)) {
-        const distance = trashmob.getDistanceToPlayer(player, tileSize);
-        if (distance < 0.6) { // Contact distance
-          const damage = trashmob.getContactDamage();
-          onContactDamage(damage);
-          this.trashmobDamageDealt.add(trashmob);
+        // Check if trashmob is in the same room as player
+        const trashmobTileX = Math.floor((trashmob.x + tileSize / 2) / tileSize);
+        const trashmobTileY = Math.floor((trashmob.y + tileSize / 2) / tileSize);
+        const trashmobRoomId = (roomMap && trashmobTileY >= 0 && trashmobTileY < roomMap.length &&
+                                trashmobTileX >= 0 && trashmobTileX < roomMap[0]?.length)
+          ? roomMap[trashmobTileY][trashmobTileX]
+          : -1;
+
+        // Only allow damage if in the same room (or both on doors/corridors which have roomId -2)
+        const sameRoom = playerRoomId >= 0 && trashmobRoomId >= 0 && playerRoomId === trashmobRoomId;
+        const bothInCorridor = playerRoomId === -2 && trashmobRoomId === -2;
+
+        if (sameRoom || bothInCorridor) {
+          const distance = trashmob.getDistanceToPlayer(player, tileSize);
+          if (distance < 0.6) { // Contact distance
+            const damage = trashmob.getContactDamage();
+            onContactDamage(damage);
+            this.trashmobDamageDealt.add(trashmob);
+          }
         }
       }
     }

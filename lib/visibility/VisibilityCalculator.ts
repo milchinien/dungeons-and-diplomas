@@ -48,15 +48,22 @@ export class VisibilityCalculator {
   }
 
   /**
-   * Get the player's current room ID(s).
+   * Get the player's current room ID(s), including rooms visible through open doors.
    * Returns a Set because player might be on a door (adjacent to multiple rooms).
+   *
+   * @param includeAdjacentThroughDoors - If true, includes rooms connected by open doors
+   * @param doorStates - Map of door states (required if includeAdjacentThroughDoors is true)
+   * @param rooms - Array of all rooms (required if includeAdjacentThroughDoors is true)
    */
   static getPlayerRoomIds(
     player: Player,
     tileSize: number,
     roomMap: number[][],
     dungeonWidth: number,
-    dungeonHeight: number
+    dungeonHeight: number,
+    includeAdjacentThroughDoors: boolean = false,
+    doorStates?: Map<string, boolean>,
+    rooms?: Room[]
   ): Set<number> {
     const { tx: playerTileX, ty: playerTileY } = getEntityTilePosition(player, tileSize);
     const roomIds = new Set<number>();
@@ -67,20 +74,60 @@ export class VisibilityCalculator {
 
     const directRoomId = roomMap[playerTileY][playerTileX];
 
-    // If player is in a valid room, just return that
+    // If player is in a valid room, add it
     if (directRoomId >= 0) {
       roomIds.add(directRoomId);
-      return roomIds;
+    } else {
+      // Player is on a door/wall (roomId < 0) - find adjacent rooms
+      for (const { dx, dy } of DIRECTION_OFFSETS) {
+        const nx = playerTileX + dx;
+        const ny = playerTileY + dy;
+        if (nx >= 0 && nx < dungeonWidth && ny >= 0 && ny < dungeonHeight) {
+          const neighborRoomId = roomMap[ny][nx];
+          if (neighborRoomId >= 0) {
+            roomIds.add(neighborRoomId);
+          }
+        }
+      }
     }
 
-    // Player is on a door/wall (roomId < 0) - find adjacent rooms
-    for (const { dx, dy } of DIRECTION_OFFSETS) {
-      const nx = playerTileX + dx;
-      const ny = playerTileY + dy;
-      if (nx >= 0 && nx < dungeonWidth && ny >= 0 && ny < dungeonHeight) {
-        const neighborRoomId = roomMap[ny][nx];
-        if (neighborRoomId >= 0) {
-          roomIds.add(neighborRoomId);
+    // Include rooms visible through open doors
+    if (includeAdjacentThroughDoors && doorStates && rooms) {
+      const initialRooms = Array.from(roomIds);
+      for (const roomId of initialRooms) {
+        const room = rooms[roomId];
+        if (!room) continue;
+
+        // Check all neighbors of this room for open doors
+        for (const neighborId of room.neighbors) {
+          // Find door tiles between these rooms
+          // Check all tiles around the room perimeter for doors
+          for (let y = room.y - 1; y <= room.y + room.height; y++) {
+            for (let x = room.x - 1; x <= room.x + room.width; x++) {
+              if (y < 0 || y >= dungeonHeight || x < 0 || x >= dungeonWidth) continue;
+
+              const tileRoomId = roomMap[y][x];
+              if (tileRoomId === -2) { // Door tile
+                const doorKey = `${x},${y}`;
+                const isOpen = doorStates.get(doorKey) ?? false;
+
+                // Check if this door connects to the neighbor room
+                if (isOpen) {
+                  // Check adjacent tiles to see if any belong to the neighbor
+                  for (const { dx, dy } of DIRECTION_OFFSETS) {
+                    const adjX = x + dx;
+                    const adjY = y + dy;
+                    if (adjX >= 0 && adjX < dungeonWidth && adjY >= 0 && adjY < dungeonHeight) {
+                      if (roomMap[adjY][adjX] === neighborId) {
+                        roomIds.add(neighborId);
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     }

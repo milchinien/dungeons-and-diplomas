@@ -246,7 +246,8 @@ export function useGameState({
         rooms: manager.rooms,
         dungeon: manager.dungeon,
         doorStates: manager.doorStates,
-        onContactDamage: handleContactDamage
+        onContactDamage: handleContactDamage,
+        roomMap: manager.roomMap
       });
 
       // Remove dead trashmobs
