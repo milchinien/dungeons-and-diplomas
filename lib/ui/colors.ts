@@ -56,6 +56,7 @@ export const RENDER_COLORS = {
     wall: '#444444',
     door: '#4CAF50',
     player: '#00FFFF',
+    shop: '#00CED1',     // Cyan/Turquoise for shop rooms
     // Entity markers
     enemy: '#FF0000',
     shrine: '#FFD700',

@@ -1,8 +1,9 @@
-import { DUNGEON_WIDTH, DUNGEON_HEIGHT, TILE, FLOOR_VARIANTS, WALL_VARIANTS, DEFAULT_DUNGEON_CONFIG } from '../constants';
+import { DUNGEON_WIDTH, DUNGEON_HEIGHT, TILE, FLOOR_VARIANTS, WALL_VARIANTS, DEFAULT_DUNGEON_CONFIG, SHOP_SPAWN_CHANCE, SHOP_MIN_ROOM_SIZE, SHOP_MAX_ROOM_SIZE, SHOP_MIN_PER_DUNGEON, SHOP_MAX_PER_DUNGEON } from '../constants';
 import type { TileType, TileVariant, Room, TileCoord, DungeonConfig } from '../constants';
 import { BSPNode } from './BSPNode';
 import { UnionFind } from './UnionFind';
 import { getDecorationRng, getStructureRng } from './DungeonRNG';
+import { generateShopInventory } from '../shop/ShopInventory';
 
 // Weighted random selection function
 export function getWeightedRandomVariant(variants: { x: number; y: number; weight: number }[]): TileCoord {
@@ -245,4 +246,82 @@ export function addWalls(dungeon: TileType[][], config?: Partial<DungeonConfig>)
     if (dungeon[y][0] === TILE.EMPTY) dungeon[y][0] = TILE.WALL;
     if (dungeon[y][width - 1] === TILE.EMPTY) dungeon[y][width - 1] = TILE.WALL;
   }
+}
+
+
+// =============================================================================
+// Shop Room Assignment
+// =============================================================================
+
+/**
+ * Checks if a room has the right size for a shop (not too small, not too large).
+ */
+function isRoomRightSizeForShop(room: Room): boolean {
+  return room.width >= SHOP_MIN_ROOM_SIZE && room.height >= SHOP_MIN_ROOM_SIZE &&
+         room.width <= SHOP_MAX_ROOM_SIZE && room.height <= SHOP_MAX_ROOM_SIZE;
+}
+
+/**
+ * Assigns shop rooms after normal room types have been assigned.
+ * Guarantees at least SHOP_MIN_PER_DUNGEON shops if enough suitable rooms exist.
+ * @param rooms - Array of all rooms
+ * @param startRoomIndex - Index of the start room (never becomes a shop)
+ * @param randomFn - Random function
+ */
+export function assignShopRooms(
+  rooms: Room[],
+  startRoomIndex: number,
+  randomFn: () => number = Math.random
+): void {
+  // Debug: Log room size distribution
+  const roomSizes = rooms.map(r => ({ w: r.width, h: r.height }));
+  const tooSmall = roomSizes.filter(s => s.w < SHOP_MIN_ROOM_SIZE || s.h < SHOP_MIN_ROOM_SIZE).length;
+  const tooLarge = roomSizes.filter(s => s.w > SHOP_MAX_ROOM_SIZE || s.h > SHOP_MAX_ROOM_SIZE).length;
+  const justRight = roomSizes.filter(s =>
+    s.w >= SHOP_MIN_ROOM_SIZE && s.h >= SHOP_MIN_ROOM_SIZE &&
+    s.w <= SHOP_MAX_ROOM_SIZE && s.h <= SHOP_MAX_ROOM_SIZE
+  ).length;
+  console.log(`[Shop Debug] Rooms: ${rooms.length}, Too small: ${tooSmall}, Too large: ${tooLarge}, Just right: ${justRight}`);
+  console.log(`[Shop Debug] Size range needed: ${SHOP_MIN_ROOM_SIZE}-${SHOP_MAX_ROOM_SIZE}`);
+
+  // Find all eligible rooms (right size, not start room)
+  const eligibleRooms: number[] = [];
+  for (let i = 0; i < rooms.length; i++) {
+    if (i === startRoomIndex) continue;
+    if (isRoomRightSizeForShop(rooms[i])) {
+      eligibleRooms.push(i);
+    }
+  }
+
+  // Shuffle eligible rooms for random selection
+  for (let i = eligibleRooms.length - 1; i > 0; i--) {
+    const j = Math.floor(randomFn() * (i + 1));
+    [eligibleRooms[i], eligibleRooms[j]] = [eligibleRooms[j], eligibleRooms[i]];
+  }
+
+  let shopCount = 0;
+
+  // First pass: Guarantee minimum shops
+  const guaranteedCount = Math.min(SHOP_MIN_PER_DUNGEON, eligibleRooms.length);
+  for (let i = 0; i < guaranteedCount; i++) {
+    const roomIndex = eligibleRooms[i];
+    rooms[roomIndex].type = 'shop';
+    rooms[roomIndex].shopInventory = generateShopInventory(rooms[roomIndex].id, randomFn);
+    rooms[roomIndex].shopDoorOpen = false;
+    shopCount++;
+  }
+
+  // Second pass: Random additional shops up to maximum
+  for (let i = guaranteedCount; i < eligibleRooms.length && shopCount < SHOP_MAX_PER_DUNGEON; i++) {
+    if (randomFn() < SHOP_SPAWN_CHANCE) {
+      const roomIndex = eligibleRooms[i];
+      rooms[roomIndex].type = 'shop';
+      rooms[roomIndex].shopInventory = generateShopInventory(rooms[roomIndex].id, randomFn);
+      rooms[roomIndex].shopDoorOpen = false;
+      shopCount++;
+    }
+  }
+
+  // Debug log
+  console.log(`[Dungeon Generation] ${rooms.length} rooms, ${shopCount} shop(s) assigned (min: ${SHOP_MIN_PER_DUNGEON}, max: ${SHOP_MAX_PER_DUNGEON}, eligible: ${eligibleRooms.length})`);
 }

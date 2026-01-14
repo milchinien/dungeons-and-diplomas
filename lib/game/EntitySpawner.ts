@@ -453,7 +453,9 @@ export function spawnTrashmobs(
   const trashmobTypes: TrashmobType[] = [
     TRASHMOB_TYPE.RAT,
     TRASHMOB_TYPE.SLIME,
-    TRASHMOB_TYPE.BAT
+    TRASHMOB_TYPE.BAT,
+    TRASHMOB_TYPE.MAGE,
+    TRASHMOB_TYPE.BOMB
   ];
 
   console.log(`[EntitySpawner] Starting trashmob spawn. Total rooms: ${rooms.length}, playerRoomId: ${playerRoomId}`);
@@ -469,6 +471,9 @@ export function spawnTrashmobs(
 
     // Skip shrine rooms
     if (room.type === 'shrine') continue;
+
+    // Skip shop rooms - safe zone for players
+    if (room.type === 'shop') continue;
 
     // Collect floor tiles in this room
     const roomFloorTiles: { x: number; y: number }[] = [];

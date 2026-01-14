@@ -4,9 +4,13 @@ interface CombatAnswersProps {
   isHidden: boolean;
   /** Index of wrong answer to grey out as hint, -1 if no hint */
   hintedAnswerIndex?: number;
+  /** Index of the correct answer (for cheat mode) */
+  correctAnswerIndex?: number;
+  /** Whether to highlight the correct answer (cheat mode) */
+  showCorrectAnswer?: boolean;
 }
 
-export default function CombatAnswers({ answers, onSelectAnswer, isHidden, hintedAnswerIndex = -1 }: CombatAnswersProps) {
+export default function CombatAnswers({ answers, onSelectAnswer, isHidden, hintedAnswerIndex = -1, correctAnswerIndex = -1, showCorrectAnswer = false }: CombatAnswersProps) {
   return (
     <>
       <style jsx>{`
@@ -60,6 +64,29 @@ export default function CombatAnswers({ answers, onSelectAnswer, isHidden, hinte
           color: #ff4444;
           text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9);
         }
+
+        .correct-answer {
+          border-color: #00ff00 !important;
+          box-shadow: 0 0 20px rgba(0, 255, 0, 0.7), 0 0 40px rgba(0, 255, 0, 0.4), inset 0 2px 4px rgba(255,255,255,0.1) !important;
+          animation: correctPulse 1s ease-in-out infinite;
+        }
+
+        .correct-answer::before {
+          content: '✓ RICHTIG';
+          position: absolute;
+          right: 20px;
+          top: 50%;
+          transform: translateY(-50%);
+          font-size: 18px;
+          color: #00ff00;
+          text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9);
+          font-weight: bold;
+        }
+
+        @keyframes correctPulse {
+          0%, 100% { box-shadow: 0 0 20px rgba(0, 255, 0, 0.7), 0 0 40px rgba(0, 255, 0, 0.4), inset 0 2px 4px rgba(255,255,255,0.1); }
+          50% { box-shadow: 0 0 30px rgba(0, 255, 0, 0.9), 0 0 60px rgba(0, 255, 0, 0.6), inset 0 2px 4px rgba(255,255,255,0.1); }
+        }
       `}</style>
 
       <div style={{
@@ -79,11 +106,12 @@ export default function CombatAnswers({ answers, onSelectAnswer, isHidden, hinte
       }}>
         {answers.map((answer, index) => {
           const isHinted = index === hintedAnswerIndex;
+          const isCorrect = showCorrectAnswer && index === correctAnswerIndex;
           return (
           <button
             key={index}
             onClick={() => !isHinted && onSelectAnswer(index)}
-            className={`wood-texture${isHinted ? ' hinted-answer' : ''}`}
+            className={`wood-texture${isHinted ? ' hinted-answer' : ''}${isCorrect ? ' correct-answer' : ''}`}
             disabled={isHinted}
             style={{
               padding: '20px 30px',

@@ -23,6 +23,8 @@ interface CombatModalProps {
   onAnswerQuestion: (index: number) => void;
   /** Index of wrong answer to grey out as hint, -1 if no hint */
   hintedAnswerIndex?: number;
+  /** Whether to show the correct answer (cheat mode) */
+  showCorrectAnswer?: boolean;
   // Dungeon data for background rendering
   player?: Player;
   dungeon?: TileType[][];
@@ -44,6 +46,7 @@ export default function CombatModal({
   combatFeedback,
   onAnswerQuestion,
   hintedAnswerIndex = -1,
+  showCorrectAnswer = false,
   player,
   dungeon,
   roomMap,
@@ -164,6 +167,8 @@ export default function CombatModal({
           onSelectAnswer={onAnswerQuestion}
           isHidden={isCombatAnimating}
           hintedAnswerIndex={hintedAnswerIndex}
+          correctAnswerIndex={combatQuestion.correctIndex}
+          showCorrectAnswer={showCorrectAnswer}
         />
       )}
 

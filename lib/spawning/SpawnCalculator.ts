@@ -83,6 +83,19 @@ function getRoomSpawnStrategy(
         levelGenerator: () => 1
       };
 
+    case 'shop':
+      // Shop rooms: No enemies - safe zone for players
+      return {
+        enemyCount: 0,
+        levelGenerator: () => 1
+      };
+
+    case 'shrine':
+      // Shrine rooms: Enemies spawn dynamically when activated
+      return {
+        enemyCount: 0,
+        levelGenerator: () => 1
+      };
     case 'combat':
       // Combat rooms: 1-3 enemies, at least one level 8+
       return {

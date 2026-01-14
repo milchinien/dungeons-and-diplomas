@@ -12,6 +12,10 @@ import { RENDER_COLORS } from '../ui/colors';
 import { getEffectsManager } from '../effects';
 import { getEntityTilePosition } from '../physics/TileCoordinates';
 
+import { renderShopRoom, type ShopAssets } from './ShopRenderer';
+import { getPlayerShopRoom, getInteractionTarget, type InteractionTarget } from '../shop/ShopInteraction';
+import { renderTooltip, createItemTooltip, createPerkTooltip } from './TooltipRenderer';
+
 /**
  * Main game renderer that orchestrates all rendering passes.
  * Uses TileRenderer for tile-specific rendering operations.
@@ -21,6 +25,9 @@ export class GameRenderer {
   private pulsePhase = 0;
   private shrineImage: HTMLImageElement | null = null;
   private shrineImageLoaded = false;
+  private gameTime = 0;
+  private shopAssets: ShopAssets = {};
+  private currentInteractionTarget: InteractionTarget | null = null;
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -107,7 +114,8 @@ export class GameRenderer {
     trashmobs: Trashmob[],
     rooms: Room[],
     tileSize: number,
-    playerRoomIds: Set<number>
+    playerRoomIds: Set<number>,
+    roomMap: number[][]
   ): void {
     // Debug log every 120 frames
     this.trashmobRenderDebugCounter++;
@@ -120,12 +128,104 @@ export class GameRenderer {
     for (const trashmob of trashmobs) {
       if (!trashmob.alive) continue;
 
-      // Only render if trashmob's room is visible
-      const room = rooms[trashmob.roomId];
+      // Calculate current room based on trashmob's actual position (not spawn roomId)
+      const trashmobTileX = Math.floor((trashmob.x + tileSize / 2) / tileSize);
+      const trashmobTileY = Math.floor((trashmob.y + tileSize / 2) / tileSize);
+
+      // Check bounds and get current room
+      if (trashmobTileY < 0 || trashmobTileY >= roomMap.length ||
+          trashmobTileX < 0 || trashmobTileX >= roomMap[0]?.length) {
+        continue;
+      }
+
+      const currentRoomId = roomMap[trashmobTileY][trashmobTileX];
+
+      // Only render if trashmob is in a visible room
+      const room = currentRoomId >= 0 ? rooms[currentRoomId] : null;
       if (!room || !room.visible) continue;
+
+      // Additional check: only render if player is in the same room or an adjacent room
+      // This prevents seeing trashmobs through walls in distant but previously visited rooms
+      if (!playerRoomIds.has(currentRoomId)) continue;
 
       trashmob.draw(ctx, tileSize);
     }
+  }
+
+  /**
+   * Render all visible shop rooms
+   */
+  private renderShops(
+    ctx: CanvasRenderingContext2D,
+    rooms: Room[],
+    camera: { x: number; y: number }
+  ): void {
+    for (const room of rooms) {
+      if (room.type === 'shop' && room.visible && room.shopInventory) {
+        renderShopRoom(ctx, room, this.gameTime, camera, this.shopAssets);
+      }
+    }
+  }
+
+  /**
+   * Updates the current interaction target based on player position.
+   */
+  private updateInteractionTarget(
+    player: Player,
+    rooms: Room[],
+    tileSize: number
+  ): void {
+    // Convert player position to world coordinates (center of player)
+    const playerWorldX = player.x + tileSize / 2;
+    const playerWorldY = player.y + tileSize / 2;
+
+    // Find which shop room the player is in
+    const shopRoom = getPlayerShopRoom(playerWorldX, playerWorldY, rooms);
+
+    if (shopRoom) {
+      this.currentInteractionTarget = getInteractionTarget(
+        playerWorldX,
+        playerWorldY,
+        shopRoom
+      );
+    } else {
+      this.currentInteractionTarget = null;
+    }
+  }
+
+  /**
+   * Renders the tooltip for the current interaction target.
+   * Called after ctx.restore() since tooltips are in screen space.
+   */
+  private renderShopTooltip(
+    ctx: CanvasRenderingContext2D,
+    camera: { x: number; y: number }
+  ): void {
+    if (!this.currentInteractionTarget) return;
+
+    const target = this.currentInteractionTarget;
+
+    // Convert world position to screen position
+    const screenX = target.worldX - camera.x;
+    const screenY = target.worldY - camera.y;
+
+    // Create tooltip based on type
+    const tooltip = target.type === 'item' && target.item
+      ? createItemTooltip(target.item)
+      : target.type === 'perk' && target.perk
+        ? createPerkTooltip(target.perk)
+        : null;
+
+    if (tooltip) {
+      renderTooltip(ctx, tooltip, screenX, screenY);
+    }
+  }
+
+  /**
+   * Returns the current interaction target (for purchase handling).
+   */
+  getCurrentInteractionTarget(): InteractionTarget | null {
+    return this.currentInteractionTarget;
   }
 
   /**
@@ -183,12 +283,15 @@ export class GameRenderer {
     shrines: Shrine[] = [],
     trashmobs: Trashmob[] = [],
     isAttacking: boolean = false,
-    aimAngle?: number
+    aimAngle?: number,
+    fireballs: import('../projectiles').Fireball[] = []
   ) {
     const ctx = getContext2D(canvas);
     if (!ctx) {
       throw new Error('Failed to get 2D context from canvas');
     }
+
+    this.gameTime += 1 / 60;
 
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -214,7 +317,16 @@ export class GameRenderer {
     const startRow = Math.floor(camY / tileSize);
     const endRow = startRow + Math.ceil(canvas.height / tileSize) + 1;
 
-    const playerRoomIds = VisibilityCalculator.getPlayerRoomIds(player, tileSize, roomMap, dungeonWidth, dungeonHeight);
+    const playerRoomIds = VisibilityCalculator.getPlayerRoomIds(
+      player,
+      tileSize,
+      roomMap,
+      dungeonWidth,
+      dungeonHeight,
+      true,  // includeAdjacentThroughDoors - show trashmobs through open doors
+      doorStates,
+      rooms
+    );
     const { tx: playerTileX, ty: playerTileY } = getEntityTilePosition(player, tileSize);
 
     this.tileRenderer.renderTiles(
@@ -229,11 +341,22 @@ export class GameRenderer {
     );
 
     this.renderShrines(ctx, shrines, rooms, tileSize, playerRoomIds);
+    this.renderShops(ctx, rooms, { x: camX, y: camY });
+
+    // Update interaction target for shop tooltips
+    this.updateInteractionTarget(player, rooms, tileSize);
 
     this.renderEnemies(ctx, enemies, rooms, tileSize, player, playerRoomIds);
 
     // Render trashmobs
-    this.renderTrashmobs(ctx, trashmobs, rooms, tileSize, playerRoomIds);
+    this.renderTrashmobs(ctx, trashmobs, rooms, tileSize, playerRoomIds, roomMap);
+
+    // Render fireballs
+    for (const fireball of fireballs) {
+      if (fireball.alive) {
+        fireball.draw(ctx);
+      }
+    }
 
     // Render player
     this.renderPlayer(ctx, playerSprite, player, tileSize);
@@ -252,5 +375,8 @@ export class GameRenderer {
     effectsManager.renderTransitionInWorldSpace(ctx);
 
     ctx.restore();
+
+    // Render shop tooltips in screen space (after ctx.restore)
+    this.renderShopTooltip(ctx, { x: camX, y: camY });
   }
 }

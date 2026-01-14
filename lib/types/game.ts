@@ -106,4 +106,6 @@ export interface UpdateTrashmobsContext {
   doorStates: Map<string, boolean>;
   /** Callback when player takes contact damage */
   onContactDamage: (damage: number) => void;
+  /** Map of tile coordinates to room indices (for same-room damage check) */
+  roomMap?: number[][];
 }

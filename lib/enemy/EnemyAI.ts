@@ -57,8 +57,11 @@ export class EnemyAI {
     const deaggroRadius = enemy.getDeaggroRadius();
     const sameRoom = enemy.roomId === playerRoomId && enemy.roomId >= 0;
 
+    // Get player's room type for shop safety check
+    const playerRoomType = playerRoomId >= 0 && rooms[playerRoomId] ? rooms[playerRoomId].type : undefined;
+
     // State transitions (using AggroManager module)
-    handleStateTransitions(enemy, distanceToPlayer, aggroRadius, deaggroRadius, sameRoom, dungeon, playerTileX, playerTileY);
+    handleStateTransitions(enemy, distanceToPlayer, aggroRadius, deaggroRadius, sameRoom, dungeon, playerTileX, playerTileY, playerRoomType);
 
     // Count down aggro reaction timer while following
     if (enemy.aiState === AI_STATE.FOLLOWING && enemy.aggroReactionTimer > 0) {

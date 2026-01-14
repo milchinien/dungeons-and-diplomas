@@ -23,11 +23,15 @@ import { useCombat } from '@/hooks/useCombat';
 import { useGameState } from '@/hooks/useGameState';
 import { useCombo } from '@/hooks/useCombo';
 import { useShrine } from '@/hooks/useShrine';
+import { useShopPurchase } from '@/hooks/useShopPurchase';
 import { spawnShrineEnemies, type ShrineSpawnContext } from '@/lib/game/EntitySpawner';
 import ComboDisplay from './ComboDisplay';
 import ShrineBuffModal from './ShrineBuffModal';
+import ShopConfirmModal from './ShopConfirmModal';
 import PauseMenu from './PauseMenu';
 import OptionsMenu from './OptionsMenu';
+import CheatModal from './CheatModal';
+import { useCheatSystem } from '@/hooks/useCheatSystem';
 import { getLevelInfo } from '@/lib/scoring/LevelCalculator';
 import { api } from '@/lib/api';
 import { COLORS } from '@/lib/ui/colors';
@@ -513,13 +517,49 @@ export default function GameCanvas() {
     onShrineActivated: handleShrineActivated
   });
 
-  // Update shrine proximity periodically
+
+  // Shop purchase hook
+  const shopPurchase = useShopPurchase({
+    playerRef,
+    rooms: gameState.dungeonManagerRef.current?.rooms,
+    tileSize: gameState.dungeonManagerRef.current?.tileSize ?? 64,
+    inCombat: combat.inCombat,
+    gamePaused: gameState.gamePausedRef.current,
+    onHpChange: (increase) => {
+      playerRef.current.hp = Math.min(playerRef.current.hp + increase, playerRef.current.maxHp);
+      setPlayerHp(playerRef.current.hp);
+    }
+  });
+
+  // Cheat system hook
+  const cheatSystem = useCheatSystem({
+    playerRef,
+    dungeonManagerRef: gameState.dungeonManagerRef,
+    onPlayerHpUpdate: setPlayerHp,
+    onXpGained: handleXpGained,
+    onGenerateNewDungeon: () => {
+      combo.resetCombo();
+      combo.resetMaxCombo();
+      resetPlayerBuffs(playerRef.current);
+      resetRegenTimer();
+      resetSessionStats();
+      gameState.generateNewDungeon();
+    },
+    onKillCurrentEnemy: () => {
+      if (combat.currentEnemyRef.current) {
+        combat.currentEnemyRef.current.hp = 0;
+        combat.currentEnemyRef.current.alive = false;
+      }
+    }
+  });
+
+  // Update shrine and shop proximity periodically
   useEffect(() => {
     const interval = setInterval(() => {
       shrineHook.updateProximity();
     }, 100);
     return () => clearInterval(interval);
-  }, [shrineHook.updateProximity]);
+  }, [shrineHook.updateProximity, shopPurchase.updateProximity]);
 
   // Handle canvas click for shrine interaction
   const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -614,11 +654,24 @@ export default function GameCanvas() {
     }
   }, [playerRef, gameState.gamePausedRef]);
 
-  // Keyboard handler for inventory (I key) and pause menu (ESC)
+  // Keyboard handler for inventory (I key), pause menu (ESC), and cheat menu (CTRL+P)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Cheat menu toggle with CTRL+P
+      if (e.ctrlKey && e.key.toLowerCase() === 'p' && !showLogin) {
+        e.preventDefault(); // Prevent browser print dialog
+        if (cheatSystem.showCheatModal) {
+          cheatSystem.closeCheatModal();
+          gameState.gamePausedRef.current = false;
+        } else {
+          gameState.gamePausedRef.current = true;
+          cheatSystem.toggleCheatModal();
+        }
+        return;
+      }
+
       // Inventory toggle with I key
-      if (e.key.toLowerCase() === 'i' && !showLogin && !combat.inCombat && !showPauseMenu && !showOptionsMenu) {
+      if (e.key.toLowerCase() === 'i' && !showLogin && !combat.inCombat && !showPauseMenu && !showOptionsMenu && !cheatSystem.showCheatModal) {
         if (showInventory) {
           handleCloseInventory();
         } else {
@@ -631,7 +684,10 @@ export default function GameCanvas() {
       // ESC key handling
       if (e.key === 'Escape' && !showLogin) {
         // Close modals in priority order
-        if (showOptionsMenu) {
+        if (cheatSystem.showCheatModal) {
+          cheatSystem.closeCheatModal();
+          gameState.gamePausedRef.current = false;
+        } else if (showOptionsMenu) {
           // Go back to pause menu from options
           handleOptionsBack();
         } else if (showInventory) {
@@ -650,7 +706,7 @@ export default function GameCanvas() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showInventory, showLogin, showSkillDashboard, combat.inCombat, showPauseMenu, showBuffSelection, showOptionsMenu]);
+  }, [showInventory, showLogin, showSkillDashboard, combat.inCombat, showPauseMenu, showBuffSelection, showOptionsMenu, cheatSystem.showCheatModal]);
 
   const handleLoginWithElo = async (id: number, name: string, xp?: number) => {
     await handleLogin(id, name, xp);
@@ -714,6 +770,8 @@ export default function GameCanvas() {
             onLogout={handleLogout}
             onRestart={handleRestart}
             onSkills={handleOpenSkills}
+            equippedItems={shopPurchase.shopData.equippedItems}
+            activePerks={shopPurchase.shopData.activePerks}
           />
         )}
 
@@ -777,6 +835,7 @@ export default function GameCanvas() {
             combatFeedback={combat.combatFeedback}
             onAnswerQuestion={combat.answerQuestion}
             hintedAnswerIndex={combat.hintedAnswerIndex}
+            showCorrectAnswer={cheatSystem.cheatState.showCorrectAnswer}
             player={playerRef.current}
             dungeon={gameState.dungeonManagerRef.current?.dungeon}
             roomMap={gameState.dungeonManagerRef.current?.roomMap}
@@ -867,6 +926,20 @@ export default function GameCanvas() {
           />
         )}
 
+        {/* Shop Confirm Modal */}
+        {shopPurchase.showPurchaseModal && shopPurchase.purchaseTarget && (
+          <ShopConfirmModal
+            item={shopPurchase.purchaseTarget.type === 'item' 
+              ? shopPurchase.currentShopRoom?.shopInventory?.items[shopPurchase.purchaseTarget.index] ?? undefined
+              : undefined}
+            perk={shopPurchase.purchaseTarget.type === 'perk' 
+              ? shopPurchase.currentShopRoom?.shopInventory?.perks[shopPurchase.purchaseTarget.index] ?? undefined
+              : undefined}
+            onConfirm={shopPurchase.handlePurchaseConfirm}
+            onCancel={shopPurchase.handlePurchaseCancel}
+          />
+        )}
+
         {/* Pause Menu */}
         {showPauseMenu && (
           <PauseMenu
@@ -885,6 +958,30 @@ export default function GameCanvas() {
             onMusicVolumeChange={audioSettings.setMusicVolume}
             onSfxVolumeChange={audioSettings.setSfxVolume}
             onBack={handleOptionsBack}
+          />
+        )}
+
+        {/* Cheat Menu */}
+        {cheatSystem.showCheatModal && (
+          <CheatModal
+            cheatState={cheatSystem.cheatState}
+            onClose={() => {
+              cheatSystem.closeCheatModal();
+              gameState.gamePausedRef.current = false;
+            }}
+            onTeleportToRoom={cheatSystem.teleportToRoom}
+            onHealPlayer={cheatSystem.healPlayer}
+            onFullHeal={cheatSystem.fullHeal}
+            onAddShield={cheatSystem.addShield}
+            onToggleGodMode={cheatSystem.toggleGodMode}
+            onToggleSpeedBoost={cheatSystem.toggleSpeedBoost}
+            onToggleShowCorrectAnswer={cheatSystem.toggleShowCorrectAnswer}
+            onKillAllEnemies={cheatSystem.killAllEnemies}
+            onKillCurrentEnemy={cheatSystem.killCurrentEnemy}
+            onRevealAllRooms={cheatSystem.revealAllRooms}
+            onAddXp={cheatSystem.addXp}
+            onNewDungeon={cheatSystem.newDungeon}
+            inCombat={combat.inCombat}
           />
         )}
       </div>

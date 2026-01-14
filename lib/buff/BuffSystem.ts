@@ -7,6 +7,24 @@ import type { Buff, BuffType, PlayerBuffs } from '../constants';
 import { BUFF_POOL, INITIAL_PLAYER_BUFFS } from '../constants';
 import type { Player } from '../enemy';
 
+// Cheat system: God Mode flag
+let godModeEnabled = false;
+
+/**
+ * Enable or disable God Mode (invincibility)
+ */
+export function setGodMode(enabled: boolean): void {
+  godModeEnabled = enabled;
+  console.log(`[BuffSystem] God Mode ${enabled ? 'ENABLED' : 'DISABLED'}`);
+}
+
+/**
+ * Check if God Mode is enabled
+ */
+export function isGodModeEnabled(): boolean {
+  return godModeEnabled;
+}
+
 /**
  * Select random buffs from the pool
  * @param count Number of buffs to select (default 2)
@@ -85,12 +103,18 @@ export function applyBuff(player: Player, buff: Buff): void {
 }
 
 /**
- * Apply damage to player, respecting shield
+ * Apply damage to player, respecting shield and God Mode
  * @param player The player taking damage
  * @param damage The amount of damage
  * @returns The actual HP damage taken (after shield absorption)
  */
 export function applyDamageToPlayer(player: Player, damage: number): number {
+  // God Mode: No damage taken
+  if (godModeEnabled) {
+    console.log(`[BuffSystem] God Mode active - ${damage} damage blocked!`);
+    return 0;
+  }
+
   if (!player.buffs?.hasShield || player.buffs.currentShield <= 0) {
     // No shield - full damage to HP
     player.hp = Math.max(0, player.hp - damage);

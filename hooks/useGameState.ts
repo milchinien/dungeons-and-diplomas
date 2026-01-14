@@ -246,12 +246,22 @@ export function useGameState({
         rooms: manager.rooms,
         dungeon: manager.dungeon,
         doorStates: manager.doorStates,
-        onContactDamage: handleContactDamage
+        onContactDamage: handleContactDamage,
+        roomMap: manager.roomMap
       });
 
       // Remove dead trashmobs
       manager.trashmobs = manager.trashmobs.filter(t => t.alive);
     }
+
+    // Update fireballs (always update, even in combat)
+    engine.updateFireballs(
+      dt,
+      playerRef.current,
+      manager.tileSize,
+      manager.dungeon,
+      handleContactDamage
+    );
 
     // Update room exploration state (handles unexplored → exploring → explored)
     engine.updateRoomState(
@@ -316,7 +326,8 @@ export function useGameState({
         manager.shrines,
         manager.trashmobs,
         engine.isPlayerAttacking(),
-        aimAngleRef.current
+        aimAngleRef.current,
+        engine.fireballs
       );
     }
 
