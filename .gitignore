@@ -35,3 +35,8 @@ next-env.d.ts
 
 # database
 data/game.db
+
+# playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/

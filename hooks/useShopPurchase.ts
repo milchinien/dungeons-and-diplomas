@@ -98,7 +98,11 @@ export function useShopPurchase({
 
   // Handle E key press for shop interaction
   useEffect(() => {
-    if (inCombat || gamePaused || !rooms) return;
+    console.log(`[useShopPurchase] Hook mounted. inCombat: ${inCombat}, gamePaused: ${gamePaused}, rooms: ${rooms?.length || 0}`);
+    if (inCombat || gamePaused || !rooms) {
+      console.log('[useShopPurchase] Hook inactive due to conditions');
+      return;
+    }
 
     // Capture rooms for closure (TypeScript narrowing)
     const currentRooms = rooms;
@@ -106,12 +110,20 @@ export function useShopPurchase({
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key.toLowerCase() !== 'e') return;
 
+      console.log('[useShopPurchase] E key pressed');
+
       // Skip if key is being held
-      if (lastEKeyRef.current) return;
+      if (lastEKeyRef.current) {
+        console.log('[useShopPurchase] E key already held, skipping');
+        return;
+      }
       lastEKeyRef.current = true;
 
       // If modal is open, don't process another E press
-      if (showPurchaseModal) return;
+      if (showPurchaseModal) {
+        console.log('[useShopPurchase] Modal already open, skipping');
+        return;
+      }
 
       const player = playerRef.current;
       const playerX = player.x + player.width / 2;
@@ -119,13 +131,21 @@ export function useShopPurchase({
 
       // Find shop room player is in
       const shopRoom = getPlayerShopRoom(playerX, playerY, currentRooms);
-      if (!shopRoom) return;
+      if (!shopRoom) {
+        console.log('[useShopPurchase] Player not in shop room');
+        return;
+      }
+
+      console.log(`[useShopPurchase] Player in shop room ${shopRoom.id} at (${Math.floor(playerX)}, ${Math.floor(playerY)})`);
 
       // Find nearby item or perk
       const target = getInteractionTarget(playerX, playerY, shopRoom);
       if (target) {
+        console.log(`[useShopPurchase] Found ${target.type} at distance, opening modal`);
         setPurchaseTarget(target);
         setShowPurchaseModal(true);
+      } else {
+        console.log('[useShopPurchase] No item/perk in range (need to be within 96px)');
       }
     }
 

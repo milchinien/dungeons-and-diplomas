@@ -284,6 +284,9 @@ export interface ShopAssets {
   perkIcons?: Map<string, HTMLImageElement>;
 }
 
+// Debug counter for shop rendering
+let shopRenderDebugCounter = 0;
+
 /**
  * Renders the complete shop room.
  */
@@ -295,6 +298,14 @@ export function renderShopRoom(
   assets?: ShopAssets
 ): void {
   if (room.type !== 'shop' || !room.shopInventory) return;
+
+  // Debug log every 120 frames (every 2 seconds)
+  shopRenderDebugCounter++;
+  if (shopRenderDebugCounter >= 120) {
+    shopRenderDebugCounter = 0;
+    console.log(`[ShopRenderer] Rendering shop room ${room.id} at (${room.x}, ${room.y}) size ${room.width}x${room.height}`);
+    console.log(`[ShopRenderer] Items: ${room.shopInventory.items.length}, Perks: ${room.shopInventory.perks.length}`);
+  }
 
   const layout = getShopLayout(room);
 

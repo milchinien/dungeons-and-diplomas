@@ -1,23 +1,21 @@
 /**
  * Shop inventory system for the shop feature.
- * Manages 3 items and 3 perks per shop room.
+ * Manages items and perks per shop room.
  * Tracks which items have been purchased (set to null).
  */
 
 import { Item, generateRandomItem } from './Item';
 import { Perk, generateRandomPerk } from './Perk';
+import { SHOP_ITEMS_COUNT, SHOP_PERKS_COUNT } from '../constants';
 
 export interface ShopInventory {
   shopRoomId: number;
-  items: (Item | null)[];   // 3 items, null if purchased
-  perks: (Perk | null)[];   // 3 perks, null if purchased
+  items: (Item | null)[];   // Items array, null if purchased
+  perks: (Perk | null)[];   // Perks array, null if purchased
 }
 
-export const SHOP_ITEMS_COUNT = 3;
-export const SHOP_PERKS_COUNT = 3;
-
 /**
- * Generates a complete shop inventory with 3 items and 3 perks.
+ * Generates a complete shop inventory with random items and perks.
  * @param roomId - The ID of the shop room
  * @param randomFn - Optional random function for deterministic tests
  */
@@ -28,12 +26,12 @@ export function generateShopInventory(
   const items: Item[] = [];
   const perks: Perk[] = [];
 
-  // Generate 3 random items
+  // Generate random items
   for (let i = 0; i < SHOP_ITEMS_COUNT; i++) {
     items.push(generateRandomItem(randomFn));
   }
 
-  // Generate 3 random perks
+  // Generate random perks
   for (let i = 0; i < SHOP_PERKS_COUNT; i++) {
     perks.push(generateRandomPerk(randomFn));
   }

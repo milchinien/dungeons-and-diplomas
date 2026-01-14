@@ -25,6 +25,24 @@ import { startSlash, updateSlash } from '../effects/SlashAnimation';
 import { checkShopCounterCollision, getShopRoomAtPosition } from '../shop/ShopCollision';
 import { canEnterShop, getLockedDoorMessage, updateShopDoorStates, isRoomCleared } from '../shop/ShopDoor';
 
+// Cheat system: Speed Boost flag
+let speedBoostEnabled = false;
+
+/**
+ * Enable or disable Speed Boost (2x movement speed)
+ */
+export function setSpeedBoost(enabled: boolean): void {
+  speedBoostEnabled = enabled;
+  console.log(`[GameEngine] Speed Boost ${enabled ? 'ENABLED (2x)' : 'DISABLED'}`);
+}
+
+/**
+ * Check if Speed Boost is enabled
+ */
+export function isSpeedBoostEnabled(): boolean {
+  return speedBoostEnabled;
+}
+
 export class GameEngine {
   private lastSpacePressed: boolean = false;
 
@@ -458,9 +476,10 @@ export class GameEngine {
 
     if (player.isMoving) {
       const length = Math.sqrt(dx * dx + dy * dy);
-      // Apply slowdown if attacking
-      const speedMultiplier = this.attackState.isAttacking ? PLAYER_ATTACK_SLOWDOWN : 1.0;
-      const currentSpeed = PLAYER_SPEED_TILES * tileSize * speedMultiplier;
+      // Apply slowdown if attacking and speed boost if enabled
+      const attackMultiplier = this.attackState.isAttacking ? PLAYER_ATTACK_SLOWDOWN : 1.0;
+      const boostMultiplier = speedBoostEnabled ? 2.0 : 1.0;
+      const currentSpeed = PLAYER_SPEED_TILES * tileSize * attackMultiplier * boostMultiplier;
       dx = dx / length * currentSpeed * dt;
       dy = dy / length * currentSpeed * dt;
 

@@ -6,6 +6,7 @@
 
 import type { Room } from '../constants';
 import { TILE_SOURCE_SIZE } from '../spriteConfig';
+import { SHOP_ITEMS_COUNT, SHOP_PERKS_COUNT } from '../constants';
 
 export interface Position {
   x: number;
@@ -22,10 +23,10 @@ export interface ShopLayout {
   /** Tiles of the right counter (perk counter) */
   rightCounterTiles: Position[];
 
-  /** Positions of the 3 items (world coordinates, not tiles) */
+  /** Positions of the items (world coordinates, not tiles) */
   itemPositions: Position[];
 
-  /** Positions of the 3 perks (world coordinates, not tiles) */
+  /** Positions of the perks (world coordinates, not tiles) */
   perkPositions: Position[];
 }
 
@@ -71,21 +72,23 @@ export function calculateShopLayout(room: Room): ShopLayout {
     });
   }
 
-  // Item positions (3 items above left counter)
+  // Item positions (above left counter, spaced evenly)
   const itemPositions: Position[] = [];
   const itemY = counterY - 1;  // Above the counter
-  for (let i = 0; i < 3; i++) {
+  const itemSpacing = SHOP_ITEMS_COUNT <= 2 ? 0.8 : 0.7; // More spacing for 2 items
+  for (let i = 0; i < SHOP_ITEMS_COUNT; i++) {
     itemPositions.push({
-      x: (leftCounterStartX + i * 0.7) * TILE_SOURCE_SIZE + TILE_SOURCE_SIZE / 2,
+      x: (leftCounterStartX + 0.3 + i * itemSpacing) * TILE_SOURCE_SIZE + TILE_SOURCE_SIZE / 2,
       y: itemY * TILE_SOURCE_SIZE
     });
   }
 
-  // Perk positions (3 perks above right counter)
+  // Perk positions (above right counter, spaced evenly)
   const perkPositions: Position[] = [];
-  for (let i = 0; i < 3; i++) {
+  const perkSpacing = SHOP_PERKS_COUNT <= 2 ? 0.8 : 0.7; // More spacing for 2 perks
+  for (let i = 0; i < SHOP_PERKS_COUNT; i++) {
     perkPositions.push({
-      x: (rightCounterStartX + i * 0.7) * TILE_SOURCE_SIZE + TILE_SOURCE_SIZE / 2,
+      x: (rightCounterStartX + 0.3 + i * perkSpacing) * TILE_SOURCE_SIZE + TILE_SOURCE_SIZE / 2,
       y: itemY * TILE_SOURCE_SIZE
     });
   }

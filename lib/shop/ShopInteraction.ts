@@ -10,8 +10,8 @@ import { getShopLayout, type ShopLayout } from './ShopLayout';
 import type { Item } from './Item';
 import type { Perk } from './Perk';
 
-/** Maximum distance for interaction (in pixels) */
-const INTERACTION_DISTANCE = TILE_SOURCE_SIZE * 1.5;
+/** Maximum distance for interaction (in pixels) - increased for better gameplay */
+const INTERACTION_DISTANCE = TILE_SOURCE_SIZE * 2.5; // ~160 pixels
 
 export interface InteractionTarget {
   type: 'item' | 'perk';

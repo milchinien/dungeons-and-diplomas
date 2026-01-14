@@ -15,7 +15,7 @@ export { PerkType, PERK_DEFINITIONS, createPerk, generateRandomPerk, getPerkEffe
 export type { Perk, PerkDefinition } from './Perk';
 
 // Shop inventory
-export { generateShopInventory, purchaseItem, purchasePerk, hasAvailableItems, hasAvailablePerks, isShopEmpty, countAvailableItems, countAvailablePerks, SHOP_ITEMS_COUNT, SHOP_PERKS_COUNT } from './ShopInventory';
+export { generateShopInventory, purchaseItem, purchasePerk, hasAvailableItems, hasAvailablePerks, isShopEmpty, countAvailableItems, countAvailablePerks } from './ShopInventory';
 export type { ShopInventory } from './ShopInventory';
 
 // Shop layout

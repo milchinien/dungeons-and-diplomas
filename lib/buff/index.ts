@@ -8,5 +8,7 @@ export {
   getTimeBonus,
   getDamageBoost,
   getDamageReduction,
-  resetPlayerBuffs
+  resetPlayerBuffs,
+  setGodMode,
+  isGodModeEnabled
 } from './BuffSystem';

@@ -16,7 +16,8 @@ import {
   generateRooms,
   connectRooms,
   calculateSpatialNeighbors,
-  addWalls
+  addWalls,
+  assignShopRooms
 } from '../dungeon/generation';
 import { initializeDungeonRNG, generateRandomSeed, getDecorationRng, getStructureRng } from '../dungeon/DungeonRNG';
 import type { TileTheme, RenderMap } from '../tiletheme/types';
@@ -82,6 +83,10 @@ export function generateDungeonStructure(params: DungeonGenerationParams): Dunge
   connectRooms(dungeon, roomMap, rooms, config);
   calculateSpatialNeighbors(dungeon, roomMap, rooms, config);
   addWalls(dungeon, config);
+
+  // Assign shop rooms (8% chance per eligible room, max 2 shops)
+  const structureRng = getStructureRng();
+  assignShopRooms(rooms, 0, () => structureRng.next());
 
   // Initialize door states (all doors start closed)
   const doorStates = new Map<string, boolean>();

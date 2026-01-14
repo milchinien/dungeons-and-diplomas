@@ -30,7 +30,7 @@ export {
 export const DUNGEON_WIDTH = 100;
 export const DUNGEON_HEIGHT = 100;
 export const MIN_ROOM_SIZE = 4;
-export const MAX_ROOM_SIZE = 8;
+export const MAX_ROOM_SIZE = 8; // Larger to ensure more shop-eligible rooms (4-6)
 
 // Configuration for dungeon generation
 export interface DungeonConfig {
@@ -144,16 +144,20 @@ export const TRASHMOB_COLORS: Record<TrashmobType, string> = {
 // =============================================================================
 // Shop constants
 // =============================================================================
-/** Probability that a room becomes a shop (8%) */
-export const SHOP_SPAWN_CHANCE = 0.08;
-/** Minimum room size to become a shop (in tiles) */
-export const SHOP_MIN_ROOM_SIZE = 6;
+/** Probability that a room becomes a shop (30%) */
+export const SHOP_SPAWN_CHANCE = 0.30;
+/** Minimum room size to become a shop (in tiles) - reduced to match actual room sizes */
+export const SHOP_MIN_ROOM_SIZE = 3;
+/** Maximum room size to become a shop (in tiles) - increased to match actual room sizes */
+export const SHOP_MAX_ROOM_SIZE = 10;
 /** Number of items per shop */
-export const SHOP_ITEMS_COUNT = 3;
+export const SHOP_ITEMS_COUNT = 2;
 /** Number of perks per shop */
-export const SHOP_PERKS_COUNT = 3;
+export const SHOP_PERKS_COUNT = 2;
+/** Minimum number of shops per dungeon */
+export const SHOP_MIN_PER_DUNGEON = 3;
 /** Maximum number of shops per dungeon */
-export const SHOP_MAX_PER_DUNGEON = 2;
+export const SHOP_MAX_PER_DUNGEON = 5;
 /** Amplitude of floating animation (in tiles) */
 export const FLOATING_ITEM_AMPLITUDE = 0.3;
 /** Speed of floating animation (cycles per second) */
