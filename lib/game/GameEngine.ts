@@ -545,7 +545,9 @@ export class GameEngine {
           // BOMB type: explosion damage (area-of-effect, no contact check needed)
           if (trashmob.type === TRASHMOB_TYPE.BOMB) {
             const explosionDamage = trashmob.getExplosionDamage();
+            console.log('[GameEngine] BOMB canDealDamage:', trashmob.canDealDamage, 'explosionDamage:', explosionDamage, 'sameRoom:', sameRoom);
             if (explosionDamage > 0) {
+              console.log('[GameEngine] Applying BOMB damage:', explosionDamage);
               onContactDamage(explosionDamage);
               this.trashmobDamageDealt.add(trashmob);
             }

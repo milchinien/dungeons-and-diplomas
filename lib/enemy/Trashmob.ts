@@ -1439,14 +1439,13 @@ export class Trashmob {
         }
 
         // Try to move with collision detection
-        const collisionDetector = new CollisionDetector();
         const newX = this.x + moveX;
         const newY = this.y + moveY;
 
-        if (!collisionDetector.checkCollision(newX, this.y, this.x, this.y, tileSize, dungeon, doorStates)) {
+        if (!CollisionDetector.checkEnemyCollision(newX, this.y, tileSize, dungeon, doorStates)) {
           this.x = newX;
         }
-        if (!collisionDetector.checkCollision(this.x, newY, this.x, this.y, tileSize, dungeon, doorStates)) {
+        if (!CollisionDetector.checkEnemyCollision(this.x, newY, tileSize, dungeon, doorStates)) {
           this.y = newY;
         }
       }
@@ -1500,6 +1499,8 @@ export class Trashmob {
     this.bombActivatedOnce = true;
     this.bombGlowPhase = 0;
 
+    console.log('[BOMB] Armed! Countdown started:', BOMB_COUNTDOWN_DURATION);
+
     // Spawn warning particles if room is visible
     if (roomVisible) {
       const particleSystem = getParticleSystem();
@@ -1514,6 +1515,8 @@ export class Trashmob {
    */
   private explode(player: Player, tileSize: number, roomVisible: boolean): void {
     this.bombState = 'exploding';
+
+    console.log('[BOMB] EXPLODING!');
 
     // Calculate center position
     const bombCenterX = this.x + tileSize / 2;
@@ -1548,6 +1551,8 @@ export class Trashmob {
     const distancePixels = Math.sqrt(dx * dx + dy * dy);
     const distanceTiles = distancePixels / tileSize;
 
+    console.log('[BOMB] Distance to player:', distanceTiles.toFixed(2), 'tiles, max radius:', BOMB_EXPLOSION_RADIUS);
+
     // Only damage if within explosion radius
     if (distanceTiles <= BOMB_EXPLOSION_RADIUS) {
       // Calculate damage: max at center, scales linearly to min at edge
@@ -1556,14 +1561,22 @@ export class Trashmob {
         BOMB_MIN_DAMAGE + (BOMB_MAX_DAMAGE - BOMB_MIN_DAMAGE) * damageRatio
       );
 
-      // Mark that bomb dealt damage (GameEngine will read canDealDamage)
-      this.canDealDamage = true;
+      console.log('[BOMB] Player in range! Damage:', damage, 'canDealDamage:', true);
+
       // Store damage amount temporarily (GameEngine needs to read this)
       this.storedDamage = damage;
+    } else {
+      console.log('[BOMB] Player out of range, no damage');
     }
 
     // Start death animation
     this.die();
+
+    // IMPORTANT: Re-set canDealDamage AFTER die() because die() resets it to false
+    // For bombs, we need to keep it true so GameEngine can apply explosion damage
+    if (this.storedDamage > 0) {
+      this.canDealDamage = true;
+    }
   }
 
   /**
