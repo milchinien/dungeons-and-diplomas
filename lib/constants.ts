@@ -124,7 +124,9 @@ export const TRASHMOB_SPEED_TILES = 2; // slower than regular enemies
 export const TRASHMOB_TYPE = {
   RAT: 'rat',
   SLIME: 'slime',
-  BAT: 'bat'
+  BAT: 'bat',
+  MAGE: 'mage',
+  BOMB: 'bomb'
 } as const;
 
 export type TrashmobType = typeof TRASHMOB_TYPE[keyof typeof TRASHMOB_TYPE];
@@ -132,14 +134,39 @@ export type TrashmobType = typeof TRASHMOB_TYPE[keyof typeof TRASHMOB_TYPE];
 export const TRASHMOB_HP: Record<TrashmobType, number> = {
   rat: 2,
   slime: 3,
-  bat: 1
+  bat: 1,
+  mage: 5,
+  bomb: 4
 };
 
 export const TRASHMOB_COLORS: Record<TrashmobType, string> = {
   rat: '#8B4513',    // Brown
   slime: '#32CD32',  // Green
-  bat: '#4B0082'     // Purple
+  bat: '#4B0082',    // Purple
+  mage: '#FF4500',   // Orange-red for fire mage
+  bomb: '#2F2F2F'    // Dark gray
 };
+
+// =============================================================================
+// Fireball constants
+// =============================================================================
+export const FIREBALL_SPEED = 3; // tiles per second (slow)
+export const FIREBALL_DAMAGE = 5;
+export const FIREBALL_SIZE = 0.5; // relative to tile size (medium)
+export const FIREBALL_COUNT = 5; // number of fireballs shot
+export const FIREBALL_ARC_ANGLE = Math.PI / 3; // 60 degree arc (radians)
+export const MAGE_SHOOT_COOLDOWN = 3.0; // seconds between attacks
+export const MAGE_SHOOT_RANGE = 6; // tiles - max range to shoot at player
+
+// =============================================================================
+// Bomb constants
+// =============================================================================
+export const BOMB_ACTIVATION_RADIUS = 3.0; // tiles - distance to activate bomb
+export const BOMB_COUNTDOWN_DURATION = 3.0; // seconds - time before explosion
+export const BOMB_EXPLOSION_RADIUS = 3.5; // tiles - max damage radius
+export const BOMB_MAX_DAMAGE = 20; // damage at center
+export const BOMB_MIN_DAMAGE = 5; // damage at edge
+export const BOMB_GLOW_RADIUS = 30; // pixels - visual glow ring size
 
 // =============================================================================
 // Type definitions

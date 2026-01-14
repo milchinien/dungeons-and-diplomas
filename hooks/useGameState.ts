@@ -254,6 +254,15 @@ export function useGameState({
       manager.trashmobs = manager.trashmobs.filter(t => t.alive);
     }
 
+    // Update fireballs (always update, even in combat)
+    engine.updateFireballs(
+      dt,
+      playerRef.current,
+      manager.tileSize,
+      manager.dungeon,
+      handleContactDamage
+    );
+
     // Update room exploration state (handles unexplored → exploring → explored)
     engine.updateRoomState(
       playerRef.current,
@@ -317,7 +326,8 @@ export function useGameState({
         manager.shrines,
         manager.trashmobs,
         engine.isPlayerAttacking(),
-        aimAngleRef.current
+        aimAngleRef.current,
+        engine.fireballs
       );
     }
 

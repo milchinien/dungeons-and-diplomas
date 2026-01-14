@@ -22,12 +22,17 @@ import { getTargetsInAttackCone, angleToDirection, type PlayerAttackState, creat
 import type { UpdatePlayerContext, UpdateEnemiesContext, UpdateTrashmobsContext } from '../types/game';
 import { getEffectsManager } from '../effects';
 import { startSlash, updateSlash } from '../effects/SlashAnimation';
+import { Fireball } from '../projectiles';
+import { FIREBALL_COUNT, FIREBALL_ARC_ANGLE, TRASHMOB_TYPE } from '../constants';
 
 export class GameEngine {
   private lastSpacePressed: boolean = false;
 
   // Attack state
   private attackState: PlayerAttackState = createAttackState();
+
+  // Fireball projectiles
+  public fireballs: Fireball[] = [];
 
   /**
    * Get current attack state (for external access)
@@ -516,9 +521,14 @@ export class GameEngine {
         this.trashmobDamageDealt.delete(trashmob);
       }
 
+      // Spawn fireballs for MAGE trashmobs when they're ready
+      if (trashmob.type === TRASHMOB_TYPE.MAGE && trashmob.shouldSpawnFireballs()) {
+        this.spawnFireballs(trashmob, player, tileSize);
+      }
+
       // Check contact damage - only during attacks, after wind-up, and only once per attack
       // IMPORTANT: Only deal damage if trashmob is in the SAME room as player (prevents damage through walls/doors)
-      if (trashmob.isAttacking && trashmob.canDealDamage && !this.trashmobDamageDealt.has(trashmob)) {
+      if (trashmob.canDealDamage && !this.trashmobDamageDealt.has(trashmob)) {
         // Check if trashmob is in the same room as player
         const trashmobTileX = Math.floor((trashmob.x + tileSize / 2) / tileSize);
         const trashmobTileY = Math.floor((trashmob.y + tileSize / 2) / tileSize);
@@ -532,14 +542,82 @@ export class GameEngine {
         const bothInCorridor = playerRoomId === -2 && trashmobRoomId === -2;
 
         if (sameRoom || bothInCorridor) {
-          const distance = trashmob.getDistanceToPlayer(player, tileSize);
-          if (distance < 0.6) { // Contact distance
-            const damage = trashmob.getContactDamage();
-            onContactDamage(damage);
-            this.trashmobDamageDealt.add(trashmob);
+          // BOMB type: explosion damage (area-of-effect, no contact check needed)
+          if (trashmob.type === TRASHMOB_TYPE.BOMB) {
+            const explosionDamage = trashmob.getExplosionDamage();
+            if (explosionDamage > 0) {
+              onContactDamage(explosionDamage);
+              this.trashmobDamageDealt.add(trashmob);
+            }
+          }
+          // Other types: contact damage (touch-based, requires isAttacking)
+          else if (trashmob.isAttacking) {
+            const distance = trashmob.getDistanceToPlayer(player, tileSize);
+            if (distance < 0.6) { // Contact distance
+              const damage = trashmob.getContactDamage();
+              onContactDamage(damage);
+              this.trashmobDamageDealt.add(trashmob);
+            }
           }
         }
       }
     }
+  }
+
+  /**
+   * Spawn 5 fireballs in an arc from a MAGE trashmob
+   */
+  private spawnFireballs(trashmob: Trashmob, player: Player, tileSize: number): void {
+    const baseAngle = trashmob.getShootingAngle(player, tileSize);
+    const halfArc = FIREBALL_ARC_ANGLE / 2;
+
+    // Spawn position (center of trashmob)
+    const spawnX = trashmob.x + tileSize / 2;
+    const spawnY = trashmob.y + tileSize / 2;
+
+    // Create 5 fireballs spread in an arc
+    for (let i = 0; i < FIREBALL_COUNT; i++) {
+      // Calculate angle for this fireball
+      // Spread evenly across the arc: -halfArc to +halfArc
+      const angleOffset = (i / (FIREBALL_COUNT - 1)) * FIREBALL_ARC_ANGLE - halfArc;
+      const fireballAngle = baseAngle + angleOffset;
+
+      // Create and add fireball
+      const fireball = new Fireball(spawnX, spawnY, fireballAngle, tileSize);
+      this.fireballs.push(fireball);
+    }
+  }
+
+  /**
+   * Update all fireballs and check collisions with player
+   */
+  public updateFireballs(
+    dt: number,
+    player: Player,
+    tileSize: number,
+    dungeon: TileType[][],
+    onContactDamage: (damage: number) => void
+  ): void {
+    // Update each fireball
+    for (const fireball of this.fireballs) {
+      if (!fireball.alive) continue;
+
+      // Update position and check wall collisions
+      fireball.update(dt, dungeon, tileSize);
+
+      // Check player collision
+      if (fireball.checkPlayerCollision(player.x, player.y, tileSize)) {
+        onContactDamage(fireball.damage);
+
+        // Trigger damage visual effects
+        const effectsManager = getEffectsManager();
+        const playerCenterX = player.x + tileSize / 2;
+        const playerCenterY = player.y + tileSize / 2;
+        effectsManager.onPlayerDamage(playerCenterX, playerCenterY, fireball.damage);
+      }
+    }
+
+    // Remove dead fireballs
+    this.fireballs = this.fireballs.filter(f => f.alive);
   }
 }

@@ -200,7 +200,8 @@ export class GameRenderer {
     shrines: Shrine[] = [],
     trashmobs: Trashmob[] = [],
     isAttacking: boolean = false,
-    aimAngle?: number
+    aimAngle?: number,
+    fireballs: import('../projectiles').Fireball[] = []
   ) {
     const ctx = getContext2D(canvas);
     if (!ctx) {
@@ -260,6 +261,13 @@ export class GameRenderer {
 
     // Render trashmobs
     this.renderTrashmobs(ctx, trashmobs, rooms, tileSize, playerRoomIds, roomMap);
+
+    // Render fireballs
+    for (const fireball of fireballs) {
+      if (fireball.alive) {
+        fireball.draw(ctx);
+      }
+    }
 
     // Render player
     this.renderPlayer(ctx, playerSprite, player, tileSize);

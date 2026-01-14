@@ -453,7 +453,9 @@ export function spawnTrashmobs(
   const trashmobTypes: TrashmobType[] = [
     TRASHMOB_TYPE.RAT,
     TRASHMOB_TYPE.SLIME,
-    TRASHMOB_TYPE.BAT
+    TRASHMOB_TYPE.BAT,
+    TRASHMOB_TYPE.MAGE,
+    TRASHMOB_TYPE.BOMB
   ];
 
   console.log(`[EntitySpawner] Starting trashmob spawn. Total rooms: ${rooms.length}, playerRoomId: ${playerRoomId}`);

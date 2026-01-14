@@ -5,6 +5,8 @@
  * - Slime: Hops around, attacks by jumping on player
  * - Bat: Erratic/confusing movement, swoops to attack
  * - Rat: Normal running, leaps at player to attack
+ * - Mage: Slow floating, shoots fireballs at range
+ * - Bomb: Slow rolling toward player, explodes on proximity timer
  */
 
 import {
@@ -14,12 +16,20 @@ import {
   TRASHMOB_CONTACT_DAMAGE_MIN,
   TRASHMOB_CONTACT_DAMAGE_MAX,
   AI_STATE,
-  DIRECTION
+  DIRECTION,
+  BOMB_ACTIVATION_RADIUS,
+  BOMB_COUNTDOWN_DURATION,
+  BOMB_EXPLOSION_RADIUS,
+  BOMB_MAX_DAMAGE,
+  BOMB_MIN_DAMAGE,
+  BOMB_GLOW_RADIUS
 } from '../constants';
 import type { TrashmobType, Direction, AIStateType, TileType, Room } from '../constants';
 import { CollisionDetector } from '../physics/CollisionDetector';
 import { TrashmobSpriteRenderer, type TrashmobAnimationType } from '../rendering/TrashmobSprites';
 import { getParticleSystem } from '../effects/ParticleSystem';
+import { getScreenShake } from '../effects/ScreenShake';
+import { hasLineOfSight } from '../physics/LineOfSight';
 import type { Player } from './types';
 
 // Attack cooldowns per type (in seconds)
@@ -27,6 +37,8 @@ const ATTACK_COOLDOWNS: Record<TrashmobType, number> = {
   [TRASHMOB_TYPE.RAT]: 1.5,    // Quick attacks
   [TRASHMOB_TYPE.SLIME]: 2.5,  // Slower hop attacks
   [TRASHMOB_TYPE.BAT]: 2.0,    // Medium swoop attacks
+  [TRASHMOB_TYPE.MAGE]: 3.0,   // Slower, powerful fireball attacks
+  [TRASHMOB_TYPE.BOMB]: 0,     // No cooldown (explodes once)
 };
 
 // Attack ranges per type (in tiles)
@@ -34,6 +46,8 @@ const ATTACK_RANGES: Record<TrashmobType, number> = {
   [TRASHMOB_TYPE.RAT]: 2.0,    // Leap attack range
   [TRASHMOB_TYPE.SLIME]: 1.5,  // Hop attack range
   [TRASHMOB_TYPE.BAT]: 2.5,    // Swoop attack range
+  [TRASHMOB_TYPE.MAGE]: 6.0,   // Long range - shoots fireballs
+  [TRASHMOB_TYPE.BOMB]: 3.5,   // Explosion radius
 };
 
 export class Trashmob {
@@ -99,6 +113,20 @@ export class Trashmob {
   private isRetreating: boolean = false;
   private retreatTimer: number = 0;
 
+  // Mage shooting state
+  private isShooting: boolean = false;
+  private shootCooldown: number = 0;
+  private castingTimer: number = 0; // Time spent in casting animation
+  private currentCastTime: number = 0.6; // Current cast time (varies by distance)
+  private fireballsSpawned: boolean = false; // Track if fireballs spawned this cast
+
+  // Bomb state
+  private bombState: 'idle' | 'armed' | 'exploding' = 'idle';
+  private bombTimer: number = 0;
+  private bombActivatedOnce: boolean = false; // Prevents re-arming after player leaves
+  private bombGlowPhase: number = 0; // For pulsing animation
+  private storedDamage: number = 0; // Explosion damage storage
+
   // Sprite renderer for pixel-art animation
   private spriteRenderer: TrashmobSpriteRenderer;
 
@@ -129,8 +157,13 @@ export class Trashmob {
       case TRASHMOB_TYPE.SLIME:
         return TRASHMOB_SPEED_TILES * 1.0; // Normal hop speed
       case TRASHMOB_TYPE.RAT:
-      default:
         return TRASHMOB_SPEED_TILES * 1.2; // Fast runner
+      case TRASHMOB_TYPE.MAGE:
+        return TRASHMOB_SPEED_TILES * 0.7; // Slow, floats around
+      case TRASHMOB_TYPE.BOMB:
+        return TRASHMOB_SPEED_TILES * 0.7; // Slow rolling toward player
+      default:
+        return TRASHMOB_SPEED_TILES * 1.2;
     }
   }
 
@@ -144,6 +177,13 @@ export class Trashmob {
     ) + TRASHMOB_CONTACT_DAMAGE_MIN;
 
     return this.isAttacking ? Math.floor(baseDamage * 1.5) : baseDamage;
+  }
+
+  /**
+   * Get explosion damage amount (for BOMB type)
+   */
+  public getExplosionDamage(): number {
+    return this.storedDamage;
   }
 
   /**
@@ -332,6 +372,12 @@ export class Trashmob {
       case TRASHMOB_TYPE.RAT:
         this.updateRat(dt, player, tileSize, room, dungeon, doorStates);
         break;
+      case TRASHMOB_TYPE.MAGE:
+        this.updateMage(dt, player, tileSize, room, dungeon, doorStates);
+        break;
+      case TRASHMOB_TYPE.BOMB:
+        this.updateBomb(dt, player, tileSize, room, dungeon, doorStates);
+        break;
     }
   }
 
@@ -358,8 +404,16 @@ export class Trashmob {
     if (this.aiState === AI_STATE.FOLLOWING &&
         this.canAttack() &&
         distanceToPlayer <= this.getAttackRange()) {
-      this.startSlimeAttack(player, tileSize, room.visible);
-      return;
+      // Check line of sight before attacking
+      const trashmobCenterX = this.x + tileSize / 2;
+      const trashmobCenterY = this.y + tileSize / 2;
+      const playerCenterX = player.x + tileSize / 2;
+      const playerCenterY = player.y + tileSize / 2;
+
+      if (hasLineOfSight(trashmobCenterX, trashmobCenterY, playerCenterX, playerCenterY, dungeon, tileSize)) {
+        this.startSlimeAttack(player, tileSize, room.visible);
+        return;
+      }
     }
 
     // Update hop physics and movement
@@ -606,8 +660,16 @@ export class Trashmob {
     if (this.aiState === AI_STATE.FOLLOWING &&
         this.canAttack() &&
         distanceToPlayer <= this.getAttackRange()) {
-      this.startBatAttack(player, tileSize, room.visible);
-      return;
+      // Check line of sight before attacking
+      const trashmobCenterX = this.x + tileSize / 2;
+      const trashmobCenterY = this.y + tileSize / 2;
+      const playerCenterX = player.x + tileSize / 2;
+      const playerCenterY = player.y + tileSize / 2;
+
+      if (hasLineOfSight(trashmobCenterX, trashmobCenterY, playerCenterX, playerCenterY, dungeon, tileSize)) {
+        this.startBatAttack(player, tileSize, room.visible);
+        return;
+      }
     }
 
     // Update swerve pattern - faster direction changes
@@ -816,8 +878,16 @@ export class Trashmob {
     if (this.aiState === AI_STATE.FOLLOWING &&
         this.canAttack() &&
         distanceToPlayer <= this.getAttackRange()) {
-      this.startRatAttack(player, tileSize, room.visible);
-      return;
+      // Check line of sight before attacking
+      const trashmobCenterX = this.x + tileSize / 2;
+      const trashmobCenterY = this.y + tileSize / 2;
+      const playerCenterX = player.x + tileSize / 2;
+      const playerCenterY = player.y + tileSize / 2;
+
+      if (hasLineOfSight(trashmobCenterX, trashmobCenterY, playerCenterX, playerCenterY, dungeon, tileSize)) {
+        this.startRatAttack(player, tileSize, room.visible);
+        return;
+      }
     }
 
     // Normal movement
@@ -1124,6 +1194,378 @@ export class Trashmob {
     }
   }
 
+  // ==================== MAGE BEHAVIOR ====================
+  // Floats slowly, shoots 5 fireballs in an arc at range
+
+  private updateMage(
+    dt: number,
+    player: Player,
+    tileSize: number,
+    room: Room,
+    dungeon: TileType[][],
+    doorStates: Map<string, boolean>
+  ): void {
+    const distanceToPlayer = this.getDistanceToPlayer(player, tileSize);
+
+    // Update shoot cooldown
+    if (this.shootCooldown > 0) {
+      this.shootCooldown -= dt;
+    }
+
+    // Update casting animation
+    if (this.isShooting) {
+      this.castingTimer += dt;
+      this.isMoving = false;
+
+      // When casting animation completes, actual fireballs are spawned by GameEngine
+      if (this.castingTimer >= this.currentCastTime) {
+        this.isShooting = false;
+        this.castingTimer = 0;
+        this.shootCooldown = ATTACK_COOLDOWNS[this.type];
+      }
+      return;
+    }
+
+    // Check if should shoot
+    const attackRange = this.getAttackRange();
+    if (this.aiState === AI_STATE.FOLLOWING &&
+        this.shootCooldown <= 0 &&
+        distanceToPlayer <= attackRange) {
+      // Check line of sight before shooting
+      const mageCenterX = this.x + tileSize / 2;
+      const mageCenterY = this.y + tileSize / 2;
+      const playerCenterX = player.x + tileSize / 2;
+      const playerCenterY = player.y + tileSize / 2;
+
+      if (hasLineOfSight(mageCenterX, mageCenterY, playerCenterX, playerCenterY, dungeon, tileSize)) {
+        this.startMageShooting(player, tileSize, distanceToPlayer);
+        return;
+      }
+    }
+
+    // Move toward player if too far, away if too close
+    const idealDistance = 5; // tiles
+    const speed = this.getSpeed() * tileSize;
+
+    if (this.aiState === AI_STATE.FOLLOWING) {
+      // Calculate direction to player
+      const playerCenterX = player.x + tileSize / 2;
+      const playerCenterY = player.y + tileSize / 2;
+      const mageCenterX = this.x + tileSize / 2;
+      const mageCenterY = this.y + tileSize / 2;
+
+      const dx = playerCenterX - mageCenterX;
+      const dy = playerCenterY - mageCenterY;
+      const distancePixels = Math.sqrt(dx * dx + dy * dy);
+
+      if (distancePixels > 0) {
+        const dirX = dx / distancePixels;
+        const dirY = dy / distancePixels;
+
+        // Move toward or away from player based on distance
+        let moveDir = 1; // toward
+        if (distanceToPlayer < idealDistance) {
+          moveDir = -1; // away
+        }
+
+        const newX = this.x + dirX * speed * dt * moveDir;
+        const newY = this.y + dirY * speed * dt * moveDir;
+
+        // Check collision
+        if (!this.checkCollision(newX, newY, tileSize, dungeon, doorStates)) {
+          this.x = newX;
+          this.y = newY;
+          this.isMoving = true;
+
+          // Update direction (face player)
+          if (Math.abs(dx) > Math.abs(dy)) {
+            this.direction = dx > 0 ? DIRECTION.RIGHT : DIRECTION.LEFT;
+          } else {
+            this.direction = dy > 0 ? DIRECTION.DOWN : DIRECTION.UP;
+          }
+        } else {
+          this.isMoving = false;
+        }
+      }
+    } else {
+      // Idle - wander slowly
+      this.idleTimer += dt;
+      if (this.idleTimer >= Trashmob.IDLE_WAIT_TIME) {
+        this.idleTimer = 0;
+        this.pickNewWaypoint(room, tileSize);
+      }
+
+      // Move toward waypoint
+      if (this.waypoint) {
+        const dx = this.waypoint.x - this.x;
+        const dy = this.waypoint.y - this.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < 5) {
+          // Reached waypoint
+          this.waypoint = null;
+          this.isMoving = false;
+        } else {
+          const dirX = dx / distance;
+          const dirY = dy / distance;
+
+          const newX = this.x + dirX * speed * dt * 0.5; // Slow wander
+          const newY = this.y + dirY * speed * dt * 0.5;
+
+          if (!this.checkCollision(newX, newY, tileSize, dungeon, doorStates)) {
+            this.x = newX;
+            this.y = newY;
+            this.isMoving = true;
+
+            // Update direction
+            if (Math.abs(dx) > Math.abs(dy)) {
+              this.direction = dx > 0 ? DIRECTION.RIGHT : DIRECTION.LEFT;
+            } else {
+              this.direction = dy > 0 ? DIRECTION.DOWN : DIRECTION.UP;
+            }
+          } else {
+            this.waypoint = null;
+            this.isMoving = false;
+          }
+        }
+      }
+    }
+  }
+
+  private startMageShooting(player: Player, tileSize: number, distanceToPlayer: number): void {
+    this.isShooting = true;
+    this.castingTimer = 0;
+    this.isMoving = false;
+    this.fireballsSpawned = false; // Reset for new cast
+
+    // Calculate cast time based on distance - closer = longer cast time
+    // At max range (6 tiles): 0.6 seconds
+    // At close range (0 tiles): 1.8 seconds (3x longer)
+    const maxRange = 6;
+    const minCastTime = 0.6;
+    const maxCastTime = 1.8;
+    const distanceFactor = Math.min(distanceToPlayer, maxRange) / maxRange; // 0.0 to 1.0
+    this.currentCastTime = maxCastTime - (distanceFactor * (maxCastTime - minCastTime));
+
+    // Face player
+    const playerCenterX = player.x + tileSize / 2;
+    const playerCenterY = player.y + tileSize / 2;
+    const mageCenterX = this.x + tileSize / 2;
+    const mageCenterY = this.y + tileSize / 2;
+
+    const dx = playerCenterX - mageCenterX;
+    const dy = playerCenterY - mageCenterY;
+
+    if (Math.abs(dx) > Math.abs(dy)) {
+      this.direction = dx > 0 ? DIRECTION.RIGHT : DIRECTION.LEFT;
+    } else {
+      this.direction = dy > 0 ? DIRECTION.DOWN : DIRECTION.UP;
+    }
+  }
+
+  /**
+   * Returns true if this trashmob is ready to shoot fireballs
+   * (MAGE only, called by GameEngine to spawn fireballs at the right time)
+   */
+  public shouldSpawnFireballs(): boolean {
+    // Spawn fireballs halfway through casting animation, but only once per cast
+    if (this.fireballsSpawned) return false;
+
+    if (this.isShooting && this.castingTimer >= this.currentCastTime * 0.5) {
+      this.fireballsSpawned = true; // Mark as spawned
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Get the shooting angle toward the player
+   * (MAGE only, called by GameEngine when spawning fireballs)
+   */
+  public getShootingAngle(player: Player, tileSize: number): number {
+    const playerCenterX = player.x + tileSize / 2;
+    const playerCenterY = player.y + tileSize / 2;
+    const mageCenterX = this.x + tileSize / 2;
+    const mageCenterY = this.y + tileSize / 2;
+
+    return Math.atan2(playerCenterY - mageCenterY, playerCenterX - mageCenterX);
+  }
+
+  // ==================== BOMB BEHAVIOR ====================
+  // Slow-moving enemy that rolls toward player and explodes after proximity-based countdown
+
+  private updateBomb(
+    dt: number,
+    player: Player,
+    tileSize: number,
+    room: Room,
+    dungeon: TileType[][],
+    doorStates: Map<string, boolean>
+  ): void {
+    const distanceToPlayer = this.getDistanceToPlayer(player, tileSize);
+
+    // Aggro/de-aggro state management
+    if (distanceToPlayer <= Trashmob.AGGRO_RADIUS) {
+      this.aiState = AI_STATE.FOLLOWING;
+    } else if (distanceToPlayer > Trashmob.DEAGGRO_RADIUS) {
+      this.aiState = AI_STATE.IDLE;
+    }
+
+    // Movement toward player when following
+    if (this.aiState === AI_STATE.FOLLOWING && this.bombState !== 'exploding') {
+      this.isMoving = true;
+      const speed = this.getSpeed() * tileSize;
+
+      // Calculate direction to player
+      const playerCenterX = player.x + tileSize / 2;
+      const playerCenterY = player.y + tileSize / 2;
+      const bombCenterX = this.x + tileSize / 2;
+      const bombCenterY = this.y + tileSize / 2;
+
+      const dx = playerCenterX - bombCenterX;
+      const dy = playerCenterY - bombCenterY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance > 0) {
+        const moveX = (dx / distance) * speed * dt;
+        const moveY = (dy / distance) * speed * dt;
+
+        // Update direction based on movement
+        if (Math.abs(dx) > Math.abs(dy)) {
+          this.direction = dx > 0 ? DIRECTION.RIGHT : DIRECTION.LEFT;
+        } else {
+          this.direction = dy > 0 ? DIRECTION.DOWN : DIRECTION.UP;
+        }
+
+        // Try to move with collision detection
+        const collisionDetector = new CollisionDetector();
+        const newX = this.x + moveX;
+        const newY = this.y + moveY;
+
+        if (!collisionDetector.checkCollision(newX, this.y, this.x, this.y, tileSize, dungeon, doorStates)) {
+          this.x = newX;
+        }
+        if (!collisionDetector.checkCollision(this.x, newY, this.x, this.y, tileSize, dungeon, doorStates)) {
+          this.y = newY;
+        }
+      }
+    } else {
+      this.isMoving = false;
+
+      // Idle timer
+      if (this.aiState === AI_STATE.IDLE) {
+        this.idleTimer += dt;
+        if (this.idleTimer >= Trashmob.IDLE_WAIT_TIME) {
+          this.idleTimer = 0;
+        }
+      }
+    }
+
+    // Bomb-specific countdown logic (runs parallel to movement)
+    switch (this.bombState) {
+      case 'idle':
+        // Check if player is within activation radius
+        if (distanceToPlayer <= BOMB_ACTIVATION_RADIUS && !this.bombActivatedOnce) {
+          this.armBomb(room.visible, tileSize);
+        }
+        break;
+
+      case 'armed':
+        // Update countdown timer
+        this.bombTimer -= dt;
+
+        // Update glow pulsing animation
+        this.bombGlowPhase += dt * 5; // Fast pulsing
+
+        // Check if timer expired
+        if (this.bombTimer <= 0) {
+          this.explode(player, tileSize, room.visible);
+        }
+        break;
+
+      case 'exploding':
+        // Explosion handled, death animation will play
+        this.isMoving = false;
+        break;
+    }
+  }
+
+  /**
+   * Arm the bomb (start countdown)
+   */
+  private armBomb(roomVisible: boolean, tileSize: number): void {
+    this.bombState = 'armed';
+    this.bombTimer = BOMB_COUNTDOWN_DURATION;
+    this.bombActivatedOnce = true;
+    this.bombGlowPhase = 0;
+
+    // Spawn warning particles if room is visible
+    if (roomVisible) {
+      const particleSystem = getParticleSystem();
+      const centerX = this.x + tileSize / 2;
+      const centerY = this.y + tileSize / 2;
+      particleSystem.spawnWarning(centerX, centerY, BOMB_GLOW_RADIUS, 12);
+    }
+  }
+
+  /**
+   * Trigger explosion
+   */
+  private explode(player: Player, tileSize: number, roomVisible: boolean): void {
+    this.bombState = 'exploding';
+
+    // Calculate center position
+    const bombCenterX = this.x + tileSize / 2;
+    const bombCenterY = this.y + tileSize / 2;
+
+    // Spawn explosion effects (only if room visible)
+    if (roomVisible) {
+      const particleSystem = getParticleSystem();
+      const screenShake = getScreenShake();
+
+      // Large ash burst (explosion cloud)
+      particleSystem.spawnAsh(
+        bombCenterX,
+        bombCenterY,
+        tileSize * 3, // Large spread
+        tileSize * 3,
+        60 // Many particles
+      );
+
+      // Sparks radiating outward
+      particleSystem.spawnSparks(bombCenterX, bombCenterY, 24);
+
+      // Strong screen shake
+      screenShake.triggerStrong();
+    }
+
+    // Calculate damage to player based on distance
+    const playerCenterX = player.x + tileSize / 2;
+    const playerCenterY = player.y + tileSize / 2;
+    const dx = playerCenterX - bombCenterX;
+    const dy = playerCenterY - bombCenterY;
+    const distancePixels = Math.sqrt(dx * dx + dy * dy);
+    const distanceTiles = distancePixels / tileSize;
+
+    // Only damage if within explosion radius
+    if (distanceTiles <= BOMB_EXPLOSION_RADIUS) {
+      // Calculate damage: max at center, scales linearly to min at edge
+      const damageRatio = 1 - distanceTiles / BOMB_EXPLOSION_RADIUS;
+      const damage = Math.round(
+        BOMB_MIN_DAMAGE + (BOMB_MAX_DAMAGE - BOMB_MIN_DAMAGE) * damageRatio
+      );
+
+      // Mark that bomb dealt damage (GameEngine will read canDealDamage)
+      this.canDealDamage = true;
+      // Store damage amount temporarily (GameEngine needs to read this)
+      this.storedDamage = damage;
+    }
+
+    // Start death animation
+    this.die();
+  }
+
   /**
    * Pick a random waypoint within the room
    */
@@ -1189,7 +1631,7 @@ export class Trashmob {
     let animation: TrashmobAnimationType = 'idle';
     if (this.isDying) {
       animation = 'death';
-    } else if (this.isAttacking) {
+    } else if (this.isAttacking || this.isShooting) {
       animation = 'attack';
     } else if (this.isLeaping) {
       animation = 'dash';
@@ -1212,6 +1654,11 @@ export class Trashmob {
 
     // Don't draw UI elements during death animation
     if (!this.isDying) {
+      // BOMB: Draw countdown and glow ring
+      if (this.type === TRASHMOB_TYPE.BOMB && this.bombState === 'armed') {
+        this.drawBombCountdown(ctx, tileSize);
+      }
+
       // Draw attack indicator
       if (this.isAttacking) {
         const centerX = this.x + tileSize / 2;
@@ -1270,13 +1717,67 @@ export class Trashmob {
     ctx.lineWidth = 1;
     ctx.strokeRect(x - width / 2, y, width, barHeight);
   }
+
+  /**
+   * Draw bomb countdown timer and pulsing glow ring
+   */
+  private drawBombCountdown(ctx: CanvasRenderingContext2D, tileSize: number): void {
+    const centerX = this.x + tileSize / 2;
+    const centerY = this.y + tileSize / 2;
+    const spriteSize = tileSize * 0.8;
+
+    // Calculate pulsing glow
+    const pulseIntensity = Math.sin(this.bombGlowPhase) * 0.3 + 0.7; // 0.4 to 1.0
+
+    // Color shifts from orange (3s) → red (0s)
+    const timeRatio = this.bombTimer / BOMB_COUNTDOWN_DURATION; // 1.0 to 0.0
+    const red = 255;
+    const green = Math.floor(100 * timeRatio); // Orange at start, pure red at end
+    const glowColor = `rgba(${red}, ${green}, 0, ${pulseIntensity * 0.6})`;
+
+    // Draw outer glow ring (larger, more transparent)
+    ctx.strokeStyle = glowColor;
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, BOMB_GLOW_RADIUS * pulseIntensity, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Draw inner glow ring (smaller, brighter)
+    ctx.strokeStyle = `rgba(${red}, ${green}, 0, ${pulseIntensity})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, (BOMB_GLOW_RADIUS - 10) * pulseIntensity, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Draw countdown number above sprite
+    const countdownNumber = Math.ceil(this.bombTimer);
+    ctx.font = 'bold 24px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    // Number glow (shadow)
+    ctx.shadowColor = `rgba(${red}, ${green}, 0, 0.8)`;
+    ctx.shadowBlur = 8;
+
+    // Number outline (black)
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 4;
+    ctx.strokeText(countdownNumber.toString(), centerX, centerY - spriteSize * 0.7);
+
+    // Number fill (bright color)
+    ctx.fillStyle = `rgb(${red}, ${green + 50}, 0)`;
+    ctx.fillText(countdownNumber.toString(), centerX, centerY - spriteSize * 0.7);
+
+    // Reset shadow
+    ctx.shadowBlur = 0;
+  }
 }
 
 /**
  * Create a random trashmob at position
  */
 export function createRandomTrashmob(x: number, y: number, roomId: number): Trashmob {
-  const types: TrashmobType[] = [TRASHMOB_TYPE.RAT, TRASHMOB_TYPE.SLIME, TRASHMOB_TYPE.BAT];
+  const types: TrashmobType[] = [TRASHMOB_TYPE.RAT, TRASHMOB_TYPE.SLIME, TRASHMOB_TYPE.BAT, TRASHMOB_TYPE.MAGE];
   const randomType = types[Math.floor(Math.random() * types.length)];
   return new Trashmob(x, y, randomType, roomId);
 }
