@@ -557,6 +557,7 @@ export default function GameCanvas() {
   useEffect(() => {
     const interval = setInterval(() => {
       shrineHook.updateProximity();
+      shopPurchase.updateProximity();
     }, 100);
     return () => clearInterval(interval);
   }, [shrineHook.updateProximity, shopPurchase.updateProximity]);

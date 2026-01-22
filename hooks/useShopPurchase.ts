@@ -37,6 +37,9 @@ export interface ShopPurchaseState {
   /** Current purchase target (for modal) */
   purchaseTarget: InteractionTarget | null;
 
+  /** Nearby target for tooltip display (null if none nearby) */
+  nearbyTarget: InteractionTarget | null;
+
   /** Whether to show the purchase modal */
   showPurchaseModal: boolean;
 
@@ -69,6 +72,7 @@ export function useShopPurchase({
 }: UseShopPurchaseProps): ShopPurchaseState {
   const [shopData, setShopData] = useState<PlayerShopData>(createPlayerShopData());
   const [purchaseTarget, setPurchaseTarget] = useState<InteractionTarget | null>(null);
+  const [nearbyTarget, setNearbyTarget] = useState<InteractionTarget | null>(null);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [currentShopRoom, setCurrentShopRoom] = useState<Room | null>(null);
 
@@ -84,6 +88,7 @@ export function useShopPurchase({
   const updateProximity = useCallback(() => {
     if (!rooms || inCombat || gamePaused) {
       setCurrentShopRoom(null);
+      setNearbyTarget(null);
       return;
     }
 
@@ -94,6 +99,14 @@ export function useShopPurchase({
     // Find shop room player is in
     const shopRoom = getPlayerShopRoom(playerX, playerY, rooms);
     setCurrentShopRoom(shopRoom);
+
+    // Find nearby item/perk for tooltip
+    if (shopRoom) {
+      const target = getInteractionTarget(playerX, playerY, shopRoom);
+      setNearbyTarget(target);
+    } else {
+      setNearbyTarget(null);
+    }
   }, [playerRef, rooms, inCombat, gamePaused]);
 
   // Handle E key press for shop interaction
@@ -207,6 +220,7 @@ export function useShopPurchase({
   const resetShopData = useCallback(() => {
     setShopData(createPlayerShopData());
     setPurchaseTarget(null);
+    setNearbyTarget(null);
     setShowPurchaseModal(false);
     setCurrentShopRoom(null);
   }, []);
@@ -214,6 +228,7 @@ export function useShopPurchase({
   return {
     shopData,
     purchaseTarget,
+    nearbyTarget,
     showPurchaseModal,
     currentShopRoom,
     getBonusStats,

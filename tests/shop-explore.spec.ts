@@ -23,7 +23,7 @@ test.describe('Shop Exploration', () => {
       }
     });
 
-    await page.goto('http://localhost:3003');
+    await page.goto('http://localhost:3000');
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(3000);
 

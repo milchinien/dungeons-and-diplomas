@@ -12,7 +12,7 @@ test.describe('Shop Teleport Cheat', () => {
     });
 
     // Navigate to the game (adjust port if needed)
-    await page.goto('http://localhost:3003');
+    await page.goto('http://localhost:3000');
 
     // Wait for the page to load
     await page.waitForLoadState('networkidle');

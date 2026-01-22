@@ -16,38 +16,87 @@ import { Rarity, getRarityColor, RARITY_CONFIG } from '../shop/Rarity';
 
 /**
  * Renders the shop sign.
+ * Note: Renders in world coordinates. Camera transform is applied by GameRenderer.
  */
 export function renderShopSign(
   ctx: CanvasRenderingContext2D,
   layout: ShopLayout,
-  camera: { x: number; y: number },
   signImage?: HTMLImageElement
 ): void {
-  const screenX = layout.signPosition.x * TILE_SOURCE_SIZE - camera.x;
-  const screenY = layout.signPosition.y * TILE_SOURCE_SIZE - camera.y;
+  const screenX = layout.signPosition.x * TILE_SOURCE_SIZE;
+  const screenY = layout.signPosition.y * TILE_SOURCE_SIZE;
 
   if (signImage && signImage.complete && signImage.naturalWidth > 0) {
     // Sprite verwenden
     ctx.drawImage(signImage, screenX - TILE_SOURCE_SIZE, screenY, TILE_SOURCE_SIZE * 2, TILE_SOURCE_SIZE);
   } else {
-    // Fallback: Text-basiertes Schild
+    // Fallback: Verbessertes Text-basiertes Schild
     ctx.save();
 
-    // Schild-Hintergrund
-    ctx.fillStyle = '#8B4513';  // Holzbraun
-    ctx.fillRect(screenX - 60, screenY, 120, 40);
+    const signWidth = 140;
+    const signHeight = 50;
+    const signX = screenX - signWidth / 2;
+    const signY = screenY - 10;
 
-    // Rahmen
-    ctx.strokeStyle = '#5D3A1A';
+    // Schild-Schatten (Tiefe)
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+    ctx.fillRect(signX + 4, signY + 4, signWidth, signHeight);
+
+    // Schild-Hintergrund (dunkles Holz)
+    ctx.fillStyle = '#654321';
+    ctx.fillRect(signX, signY, signWidth, signHeight);
+
+    // Holzmaserung (vertikale Linien)
+    ctx.strokeStyle = 'rgba(61, 33, 16, 0.5)';
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 4; i++) {
+      const x = signX + 20 + i * 30;
+      ctx.beginPath();
+      ctx.moveTo(x, signY + 5);
+      ctx.lineTo(x, signY + signHeight - 5);
+      ctx.stroke();
+    }
+
+    // Dekorativer Rahmen (doppelt)
+    ctx.strokeStyle = '#8B7355';
     ctx.lineWidth = 3;
-    ctx.strokeRect(screenX - 60, screenY, 120, 40);
+    ctx.strokeRect(signX + 3, signY + 3, signWidth - 6, signHeight - 6);
 
-    // Text
+    ctx.strokeStyle = '#4A2511';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(signX, signY, signWidth, signHeight);
+
+    // Metallbeschläge an den Ecken
+    const cornerSize = 8;
+    ctx.fillStyle = '#8B8B8B';
+    // Oben links
+    ctx.fillRect(signX + 5, signY + 5, cornerSize, cornerSize);
+    // Oben rechts
+    ctx.fillRect(signX + signWidth - 5 - cornerSize, signY + 5, cornerSize, cornerSize);
+    // Unten links
+    ctx.fillRect(signX + 5, signY + signHeight - 5 - cornerSize, cornerSize, cornerSize);
+    // Unten rechts
+    ctx.fillRect(signX + signWidth - 5 - cornerSize, signY + signHeight - 5 - cornerSize, cornerSize, cornerSize);
+
+    // Text mit Goldschimmer
     ctx.fillStyle = '#FFD700';
-    ctx.font = 'bold 24px serif';
+    ctx.font = 'bold 32px serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('SHOP', screenX, screenY + 20);
+
+    // Text-Schatten für Tiefe
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+    ctx.shadowBlur = 4;
+    ctx.shadowOffsetX = 2;
+    ctx.shadowOffsetY = 2;
+
+    ctx.fillText('SHOP', screenX, signY + signHeight / 2);
+
+    // Highlight auf Text
+    ctx.shadowColor = 'transparent';
+    ctx.fillStyle = '#FFED4E';
+    ctx.font = 'bold 32px serif';
+    ctx.fillText('SHOP', screenX - 1, signY + signHeight / 2 - 1);
 
     ctx.restore();
   }
@@ -55,42 +104,77 @@ export function renderShopSign(
 
 /**
  * Renders the shop counters.
+ * Note: Renders in world coordinates. Camera transform is applied by GameRenderer.
  */
 export function renderCounters(
   ctx: CanvasRenderingContext2D,
   layout: ShopLayout,
-  camera: { x: number; y: number },
   counterImage?: HTMLImageElement
 ): void {
   const allCounterTiles = [...layout.leftCounterTiles, ...layout.rightCounterTiles];
 
   for (const tile of allCounterTiles) {
-    const screenX = tile.x * TILE_SOURCE_SIZE - camera.x;
-    const screenY = tile.y * TILE_SOURCE_SIZE - camera.y;
+    const screenX = tile.x * TILE_SOURCE_SIZE;
+    const screenY = tile.y * TILE_SOURCE_SIZE;
 
     if (counterImage && counterImage.complete && counterImage.naturalWidth > 0) {
       ctx.drawImage(counterImage, screenX, screenY, TILE_SOURCE_SIZE, TILE_SOURCE_SIZE);
     } else {
-      // Fallback: Einfacher Tresen
+      // Fallback: Verbesserter Tresen
       ctx.save();
 
-      // Tresen-Oberfläche
-      ctx.fillStyle = '#654321';
-      ctx.fillRect(screenX, screenY, TILE_SOURCE_SIZE, TILE_SOURCE_SIZE);
+      // Schatten unter dem Tresen
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+      ctx.fillRect(screenX + 2, screenY + TILE_SOURCE_SIZE - 8, TILE_SOURCE_SIZE - 4, 6);
 
-      // Kante
-      ctx.fillStyle = '#4A3219';
-      ctx.fillRect(screenX, screenY + TILE_SOURCE_SIZE - 10, TILE_SOURCE_SIZE, 10);
+      // Tresen-Front (dunkles Holz)
+      const gradient = ctx.createLinearGradient(screenX, screenY, screenX, screenY + TILE_SOURCE_SIZE);
+      gradient.addColorStop(0, '#8B6F47');  // Heller oben
+      gradient.addColorStop(0.6, '#654321'); // Mittlerer Ton
+      gradient.addColorStop(1, '#4A2511');   // Dunkler unten
+      ctx.fillStyle = gradient;
+      ctx.fillRect(screenX, screenY, TILE_SOURCE_SIZE, TILE_SOURCE_SIZE - 8);
 
-      // Holzmaserung (Details)
-      ctx.strokeStyle = '#5D3A1A';
-      ctx.lineWidth = 1;
+      // Tresen-Oberfläche (Holzplatte)
+      ctx.fillStyle = '#A0826D';
+      ctx.fillRect(screenX, screenY, TILE_SOURCE_SIZE, 12);
+
+      // Glanz auf Oberfläche
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+      ctx.fillRect(screenX + 4, screenY + 2, TILE_SOURCE_SIZE - 8, 4);
+
+      // Holzmaserung (horizontale Linien)
+      ctx.strokeStyle = 'rgba(61, 33, 16, 0.4)';
+      ctx.lineWidth = 1.5;
+      for (let i = 0; i < 3; i++) {
+        const y = screenY + 20 + i * 12;
+        ctx.beginPath();
+        ctx.moveTo(screenX + 4, y);
+        ctx.lineTo(screenX + TILE_SOURCE_SIZE - 4, y);
+        ctx.stroke();
+      }
+
+      // Vertikale Holzbretter
+      ctx.strokeStyle = 'rgba(61, 33, 16, 0.3)';
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(screenX + 5, screenY + 15);
-      ctx.lineTo(screenX + TILE_SOURCE_SIZE - 5, screenY + 15);
-      ctx.moveTo(screenX + 10, screenY + 35);
-      ctx.lineTo(screenX + TILE_SOURCE_SIZE - 10, screenY + 35);
+      ctx.moveTo(screenX + TILE_SOURCE_SIZE / 2, screenY + 12);
+      ctx.lineTo(screenX + TILE_SOURCE_SIZE / 2, screenY + TILE_SOURCE_SIZE - 8);
       ctx.stroke();
+
+      // Rahmen
+      ctx.strokeStyle = '#3D2110';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(screenX, screenY, TILE_SOURCE_SIZE, TILE_SOURCE_SIZE - 8);
+
+      // Metallbeschläge (dekorativ)
+      ctx.fillStyle = '#8B8B8B';
+      const boltSize = 4;
+      // Ecken
+      ctx.fillRect(screenX + 4, screenY + 16, boltSize, boltSize);
+      ctx.fillRect(screenX + TILE_SOURCE_SIZE - 8, screenY + 16, boltSize, boltSize);
+      ctx.fillRect(screenX + 4, screenY + TILE_SOURCE_SIZE - 20, boltSize, boltSize);
+      ctx.fillRect(screenX + TILE_SOURCE_SIZE - 8, screenY + TILE_SOURCE_SIZE - 20, boltSize, boltSize);
 
       ctx.restore();
     }
@@ -135,13 +219,13 @@ export function renderRarityGlow(
 
 /**
  * Renders the floating items above the left counter.
+ * Note: Renders in world coordinates. Camera transform is applied by GameRenderer.
  */
 export function renderFloatingItems(
   ctx: CanvasRenderingContext2D,
   inventory: ShopInventory,
   layout: ShopLayout,
   time: number,
-  camera: { x: number; y: number },
   itemSprites?: Map<string, HTMLImageElement>
 ): void {
   for (let i = 0; i < inventory.items.length; i++) {
@@ -156,8 +240,8 @@ export function renderFloatingItems(
       FLOATING_ITEM_SPEED
     );
 
-    const screenX = basePos.x - camera.x;
-    const screenY = floatingY - camera.y;
+    const screenX = basePos.x;
+    const screenY = floatingY;
 
     // Glow zuerst (dahinter)
     renderRarityGlow(ctx, screenX, screenY, item.rarity, time);
@@ -204,13 +288,13 @@ export function renderFloatingItems(
 
 /**
  * Renders the floating perks above the right counter.
+ * Note: Renders in world coordinates. Camera transform is applied by GameRenderer.
  */
 export function renderFloatingPerks(
   ctx: CanvasRenderingContext2D,
   inventory: ShopInventory,
   layout: ShopLayout,
   time: number,
-  camera: { x: number; y: number },
   perkIcons?: Map<string, HTMLImageElement>
 ): void {
   for (let i = 0; i < inventory.perks.length; i++) {
@@ -225,8 +309,8 @@ export function renderFloatingPerks(
       FLOATING_ITEM_SPEED
     );
 
-    const screenX = basePos.x - camera.x;
-    const screenY = floatingY - camera.y;
+    const screenX = basePos.x;
+    const screenY = floatingY;
 
     // Glow zuerst
     renderRarityGlow(ctx, screenX, screenY, perk.rarity, time);
@@ -289,12 +373,12 @@ let shopRenderDebugCounter = 0;
 
 /**
  * Renders the complete shop room.
+ * Note: Renders in world coordinates. Camera transform is applied by GameRenderer.
  */
 export function renderShopRoom(
   ctx: CanvasRenderingContext2D,
   room: Room,
   time: number,
-  camera: { x: number; y: number },
   assets?: ShopAssets
 ): void {
   if (room.type !== 'shop' || !room.shopInventory) return;
@@ -310,10 +394,10 @@ export function renderShopRoom(
   const layout = getShopLayout(room);
 
   // 1. Schild rendern
-  renderShopSign(ctx, layout, camera, assets?.signImage);
+  renderShopSign(ctx, layout, assets?.signImage);
 
   // 2. Tresen rendern
-  renderCounters(ctx, layout, camera, assets?.counterImage);
+  renderCounters(ctx, layout, assets?.counterImage);
 
   // 3. Schwebende Items
   renderFloatingItems(
@@ -321,7 +405,6 @@ export function renderShopRoom(
     room.shopInventory,
     layout,
     time,
-    camera,
     assets?.itemSprites
   );
 
@@ -331,7 +414,6 @@ export function renderShopRoom(
     room.shopInventory,
     layout,
     time,
-    camera,
     assets?.perkIcons
   );
 }

@@ -306,7 +306,7 @@ export function assignShopRooms(
   for (let i = 0; i < guaranteedCount; i++) {
     const roomIndex = eligibleRooms[i];
     rooms[roomIndex].type = 'shop';
-    rooms[roomIndex].shopInventory = generateShopInventory(rooms[roomIndex].id, randomFn);
+    rooms[roomIndex].shopInventory = generateShopInventory(rooms[roomIndex].id, randomFn, rooms[roomIndex].width);
     rooms[roomIndex].shopDoorOpen = false;
     shopCount++;
   }
@@ -316,7 +316,7 @@ export function assignShopRooms(
     if (randomFn() < SHOP_SPAWN_CHANCE) {
       const roomIndex = eligibleRooms[i];
       rooms[roomIndex].type = 'shop';
-      rooms[roomIndex].shopInventory = generateShopInventory(rooms[roomIndex].id, randomFn);
+      rooms[roomIndex].shopInventory = generateShopInventory(rooms[roomIndex].id, randomFn, rooms[roomIndex].width);
       rooms[roomIndex].shopDoorOpen = false;
       shopCount++;
     }

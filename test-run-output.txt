@@ -1,0 +1,597 @@
+
+Running 11 tests using 6 workers
+
+[1A[2K[1/11] [chromium] › tests\example.spec.ts:3:5 › has title
+[1A[2K[2/11] [chromium] › tests\comprehensive-features.spec.ts:9:7 › Comprehensive Feature Tests › complete game flow - dungeon generation to combat
+[1A[2K[3/11] [chromium] › tests\comprehensive-features.spec.ts:501:7 › Comprehensive Feature Tests › visual effects system
+[1A[2K[4/11] [chromium] › tests\comprehensive-features.spec.ts:424:7 › Comprehensive Feature Tests › enemy AI and trashmob system
+[1A[2K[5/11] [chromium] › tests\example.spec.ts:10:5 › game canvas is present
+[1A[2K[6/11] [chromium] › tests\shop-buy-simple.spec.ts:4:7 › Shop Purchase (Simple) › should teleport to shop and buy item
+[1A[2K[chromium] › tests\comprehensive-features.spec.ts:424:7 › Comprehensive Feature Tests › enemy AI and trashmob system
+
+=== ENEMY AI & TRASHMOB TEST ===
+
+
+[1A[2K[chromium] › tests\comprehensive-features.spec.ts:9:7 › Comprehensive Feature Tests › complete game flow - dungeon generation to combat
+
+=== COMPREHENSIVE FEATURE TEST ===
+
+
+[1A[2K📋 Test 1: Login & Initialization
+
+[1A[2K[chromium] › tests\comprehensive-features.spec.ts:501:7 › Comprehensive Feature Tests › visual effects system
+
+=== VISUAL EFFECTS TEST ===
+
+
+[1A[2K[chromium] › tests\shop-buy-simple.spec.ts:4:7 › Shop Purchase (Simple) › should teleport to shop and buy item
+
+=== Starting Test ===
+
+[1A[2K[chromium] › tests\comprehensive-features.spec.ts:9:7 › Comprehensive Feature Tests › complete game flow - dungeon generation to combat
+  ✓ Login successful
+
+[1A[2K  1) [chromium] › tests\shop-buy-simple.spec.ts:4:7 › Shop Purchase (Simple) › should teleport to shop and buy item 
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3003/
+    Call log:
+    [2m  - navigating to "http://localhost:3003/", waiting until "load"[22m
+
+
+      21 |
+      22 |     console.log('\n=== Starting Test ===');
+    > 23 |     await page.goto('http://localhost:3003');
+         |                ^
+      24 |
+      25 |     // Wait for page load
+      26 |     console.log('Waiting for page to load...');
+        at C:\src\dungeons-and-diplomas\tests\shop-buy-simple.spec.ts:23:16
+
+
+[1A[2K[Browser] [Dungeon Generation] 99 rooms, 5 shop(s) assigned (min: 3, max: 5, eligible: 34)
+
+[1A[2K[7/11] [chromium] › tests\shop-explore.spec.ts:4:7 › Shop Exploration › explore shop and find items
+[1A[2K  2) [chromium] › tests\example.spec.ts:3:5 › has title ────────────────────────────────────────────
+
+    Error: [2mexpect([22m[31mpage[39m[2m).[22mtoHaveTitle[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Expected pattern: [32m/Dungeons/[39m
+    Received string:  [31m"Prozeduraler Dungeon Generator"[39m
+    Timeout: 5000ms
+
+    Call log:
+    [2m  - Expect "toHaveTitle" with timeout 5000ms[22m
+    [2m    9 × unexpected value "Prozeduraler Dungeon Generator"[22m
+
+
+       5 |
+       6 |   // Expect a title "to contain" a substring.
+    >  7 |   await expect(page).toHaveTitle(/Dungeons/);
+         |                      ^
+       8 | });
+       9 |
+      10 | test('game canvas is present', async ({ page }) => {
+        at C:\src\dungeons-and-diplomas\tests\example.spec.ts:7:22
+
+    Error Context: test-results\example-has-title-chromium\error-context.md
+
+
+[1A[2K
+📋 Test 2: Canvas Rendering
+
+[1A[2K  3) [chromium] › tests\example.spec.ts:10:5 › game canvas is present ──────────────────────────────
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('canvas').first()
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('canvas').first()[22m
+
+
+      13 |   // Check if the main game canvas is present
+      14 |   const canvas = page.locator('canvas').first();
+    > 15 |   await expect(canvas).toBeVisible();
+         |                        ^
+      16 | });
+      17 |
+        at C:\src\dungeons-and-diplomas\tests\example.spec.ts:15:24
+
+    Error Context: test-results\example-game-canvas-is-present-chromium\error-context.md
+
+
+[1A[2K  ✓ Main canvas rendered
+
+[1A[2K  ✓ Total canvases: 2 (expected: 2 - main + minimap)
+
+[1A[2K
+📋 Test 3: Dungeon Generation (BSP)
+
+[1A[2K[8/11] [chromium] › tests\shop-purchase.spec.ts:4:7 › Shop Item Purchase › should teleport to shop and purchase an item using cheat mode
+[1A[2K[9/11] [chromium] › tests\shop-rendering.spec.ts:4:7 › Shop Rendering › shop elements should render at correct layer (not floating above map)
+[1A[2K[chromium] › tests\shop-purchase.spec.ts:4:7 › Shop Item Purchase › should teleport to shop and purchase an item using cheat mode
+=== Navigating to game ===
+
+[1A[2K[chromium] › tests\shop-rendering.spec.ts:4:7 › Shop Rendering › shop elements should render at correct layer (not floating above map)
+
+=== Shop Rendering Test ===
+
+[1A[2KWaiting for page to load...
+
+[1A[2K[chromium] › tests\comprehensive-features.spec.ts:501:7 › Comprehensive Feature Tests › visual effects system
+📋 Test: Screen Shake (from combat damage)
+
+[1A[2K📋 Test: Particle Effects
+
+[1A[2K[chromium] › tests\comprehensive-features.spec.ts:424:7 › Comprehensive Feature Tests › enemy AI and trashmob system
+📋 Test: Enemy Spawning
+
+[1A[2K  ✓ Trashmob logs: 2
+
+[1A[2K  ✓ [Dungeon Generation] 105 rooms, 5 shop(s) assigned (min: 3, max: 5, eligible: 54)
+
+[1A[2K[chromium] › tests\comprehensive-features.spec.ts:501:7 › Comprehensive Feature Tests › visual effects system
+📋 Test: Room Transitions
+
+[1A[2K[chromium] › tests\comprehensive-features.spec.ts:9:7 › Comprehensive Feature Tests › complete game flow - dungeon generation to combat
+  ✓ Dungeon generated
+
+[1A[2K  ✓ Room count: 99
+
+[1A[2K  ✓ Shop rooms: Yes
+
+[1A[2K  ✓ Shrine rooms: No
+
+[1A[2K[chromium] › tests\comprehensive-features.spec.ts:501:7 › Comprehensive Feature Tests › visual effects system
+  → Moving between rooms to trigger transitions
+
+[1A[2K[chromium] › tests\comprehensive-features.spec.ts:424:7 › Comprehensive Feature Tests › enemy AI and trashmob system
+
+📋 Test: Enemy AI States
+
+[1A[2K[chromium] › tests\comprehensive-features.spec.ts:9:7 › Comprehensive Feature Tests › complete game flow - dungeon generation to combat
+
+📋 Test 4: Fog of War
+
+[1A[2K  4) [chromium] › tests\shop-explore.spec.ts:4:7 › Shop Exploration › explore shop and find items ──
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3003/
+    Call log:
+    [2m  - navigating to "http://localhost:3003/", waiting until "load"[22m
+
+
+      24 |     });
+      25 |
+    > 26 |     await page.goto('http://localhost:3003');
+         |                ^
+      27 |     await page.waitForLoadState('domcontentloaded');
+      28 |     await page.waitForTimeout(3000);
+      29 |
+        at C:\src\dungeons-and-diplomas\tests\shop-explore.spec.ts:26:16
+
+
+[1A[2K[chromium] › tests\comprehensive-features.spec.ts:424:7 › Comprehensive Feature Tests › enemy AI and trashmob system
+  ⚠ No combat room available
+
+[1A[2K
+=== ENEMY TEST COMPLETE ===
+
+
+[1A[2K[10/11] [chromium] › tests\shop-teleport.spec.ts:4:7 › Shop Teleport Cheat › should be able to teleport to shop
+[1A[2K[chromium] › tests\comprehensive-features.spec.ts:9:7 › Comprehensive Feature Tests › complete game flow - dungeon generation to combat
+  ✓ Initial fog of war captured
+
+[1A[2K[11/11] [chromium] › tests\shop-rendering.spec.ts:228:7 › Shop Rendering › player should not spawn in shop room
+[1A[2K[chromium] › tests\shop-rendering.spec.ts:228:7 › Shop Rendering › player should not spawn in shop room
+
+=== Testing Player Spawn (should not be in shop) ===
+
+[1A[2K
+--- Iteration 1/5 ---
+
+[1A[2K  5) [chromium] › tests\shop-purchase.spec.ts:4:7 › Shop Item Purchase › should teleport to shop and purchase an item using cheat mode 
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3003/
+    Call log:
+    [2m  - navigating to "http://localhost:3003/", waiting until "load"[22m
+
+
+      15 |     // Navigate to the game
+      16 |     console.log('=== Navigating to game ===');
+    > 17 |     await page.goto('http://localhost:3003');
+         |                ^
+      18 |     await page.waitForLoadState('networkidle');
+      19 |     await page.waitForTimeout(2000);
+      20 |
+        at C:\src\dungeons-and-diplomas\tests\shop-purchase.spec.ts:17:16
+
+
+[1A[2K[chromium] › tests\shop-rendering.spec.ts:4:7 › Shop Rendering › shop elements should render at correct layer (not floating above map)
+Login modal appeared, filling in...
+
+[1A[2KLogin submitted
+
+[1A[2K  6) [chromium] › tests\shop-teleport.spec.ts:4:7 › Shop Teleport Cheat › should be able to teleport to shop 
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3003/
+    Call log:
+    [2m  - navigating to "http://localhost:3003/", waiting until "load"[22m
+
+
+      13 |
+      14 |     // Navigate to the game (adjust port if needed)
+    > 15 |     await page.goto('http://localhost:3003');
+         |                ^
+      16 |
+      17 |     // Wait for the page to load
+      18 |     await page.waitForLoadState('networkidle');
+        at C:\src\dungeons-and-diplomas\tests\shop-teleport.spec.ts:15:16
+
+
+[1A[2K[chromium] › tests\comprehensive-features.spec.ts:9:7 › Comprehensive Feature Tests › complete game flow - dungeon generation to combat
+  ✓ Fog of war reveals rooms on exploration
+
+[1A[2K
+📋 Test 5: Player Movement & Collision
+
+[1A[2K[chromium] › tests\comprehensive-features.spec.ts:501:7 › Comprehensive Feature Tests › visual effects system
+  ✓ Room transition effects captured
+
+[1A[2K
+=== EFFECTS TEST COMPLETE ===
+
+
+[1A[2K[chromium] › tests\shop-rendering.spec.ts:228:7 › Shop Rendering › player should not spawn in shop room
+[Browser] [Dungeon Generation] 115 rooms, 5 shop(s) assigned (min: 3, max: 5, eligible: 54)
+
+[1A[2K[Browser] [EntitySpawner] Starting trashmob spawn. Total rooms: 115, playerRoomId: 114
+
+[1A[2K[chromium] › tests\comprehensive-features.spec.ts:9:7 › Comprehensive Feature Tests › complete game flow - dungeon generation to combat
+  ✓ Player responds to WASD input
+
+[1A[2K[chromium] › tests\shop-rendering.spec.ts:4:7 › Shop Rendering › shop elements should render at correct layer (not floating above map)
+Waiting for canvas to appear...
+
+[1A[2KCanvas check attempt 1/3...
+
+[1A[2K✓ Canvas is visible
+
+[1A[2KWaiting for dungeon generation...
+
+[1A[2K✓ Dungeon generated
+
+[1A[2K[chromium] › tests\comprehensive-features.spec.ts:9:7 › Comprehensive Feature Tests › complete game flow - dungeon generation to combat
+  ✓ Wall collision (player should stop at walls)
+
+[1A[2K
+📋 Test 6: Character Panel & ELO Display
+
+[1A[2K  ✓ Character panel visible
+
+[1A[2K  ✓ ELO display: Visible
+
+[1A[2K
+📋 Test 7: Minimap
+
+[1A[2K  ✓ Minimap canvas present (verified in Test 2)
+
+[1A[2K  ✓ Minimap should show: explored rooms, player position, room types
+
+[1A[2K
+📋 Test 8: Cheat Menu
+
+[1A[2K  ✓ Cheat menu opens with CTRL+P
+
+[1A[2K
+📋 Test 9: Shop System
+
+[1A[2K[Browser] [Teleport] Room types in dungeon: {empty: 72, shrine: 7, treasure: 11, shop: 5, combat: 4}
+
+[1A[2K[Browser] [Teleport] Looking for room type: shop
+
+[1A[2K[Browser] [Teleport] Found target: {x: 3072, y: 3904}
+
+[1A[2K[chromium] › tests\shop-rendering.spec.ts:4:7 › Shop Rendering › shop elements should render at correct layer (not floating above map)
+
+Opening cheat menu (CTRL+P)...
+
+[1A[2K[chromium] › tests\comprehensive-features.spec.ts:9:7 › Comprehensive Feature Tests › complete game flow - dungeon generation to combat
+  ✓ Teleported to shop
+
+[1A[2K[chromium] › tests\shop-rendering.spec.ts:4:7 › Shop Rendering › shop elements should render at correct layer (not floating above map)
+✓ Cheat menu is open
+
+[1A[2K
+Teleporting to shop...
+
+[1A[2K[Browser] [Teleport] Room types in dungeon: {empty: 70, combat: 16, treasure: 18, shop: 5, shrine: 10}
+
+[1A[2K[Browser] [Teleport] Looking for room type: shop
+
+[1A[2K[Browser] [Teleport] Found target: {x: 3648, y: 960}
+
+[1A[2K[chromium] › tests\shop-rendering.spec.ts:228:7 › Shop Rendering › player should not spawn in shop room
+✓ Iteration 1: Player spawned correctly (not in shop)
+
+[1A[2K
+--- Iteration 2/5 ---
+
+[1A[2K[chromium] › tests\shop-rendering.spec.ts:4:7 › Shop Rendering › shop elements should render at correct layer (not floating above map)
+✓ Teleported to shop
+
+[1A[2K[chromium] › tests\comprehensive-features.spec.ts:9:7 › Comprehensive Feature Tests › complete game flow - dungeon generation to combat
+[Browser] [ShopRenderer] Rendering shop room 56 at (44, 58) size 9x6
+
+[1A[2K[Browser] [ShopRenderer] Items: 2, Perks: 2
+
+[1A[2K  ✓ Shop rendered (2 render logs)
+
+[1A[2K  → Testing shop interaction...
+
+[1A[2K[chromium] › tests\shop-rendering.spec.ts:4:7 › Shop Rendering › shop elements should render at correct layer (not floating above map)
+
+Waiting for shop to render...
+
+[1A[2K[chromium] › tests\comprehensive-features.spec.ts:9:7 › Comprehensive Feature Tests › complete game flow - dungeon generation to combat
+  ✓ Shop interaction: No items in range
+
+[1A[2K
+📋 Test 10: Shrine System
+
+[1A[2K[chromium] › tests\shop-rendering.spec.ts:4:7 › Shop Rendering › shop elements should render at correct layer (not floating above map)
+[Browser] [ShopRenderer] Rendering shop room 56 at (53, 12) size 9x6
+
+[1A[2K[Browser] [ShopRenderer] Items: 2, Perks: 2
+
+[1A[2K[chromium] › tests\comprehensive-features.spec.ts:9:7 › Comprehensive Feature Tests › complete game flow - dungeon generation to combat
+[Browser] [Teleport] Room types in dungeon: {empty: 72, shrine: 7, treasure: 11, shop: 5, combat: 4}
+
+[1A[2K[Browser] [Teleport] Looking for room type: shrine
+
+[1A[2K[Browser] [Teleport] Found target: {x: 3712, y: 3520}
+
+[1A[2K[chromium] › tests\shop-rendering.spec.ts:4:7 › Shop Rendering › shop elements should render at correct layer (not floating above map)
+✓ Screenshot saved: shop-rendering-at-shop.png
+
+[1A[2K[chromium] › tests\shop-rendering.spec.ts:228:7 › Shop Rendering › player should not spawn in shop room
+[Browser] [Dungeon Generation] 113 rooms, 5 shop(s) assigned (min: 3, max: 5, eligible: 38)
+
+[1A[2K[Browser] [EntitySpawner] Starting trashmob spawn. Total rooms: 113, playerRoomId: 13
+
+[1A[2K[chromium] › tests\comprehensive-features.spec.ts:9:7 › Comprehensive Feature Tests › complete game flow - dungeon generation to combat
+  ✓ Teleported to shrine
+
+[1A[2K[chromium] › tests\shop-rendering.spec.ts:4:7 › Shop Rendering › shop elements should render at correct layer (not floating above map)
+✓ Screenshot saved: shop-rendering-center.png
+
+[1A[2K
+Moving up-close...
+
+[1A[2K[chromium] › tests\comprehensive-features.spec.ts:9:7 › Comprehensive Feature Tests › complete game flow - dungeon generation to combat
+  ✓ Shrine visible in dungeon
+
+[1A[2K
+📋 Test 11: Combat System
+
+[1A[2K[chromium] › tests\shop-rendering.spec.ts:4:7 › Shop Rendering › shop elements should render at correct layer (not floating above map)
+[Browser] [ShopRenderer] Rendering shop room 56 at (53, 12) size 9x6
+
+[1A[2K[Browser] [ShopRenderer] Items: 2, Perks: 2
+
+[1A[2K[chromium] › tests\comprehensive-features.spec.ts:9:7 › Comprehensive Feature Tests › complete game flow - dungeon generation to combat
+  ⚠ No combat room in dungeon (random generation)
+
+[1A[2K
+📋 Test 12: Treasure Collection
+
+[1A[2K[Browser] [ShopRenderer] Rendering shop room 56 at (44, 58) size 9x6
+
+[1A[2K[Browser] [ShopRenderer] Items: 2, Perks: 2
+
+[1A[2K  ⚠ No treasure room in dungeon (random generation)
+
+[1A[2K
+📋 Test 13: Inventory System
+
+[1A[2K  ✓ Inventory display: Not visible (no items yet)
+
+[1A[2K
+📋 Test 14: Statistics Dashboard
+
+[1A[2K[chromium] › tests\shop-rendering.spec.ts:4:7 › Shop Rendering › shop elements should render at correct layer (not floating above map)
+✓ Screenshot saved: shop-rendering-up-close.png
+
+[1A[2K
+Moving top-left...
+
+[1A[2K[chromium] › tests\comprehensive-features.spec.ts:9:7 › Comprehensive Feature Tests › complete game flow - dungeon generation to combat
+  ✓ Statistics dashboard: Not visible
+
+[1A[2K
+📋 Test 15: Settings/Options
+
+[1A[2K  → Settings menu not found (might be in different location)
+
+[1A[2K
+================================================================================
+
+[1A[2KCOMPREHENSIVE TEST SUMMARY
+
+[1A[2K================================================================================
+
+[1A[2K✓ Login & Initialization
+
+[1A[2K✓ Canvas Rendering (Main + Minimap)
+
+[1A[2K✓ Dungeon Generation (BSP Algorithm)
+
+[1A[2K✓ Fog of War
+
+[1A[2K✓ Player Movement & Collision Detection
+
+[1A[2K✓ Character Panel & ELO Display
+
+[1A[2K✓ Minimap
+
+[1A[2K✓ Cheat Menu
+
+[1A[2K✓ Shop System
+
+[1A[2K✓ Shrine System
+
+[1A[2K✓ Combat System
+
+[1A[2K✓ Treasure Collection
+
+[1A[2K✓ Inventory System
+
+[1A[2K✓ Statistics Dashboard
+
+[1A[2K✓ Settings/Options
+
+[1A[2K================================================================================
+
+[1A[2KTotal screenshots: 15+
+
+[1A[2KTotal console logs: 70
+
+[1A[2K================================================================================
+
+
+[1A[2K[chromium] › tests\shop-rendering.spec.ts:4:7 › Shop Rendering › shop elements should render at correct layer (not floating above map)
+[Browser] [ShopRenderer] Rendering shop room 56 at (53, 12) size 9x6
+
+[1A[2K[Browser] [ShopRenderer] Items: 2, Perks: 2
+
+[1A[2K✓ Screenshot saved: shop-rendering-top-left.png
+
+[1A[2K
+Moving top-center...
+
+[1A[2K✓ Screenshot saved: shop-rendering-top-center.png
+
+[1A[2K
+Moving top-right...
+
+[1A[2K[Browser] [ShopRenderer] Rendering shop room 56 at (53, 12) size 9x6
+
+[1A[2K[Browser] [ShopRenderer] Items: 2, Perks: 2
+
+[1A[2K✓ Screenshot saved: shop-rendering-top-right.png
+
+[1A[2K
+Moving back-center...
+
+[1A[2K[chromium] › tests\shop-rendering.spec.ts:228:7 › Shop Rendering › player should not spawn in shop room
+✓ Iteration 2: Player spawned correctly (not in shop)
+
+[1A[2K
+--- Iteration 3/5 ---
+
+[1A[2K[chromium] › tests\shop-rendering.spec.ts:4:7 › Shop Rendering › shop elements should render at correct layer (not floating above map)
+[Browser] [ShopRenderer] Rendering shop room 56 at (53, 12) size 9x6
+
+[1A[2K[Browser] [ShopRenderer] Items: 2, Perks: 2
+
+[1A[2K✓ Screenshot saved: shop-rendering-back-center.png
+
+[1A[2K
+=== Testing Tooltips ===
+
+[1A[2K[Browser] [ShopRenderer] Rendering shop room 56 at (53, 12) size 9x6
+
+[1A[2K[Browser] [ShopRenderer] Items: 2, Perks: 2
+
+[1A[2K[chromium] › tests\shop-rendering.spec.ts:228:7 › Shop Rendering › player should not spawn in shop room
+[Browser] [Dungeon Generation] 126 rooms, 5 shop(s) assigned (min: 3, max: 5, eligible: 80)
+
+[1A[2K[Browser] [EntitySpawner] Starting trashmob spawn. Total rooms: 126, playerRoomId: 69
+
+[1A[2K[chromium] › tests\shop-rendering.spec.ts:4:7 › Shop Rendering › shop elements should render at correct layer (not floating above map)
+[Browser] [ShopRenderer] Rendering shop room 56 at (53, 12) size 9x6
+
+[1A[2K[Browser] [ShopRenderer] Items: 2, Perks: 2
+
+[1A[2K[Browser] [ShopRenderer] Rendering shop room 56 at (53, 12) size 9x6
+
+[1A[2K[Browser] [ShopRenderer] Items: 2, Perks: 2
+
+[1A[2K[Browser] [ShopRenderer] Rendering shop room 56 at (53, 12) size 9x6
+
+[1A[2K[Browser] [ShopRenderer] Items: 2, Perks: 2
+
+[1A[2K✓ Tooltip screenshots captured
+
+[1A[2K
+=== Testing Animation Speed ===
+
+[1A[2K[chromium] › tests\shop-rendering.spec.ts:228:7 › Shop Rendering › player should not spawn in shop room
+✓ Iteration 3: Player spawned correctly (not in shop)
+
+[1A[2K
+--- Iteration 4/5 ---
+
+[1A[2K[chromium] › tests\shop-rendering.spec.ts:4:7 › Shop Rendering › shop elements should render at correct layer (not floating above map)
+[Browser] [ShopRenderer] Rendering shop room 56 at (53, 12) size 9x6
+
+[1A[2K[Browser] [ShopRenderer] Items: 2, Perks: 2
+
+[1A[2K✓ Animation frames captured
+
+[1A[2K
+✓ ShopRenderer logs found: 20
+
+[1A[2KSample log: [ShopRenderer] Rendering shop room 56 at (53, 12) size 9x6
+
+[1A[2K
+=== Test Complete ===
+
+[1A[2K✓ Shop rendered without errors
+
+[1A[2K✓ Screenshots saved for manual inspection
+
+[1A[2K✓ New layout verified: counters at top wall
+
+[1A[2K✓ Animation tested: slower floating speed
+
+[1A[2K✓ Tooltips captured at various positions
+
+[1A[2KExpected: Shop elements (sign, counters, items) should be at top wall
+
+[1A[2KExpected: Items should float slowly above counters
+
+[1A[2KBug fixed: Shop elements should NOT appear floating above the map
+
+[1A[2K[chromium] › tests\shop-rendering.spec.ts:228:7 › Shop Rendering › player should not spawn in shop room
+[Browser] [Dungeon Generation] 105 rooms, 5 shop(s) assigned (min: 3, max: 5, eligible: 46)
+
+[1A[2K[Browser] [EntitySpawner] Starting trashmob spawn. Total rooms: 105, playerRoomId: 17
+
+[1A[2K✓ Iteration 4: Player spawned correctly (not in shop)
+
+[1A[2K
+--- Iteration 5/5 ---
+
+[1A[2K[Browser] [Dungeon Generation] 104 rooms, 5 shop(s) assigned (min: 3, max: 5, eligible: 41)
+
+[1A[2K[Browser] [EntitySpawner] Starting trashmob spawn. Total rooms: 104, playerRoomId: 56
+
+[1A[2K✓ Iteration 5: Player spawned correctly (not in shop)
+
+[1A[2K
+=== Spawn Test Complete ===
+
+[1A[2K✓ Player never spawned in shop room across 5 iterations
+
+[1A[2K  6 failed
+    [chromium] › tests\example.spec.ts:3:5 › has title ─────────────────────────────────────────────
+    [chromium] › tests\example.spec.ts:10:5 › game canvas is present ───────────────────────────────
+    [chromium] › tests\shop-buy-simple.spec.ts:4:7 › Shop Purchase (Simple) › should teleport to shop and buy item 
+    [chromium] › tests\shop-explore.spec.ts:4:7 › Shop Exploration › explore shop and find items ───
+    [chromium] › tests\shop-purchase.spec.ts:4:7 › Shop Item Purchase › should teleport to shop and purchase an item using cheat mode 
+    [chromium] › tests\shop-teleport.spec.ts:4:7 › Shop Teleport Cheat › should be able to teleport to shop 
+  5 passed (1.1m)

@@ -18,21 +18,30 @@ export interface ShopInventory {
  * Generates a complete shop inventory with random items and perks.
  * @param roomId - The ID of the shop room
  * @param randomFn - Optional random function for deterministic tests
+ * @param roomWidth - Optional room width to determine item count (small rooms get 1 item/perk each)
  */
 export function generateShopInventory(
   roomId: number,
-  randomFn: () => number = Math.random
+  randomFn: () => number = Math.random,
+  roomWidth?: number
 ): ShopInventory {
   const items: Item[] = [];
   const perks: Perk[] = [];
 
+  // Determine count based on room size
+  // Small rooms (width < 7): 1 counter with 1 item + 1 perk
+  // Large rooms (width >= 7): 2 counters with 2 items + 2 perks
+  const isSmallRoom = roomWidth !== undefined && roomWidth < 7;
+  const itemCount = isSmallRoom ? 1 : SHOP_ITEMS_COUNT;
+  const perkCount = isSmallRoom ? 1 : SHOP_PERKS_COUNT;
+
   // Generate random items
-  for (let i = 0; i < SHOP_ITEMS_COUNT; i++) {
+  for (let i = 0; i < itemCount; i++) {
     items.push(generateRandomItem(randomFn));
   }
 
   // Generate random perks
-  for (let i = 0; i < SHOP_PERKS_COUNT; i++) {
+  for (let i = 0; i < perkCount; i++) {
     perks.push(generateRandomPerk(randomFn));
   }
 

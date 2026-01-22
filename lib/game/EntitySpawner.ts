@@ -49,9 +49,18 @@ export function spawnPlayer(
 
   const validSpawnPoints: { x: number; y: number }[] = [];
 
+  // Collect all floor tiles that are NOT in shop or shrine rooms
   for (let y = 0; y < dungeonHeight; y++) {
     for (let x = 0; x < dungeonWidth; x++) {
       if (dungeon[y][x] === TILE.FLOOR) {
+        const roomId = roomMap[y][x];
+        const room = roomId >= 0 ? rooms[roomId] : null;
+
+        // Skip shop and shrine rooms for player spawn
+        if (room && (room.type === 'shop' || room.type === 'shrine')) {
+          continue;
+        }
+
         validSpawnPoints.push({ x, y });
       }
     }
@@ -72,11 +81,6 @@ export function spawnPlayer(
     const roomId = roomMap[spawnPoint.y][spawnPoint.x];
     if (roomId >= 0 && rooms[roomId]) {
       rooms[roomId].visible = true;
-      
-      // If player spawns in a shrine room, convert it to empty
-      if (rooms[roomId].type === 'shrine') {
-        rooms[roomId].type = 'empty';
-      }
     }
   }
 

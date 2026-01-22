@@ -165,9 +165,9 @@ export const SHOP_MIN_PER_DUNGEON = 3;
 /** Maximum number of shops per dungeon */
 export const SHOP_MAX_PER_DUNGEON = 5;
 /** Amplitude of floating animation (in tiles) */
-export const FLOATING_ITEM_AMPLITUDE = 0.3;
+export const FLOATING_ITEM_AMPLITUDE = 0.12;
 /** Speed of floating animation (cycles per second) */
-export const FLOATING_ITEM_SPEED = 2;
+export const FLOATING_ITEM_SPEED = 0.25;
 /** Pulse speed for legendary items (cycles per second) */
 export const LEGENDARY_PULSE_SPEED = 1;
 
