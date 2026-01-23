@@ -10,6 +10,7 @@ export interface User {
   id: number;
   username: string;
   xp: number;
+  gold: number;
   created_at: string;
   last_login: string;
 }

@@ -14,6 +14,17 @@ export function migrateUserXpIfNeeded(database: Database.Database) {
   }
 }
 
+export function migrateUserGoldIfNeeded(database: Database.Database) {
+  // Check if users table has gold column
+  const tableInfo = database.pragma('table_info(users)') as Array<{ name: string }>;
+  const hasGoldColumn = tableInfo.some((col) => col.name === 'gold');
+
+  if (!hasGoldColumn) {
+    console.log('Adding gold column to users table...');
+    database.exec('ALTER TABLE users ADD COLUMN gold INTEGER DEFAULT 0');
+  }
+}
+
 export function migrateEditorLevelsIfNeeded(database: Database.Database) {
   // Check if editor_levels table has the new columns
   const tableInfo = database.pragma('table_info(editor_levels)') as Array<{ name: string }>;

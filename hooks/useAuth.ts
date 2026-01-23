@@ -14,6 +14,7 @@ export function useAuth(options: UseAuthOptions = {}) {
   const [userId, setUserId] = useState<number | null>(null);
   const [username, setUsername] = useState<string | null>(null);
   const [userXp, setUserXp] = useState<number>(0);
+  const [userGold, setUserGold] = useState<number>(0);
   const [showLogin, setShowLogin] = useState(true);
 
   // Always show login on mount - user must enter username each time
@@ -23,10 +24,11 @@ export function useAuth(options: UseAuthOptions = {}) {
     setShowLogin(true);
   }, []);
 
-  const handleLogin = async (id: number, name: string, xp?: number) => {
+  const handleLogin = async (id: number, name: string, xp?: number, gold?: number) => {
     setUserId(id);
     setUsername(name);
     setUserXp(xp || 0);
+    setUserGold(gold || 0);
     setShowLogin(false);
   };
 
@@ -37,6 +39,7 @@ export function useAuth(options: UseAuthOptions = {}) {
     setUserId(null);
     setUsername(null);
     setUserXp(0);
+    setUserGold(0);
     setShowLogin(true);
   };
 
@@ -45,6 +48,8 @@ export function useAuth(options: UseAuthOptions = {}) {
     username,
     userXp,
     setUserXp,
+    userGold,
+    setUserGold,
     showLogin,
     handleLogin,
     handleLogout

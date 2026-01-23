@@ -16,7 +16,7 @@ import type {
 import type { UserStats } from '../stats';
 import type { Highscore, HighscoreEntry } from '../highscores';
 import type { EditorLevel } from '../editorLevels';
-import type { AnswerLogEntry, XpLogEntry, SubjectEloScore } from '../../types/api';
+import type { AnswerLogEntry, XpLogEntry, SubjectEloScore, GoldLogEntry } from '../../types/api';
 import type { ImportedTileset, TileTheme, DungeonTheme } from '../../tiletheme/types';
 
 /**
@@ -91,6 +91,20 @@ export interface DatabaseAdapter {
    * Add XP to a user and log the gain
    */
   addXp(entry: XpLogEntry): Promise<void>;
+
+  // ============================================================================
+  // Gold
+  // ============================================================================
+
+  /**
+   * Add gold to a user and log the transaction
+   */
+  addGold(entry: GoldLogEntry): Promise<void>;
+
+  /**
+   * Get current gold balance for a user
+   */
+  getUserGold(userId: number): Promise<number>;
 
   // ============================================================================
   // Stats

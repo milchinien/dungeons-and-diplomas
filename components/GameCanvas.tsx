@@ -91,6 +91,9 @@ export default function GameCanvas() {
   // Scoring
   const { sessionScores, loadSessionElos, updateSessionScores } = useScoring(userId);
 
+  // Gold tracking
+  const [currentGold, setCurrentGold] = useState(0);
+
   // Track combat state for combo timer slowdown (synced via useEffect below)
   const [isInCombatForCombo, setIsInCombatForCombo] = useState(false);
 
@@ -117,12 +120,13 @@ export default function GameCanvas() {
     loadData();
   }, []);
 
-  // Load session ELOs when user logs in (XP is handled by useAuth)
+  // Load session ELOs and gold when user logs in (XP is handled by useAuth)
   useEffect(() => {
     if (userId) {
       loadSessionElos(userId);
+      shopPurchase.loadGold();
     }
-  }, [userId]);
+  }, [userId, loadSessionElos, shopPurchase]);
 
   // Start game automatically when user is logged in
   useEffect(() => {
@@ -242,6 +246,18 @@ export default function GameCanvas() {
     setUserXp(prev => prev + amount);
     setSessionXpGained(prev => prev + amount);
   };
+
+  // Handle gold gained from combat/other sources
+  const handleGoldGained = useCallback((amount: number) => {
+    setCurrentGold(prev => prev + amount);
+    console.log(`[GameCanvas] Gold gained: +${amount}. New balance: ${currentGold + amount}`);
+  }, [currentGold]);
+
+  // Handle gold changes (from shop purchases or other sources)
+  const handleGoldChange = useCallback((newGold: number) => {
+    setCurrentGold(newGold);
+    console.log(`[GameCanvas] Gold updated: ${newGold}`);
+  }, []);
 
   // Track enemy defeats for session stats
   const handleEnemyDefeated = useCallback(() => {
@@ -371,6 +387,7 @@ export default function GameCanvas() {
       gameState.generateNewDungeon();
     },
     onXpGained: handleXpGained,
+    onGoldGained: handleGoldGained,
     onItemDropped: handleItemDropped,
     onEnemyDefeated: handleEnemyDefeated,
     onEnemyDefeatedFlawless: combo.incrementCombo,
@@ -528,7 +545,9 @@ export default function GameCanvas() {
     onHpChange: (increase) => {
       playerRef.current.hp = Math.min(playerRef.current.hp + increase, playerRef.current.maxHp);
       setPlayerHp(playerRef.current.hp);
-    }
+    },
+    userId,
+    onGoldChange: handleGoldChange
   });
 
   // Cheat system hook
@@ -712,6 +731,7 @@ export default function GameCanvas() {
   const handleLoginWithElo = async (id: number, name: string, xp?: number) => {
     await handleLogin(id, name, xp);
     await loadSessionElos(id);
+    await shopPurchase.loadGold();
     // Game starts automatically via useEffect when userId is set
   };
 
@@ -768,6 +788,7 @@ export default function GameCanvas() {
             xpForNextLevel={levelInfo.xpForNextLevel}
             currentHp={playerHp}
             maxHp={playerRef.current.maxHp}
+            gold={currentGold}
             onLogout={handleLogout}
             onRestart={handleRestart}
             onSkills={handleOpenSkills}
@@ -930,12 +951,13 @@ export default function GameCanvas() {
         {/* Shop Confirm Modal */}
         {shopPurchase.showPurchaseModal && shopPurchase.purchaseTarget && (
           <ShopConfirmModal
-            item={shopPurchase.purchaseTarget.type === 'item' 
+            item={shopPurchase.purchaseTarget.type === 'item'
               ? shopPurchase.currentShopRoom?.shopInventory?.items[shopPurchase.purchaseTarget.index] ?? undefined
               : undefined}
-            perk={shopPurchase.purchaseTarget.type === 'perk' 
+            perk={shopPurchase.purchaseTarget.type === 'perk'
               ? shopPurchase.currentShopRoom?.shopInventory?.perks[shopPurchase.purchaseTarget.index] ?? undefined
               : undefined}
+            currentGold={currentGold}
             onConfirm={shopPurchase.handlePurchaseConfirm}
             onCancel={shopPurchase.handlePurchaseCancel}
           />

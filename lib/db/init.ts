@@ -4,7 +4,7 @@
 import type Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
-import { migrateEditorLevelsIfNeeded, migrateQuestionsIfNeeded, migrateUserXpIfNeeded } from './migrations';
+import { migrateEditorLevelsIfNeeded, migrateQuestionsIfNeeded, migrateUserXpIfNeeded, migrateUserGoldIfNeeded } from './migrations';
 
 export interface InitOptions {
   /** Whether to seed with initial question data (default: true) */
@@ -19,6 +19,7 @@ export function initializeDatabase(database: Database.Database, options: InitOpt
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT UNIQUE NOT NULL COLLATE NOCASE,
       xp INTEGER DEFAULT 0,
+      gold INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       last_login DATETIME DEFAULT CURRENT_TIMESTAMP
     )
@@ -63,6 +64,20 @@ export function initializeDatabase(database: Database.Database, options: InitOpt
       xp_amount INTEGER NOT NULL,
       reason TEXT NOT NULL,
       enemy_level INTEGER,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `);
+
+  // Create gold_log table
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS gold_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      logged_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      gold_amount INTEGER NOT NULL,
+      reason TEXT NOT NULL,
+      enemy_level INTEGER,
+      item_sold TEXT,
       FOREIGN KEY (user_id) REFERENCES users(id)
     )
   `);
@@ -126,6 +141,9 @@ export function initializeDatabase(database: Database.Database, options: InitOpt
 
   // Check if we need to add XP column to existing users table
   migrateUserXpIfNeeded(database);
+
+  // Check if we need to add gold column to existing users table
+  migrateUserGoldIfNeeded(database);
 
   // Check if we need to seed the database
   if (shouldSeed) {

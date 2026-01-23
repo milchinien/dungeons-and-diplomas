@@ -16,7 +16,7 @@ import type {
 import type { UserStats, QuestionStats } from '../stats';
 import type { Highscore, HighscoreEntry } from '../highscores';
 import type { EditorLevel } from '../editorLevels';
-import type { AnswerLogEntry, XpLogEntry, SubjectEloScore } from '../../types/api';
+import type { AnswerLogEntry, XpLogEntry, SubjectEloScore, GoldLogEntry } from '../../types/api';
 import type { ImportedTileset, TileTheme, DungeonTheme } from '../../tiletheme/types';
 import {
   calculateEloOrNull,
@@ -99,6 +99,7 @@ export class SupabaseAdapter implements DatabaseAdapter {
       id: Number(row.id),
       username: String(row.username),
       xp: Number(row.xp || 0),
+      gold: Number(row.gold || 0),
       created_at: String(row.created_at),
       last_login: String(row.last_login),
     };
@@ -336,6 +337,49 @@ export class SupabaseAdapter implements DatabaseAdapter {
 
       if (updateError) throw updateError;
     }
+  }
+
+  // ============================================================================
+  // Gold
+  // ============================================================================
+
+  async addGold(entry: GoldLogEntry): Promise<void> {
+    // Log the gold transaction
+    const { error: logError } = await this.client.from('gold_log').insert({
+      user_id: entry.user_id,
+      gold_amount: entry.gold_amount,
+      reason: entry.reason,
+      enemy_level: entry.enemy_level || null,
+      item_sold: entry.item_sold || null,
+    });
+
+    if (logError) throw logError;
+
+    // Update user's total gold
+    const { data: user } = await this.client
+      .from('users')
+      .select('gold')
+      .eq('id', entry.user_id)
+      .single();
+
+    if (user) {
+      const { error: updateError } = await this.client
+        .from('users')
+        .update({ gold: Number(user.gold) + entry.gold_amount })
+        .eq('id', entry.user_id);
+
+      if (updateError) throw updateError;
+    }
+  }
+
+  async getUserGold(userId: number): Promise<number> {
+    const { data } = await this.client
+      .from('users')
+      .select('gold')
+      .eq('id', userId)
+      .single();
+
+    return data?.gold || 0;
   }
 
   // ============================================================================
