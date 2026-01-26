@@ -5,6 +5,7 @@
  * Rendering logic is in EnemyRenderer.ts
  */
 import { SpriteSheetLoader } from '../SpriteSheetLoader';
+import { spriteCache } from '../SpriteCache';
 import {
   DIRECTION,
   ANIMATION,
@@ -82,8 +83,8 @@ export class Enemy {
    * Load sprite asynchronously
    */
   async load(): Promise<void> {
-    this.sprite = new SpriteSheetLoader(this.spriteName);
-    await this.sprite.load();
+    // Use sprite cache to avoid loading the same sprite multiple times
+    this.sprite = await spriteCache.getSprite(this.spriteName);
     this.sprite.playAnimation(this.direction, ANIMATION.IDLE);
   }
 

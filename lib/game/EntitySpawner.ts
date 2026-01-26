@@ -219,7 +219,7 @@ export async function spawnEnemies(
   });
 
   // Create Enemy instances from spawn configurations
-  for (const config of spawnConfigs) {
+  const enemyPromises = spawnConfigs.map(async (config) => {
     const enemy = new Enemy(
       config.tileX * tileSize,
       config.tileY * tileSize,
@@ -233,8 +233,12 @@ export async function spawnEnemies(
     enemy.playerElo = config.playerElo;
 
     await enemy.load();
-    enemies.push(enemy);
-  }
+    return enemy;
+  });
+
+  // Load all enemies in parallel
+  const loadedEnemies = await Promise.all(enemyPromises);
+  enemies.push(...loadedEnemies);
 
   return enemies;
 }

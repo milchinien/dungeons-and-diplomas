@@ -15,7 +15,7 @@ export function useAuth(options: UseAuthOptions = {}) {
   const [username, setUsername] = useState<string | null>(null);
   const [userXp, setUserXp] = useState<number>(0);
   const [userGold, setUserGold] = useState<number>(0);
-  // Always show login on mount - user must enter username each time
+  // Show login modal on app start - user must login first before accessing main menu
   // Storage is only used to remember the username for convenience
   const [showLogin, setShowLogin] = useState(true);
 
@@ -35,6 +35,7 @@ export function useAuth(options: UseAuthOptions = {}) {
     setUsername(null);
     setUserXp(0);
     setUserGold(0);
+    // Show login modal after logout
     setShowLogin(true);
   };
 

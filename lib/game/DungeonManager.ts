@@ -63,17 +63,24 @@ export class DungeonManager {
   /**
    * Initialize the dungeon manager (load sprites, theme, generate dungeon)
    */
-  async initialize(availableSubjects: string[]) {
-    // Load player sprite
-    const playerSprite = new SpriteSheetLoader('player');
-    await playerSprite.load();
-    playerSprite.playAnimation(DIRECTION.DOWN, ANIMATION.IDLE);
+  async initialize(
+    availableSubjects: string[],
+    onLoadingProgress?: (progress: number, statusText: string) => void
+  ) {
+    // Load player sprite and theme in parallel
+    const [playerSprite] = await Promise.all([
+      (async () => {
+        const sprite = new SpriteSheetLoader('player');
+        await sprite.load();
+        sprite.playAnimation(DIRECTION.DOWN, ANIMATION.IDLE);
+        return sprite;
+      })(),
+      this.loadTheme(1)
+    ]);
+
     this.playerSprite = playerSprite;
 
-    // Load theme (default to Theme 1)
-    await this.loadTheme(1);
-
-    // Generate initial dungeon
+    // Generate initial dungeon (enemies use sprite cache automatically)
     await this.generateNewDungeon(availableSubjects);
   }
 
