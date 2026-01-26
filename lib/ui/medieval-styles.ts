@@ -46,6 +46,13 @@ export const MEDIEVAL_COLORS = {
     low: '#2a5e99',
   },
 
+  // Gold colors
+  gold: {
+    primary: '#ffd700',
+    secondary: '#ffed4e',
+    dark: '#ccac00',
+  },
+
   // Text colors
   text: {
     primary: '#ffffff',

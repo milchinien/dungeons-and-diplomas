@@ -120,14 +120,6 @@ export default function GameCanvas() {
     loadData();
   }, []);
 
-  // Load session ELOs and gold when user logs in (XP is handled by useAuth)
-  useEffect(() => {
-    if (userId) {
-      loadSessionElos(userId);
-      shopPurchase.loadGold();
-    }
-  }, [userId, loadSessionElos, shopPurchase]);
-
   // Start game automatically when user is logged in
   useEffect(() => {
     if (userId && !showLogin && !gameStarted) {
@@ -549,6 +541,14 @@ export default function GameCanvas() {
     userId,
     onGoldChange: handleGoldChange
   });
+
+  // Load session ELOs and gold when user logs in (XP is handled by useAuth)
+  useEffect(() => {
+    if (userId) {
+      loadSessionElos(userId);
+      shopPurchase.loadGold();
+    }
+  }, [userId, loadSessionElos, shopPurchase]);
 
   // Cheat system hook
   const cheatSystem = useCheatSystem({

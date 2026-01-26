@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { api } from '@/lib/api';
 import { type StorageService, defaultStorage } from '@/lib/storage';
 import { logHookError } from '@/lib/hooks';
@@ -15,14 +15,9 @@ export function useAuth(options: UseAuthOptions = {}) {
   const [username, setUsername] = useState<string | null>(null);
   const [userXp, setUserXp] = useState<number>(0);
   const [userGold, setUserGold] = useState<number>(0);
-  const [showLogin, setShowLogin] = useState(true);
-
   // Always show login on mount - user must enter username each time
   // Storage is only used to remember the username for convenience
-  useEffect(() => {
-    // Keep showLogin true - user must always log in
-    setShowLogin(true);
-  }, []);
+  const [showLogin, setShowLogin] = useState(true);
 
   const handleLogin = async (id: number, name: string, xp?: number, gold?: number) => {
     setUserId(id);
