@@ -776,13 +776,31 @@ Two different ELO calculation methods exist:
 
 **Implementation**: lib/shop/, hooks/useShopPurchase.ts, components/ShopConfirmModal.tsx
 
+**Status**: ✅ **Fully Implemented** (SHOP-01 through SHOP-17 complete)
+
 **Overview:**
-The shop system allows players to purchase items and perks from special shop rooms in the dungeon. Shops spawn during dungeon generation and offer random items/perks with varying rarities.
+The shop system allows players to purchase items and perks from special shop rooms in the dungeon. Shops spawn during dungeon generation and offer random items/perks with varying rarities. Each shop has a unique layout with counters, floating merchandise, and locked doors that open after clearing adjacent rooms.
 
 **Room Generation:**
-- Shop rooms are assigned during dungeon generation (10% chance per room)
-- Each shop room gets a ShopInventory with 2-3 items and 1-2 perks
-- Items and perks have random rarities: Common (60%), Uncommon (25%), Rare (10%), Epic (4%), Legendary (1%)
+- Shop rooms spawn with 8% probability (max 2 per dungeon)
+- Minimum room size: 6x6 tiles
+- Never spawns as starting room
+- Each shop gets a unique inventory with 3 items and 3 perks
+- Items and perks have random rarities with weighted distribution
+
+**Rarity System** (lib/shop/Rarity.ts):
+```typescript
+enum Rarity { COMMON, UNCOMMON, RARE, EPIC, LEGENDARY }
+
+// Spawn Weights:
+// Common: 50 (60%), Uncommon: 25 (30%), Rare: 15 (18%), Epic: 8 (10%), Legendary: 2 (2%)
+
+// Effect Multipliers:
+// Common: 1.0x, Uncommon: 1.5x, Rare: 2.0x, Epic: 3.0x, Legendary: 5.0x
+
+// Visual Colors:
+// Common: Gray, Uncommon: Green, Rare: Blue, Epic: Purple, Legendary: Gold
+```
 
 **Item System** (lib/shop/Item.ts):
 ```typescript
@@ -793,8 +811,13 @@ interface Item {
   effectValue: number;  // baseEffect * rarityMultiplier
 }
 
-// Item Types: sword, chestplate, helmet, shield, boots, amulet
-// Effect Types: damage_flat, damage_reduction, hp_flat, block_chance, speed, all_stats
+// 6 Item Types:
+// - Sword: +5 damage (flat)
+// - Chestplate: -10% damage taken (reduction)
+// - Helmet: +10 HP (flat)
+// - Shield: 10% block chance
+// - Boots: +10% speed
+// - Amulet: +5% all stats
 ```
 
 **Perk System** (lib/shop/Perk.ts):
@@ -806,71 +829,140 @@ interface Perk {
   effectValue: number;  // baseEffect * rarityMultiplier
 }
 
-// Perk Types: hp_flat, hp_percent, damage_flat, damage_percent, 
-//             regeneration, critical, time_bonus, extra_life, elo_boost
+// 9 Perk Types:
+// - HP_FLAT: +5 HP
+// - HP_PERCENT: +5% HP
+// - DAMAGE_FLAT: +3 damage
+// - DAMAGE_PERCENT: +5% damage
+// - REGENERATION: 1 HP/5s
+// - CRITICAL: 10% crit chance (2x damage)
+// - TIME_BONUS: +2s quiz time
+// - EXTRA_LIFE: 1 revive at 50% HP
+// - ELO_BOOST: +1 to all subject ELOs
 ```
 
-**Rarity System** (lib/shop/Rarity.ts):
-- Common: 1.0x multiplier, gray color
-- Uncommon: 1.5x multiplier, green color
-- Rare: 2.0x multiplier, blue color
-- Epic: 3.0x multiplier, purple color
-- Legendary: 5.0x multiplier, gold color
+**Shop Layout** (lib/shop/ShopLayout.ts):
+- Centered sign at top of room
+- Left and right counters (2-3 tiles each)
+- 3 items floating above counters (left side)
+- 3 perks floating above counters (right side)
+- Floating animation: Sine wave, ±5 pixels, 2 cycles/second
+- Legendary items pulse with glow effect
 
-**Shop Interaction:**
-- Player enters shop room → items/perks are rendered on canvas
-- Player presses E near item/perk → ShopConfirmModal appears
-- Player confirms → item/perk is purchased and applied to player stats
+**Shop Door Mechanics** (lib/shop/ShopDoor.ts):
+- Doors are locked by default
+- Automatically unlock when all enemies in adjacent rooms are defeated
+- Visual indicator: Locked door sprite vs. open door
+- Player cannot enter while locked
+- Hint text displayed when approaching locked door
 
-**useShopPurchase Hook** (hooks/useShopPurchase.ts):
-- Manages shop state (current room, purchase target, modal visibility)
-- Handles E key for purchase interaction
-- Applies purchased items/perks to PlayerShopData
-- Updates player stats (HP, damage, etc.)
+**Purchase System:**
+1. **Detection**: Player within 1 tile of item/perk → proximity detected
+2. **Interaction**: Press E key → ShopConfirmModal opens
+3. **Confirmation**: Modal shows item/perk details, rarity, and effects
+4. **Purchase**: Confirm → item/perk added to player, removed from shop inventory
+5. **Application**: Effects immediately applied to player stats
 
-**PlayerShopData:**
+**Gold Currency System:**
+- Players earn gold by defeating enemies
+- Gold displayed in TopRightPanel with animated shimmer effect
+- Required for purchasing items/perks (future implementation)
+- Persistent across dungeon runs
+
+**Player Stats Integration:**
 ```typescript
 interface PlayerShopData {
-  equippedItems: Item[];
-  activePerks: Perk[];
-  bonusStats: BonusStats;
+  equippedItems: Item[];        // Max 6 (one per slot)
+  activePerks: Perk[];          // No limit
+  bonusStats: BonusStats;       // Calculated from items + perks
 }
-```
 
-**BonusStats:**
-```typescript
 interface BonusStats {
-  damageFlat: number;
-  damagePercent: number;
-  damageReduction: number;
-  maxHpBonus: number;
-  blockChance: number;
-  speedMultiplier: number;
-  regeneration: number;
-  criticalChance: number;
-  timeBonus: number;
-  extraLives: number;
-  eloBonus: number;
+  damageFlat: number;           // Added to base damage
+  damagePercent: number;        // Multiplier on total damage
+  damageReduction: number;      // % damage reduction (cap: 50%)
+  maxHpBonus: number;           // Added to max HP
+  blockChance: number;          // % chance to block attack (cap: 75%)
+  speedMultiplier: number;      // Multiplier on movement speed
+  regeneration: number;         // HP regen per 5 seconds
+  criticalChance: number;       // % chance for 2x damage (cap: 50%)
+  timeBonus: number;            // Extra seconds on quiz timer
+  extraLives: number;           // Revives remaining (cap: 3)
+  eloBonus: number;             // Bonus to all subject ELOs
 }
 ```
 
-**UI Integration:**
-- CharacterPanel shows purchased items/perks with rarity-colored borders
-- Minimap shows shop rooms in cyan with "$" symbol
-- ShopRenderer renders items/perks in shop rooms on main canvas
-- TooltipRenderer shows item/perk details on hover
+**Combat Integration:**
+- Damage calculation includes damageFlat and damagePercent
+- Block chance checked before taking damage
+- Critical hits roll on player attacks
+- Extra lives trigger on player death
+- Time bonus added to combat timer
+- Regeneration ticks every 5 seconds during exploration
+
+**Enemy AI Integration:**
+- Enemies cannot enter shop rooms
+- Aggro ends if player enters shop
+- Enemies cannot spawn in shop rooms
+- Shop doors track adjacent room clear status
+
+**UI Components:**
+- **TopLeftPanel**: Compact HUD with HP, level, username, and equipped items/perks
+- **TopRightPanel**: Gold counter and minimap
+- **ShopItemsDisplay**: Shows equipped items (square icons) and perks (round icons)
+- **ShopConfirmModal**: Purchase confirmation with item/perk details and rarity border
+- **CharacterPanel**: Full player stats with shop equipment section
+- **Minimap**: Shop rooms displayed in cyan (#00CED1) for easy identification
+
+**Rendering:**
+- **ShopRenderer**: Draws counters, sign, floating items/perks with rarity glows
+- **TooltipRenderer**: Shows item/perk details on hover
+- **MinimapRenderer**: Color-codes shop rooms (cyan)
+- Glow effects scale with rarity intensity
+- Legendary items have pulsing animation (1 cycle/second)
 
 **Key Files:**
-- `lib/shop/Item.ts` - Item definitions and types
-- `lib/shop/Perk.ts` - Perk definitions and types
-- `lib/shop/Rarity.ts` - Rarity system
+- `lib/shop/Rarity.ts` - Rarity system with weights and multipliers
+- `lib/shop/Item.ts` - Item definitions and types (6 types)
+- `lib/shop/Perk.ts` - Perk definitions and types (9 types)
 - `lib/shop/ShopInventory.ts` - Shop inventory generation
-- `lib/shop/ShopInteraction.ts` - Proximity detection
-- `lib/shop/ShopPurchase.ts` - Purchase execution
-- `hooks/useShopPurchase.ts` - React hook for shop state
+- `lib/shop/ShopLayout.ts` - Counter and item position calculation
+- `lib/shop/ShopDoor.ts` - Door lock/unlock mechanics
+- `lib/shop/ShopInteraction.ts` - Proximity detection for purchases
+- `lib/shop/ShopPurchase.ts` - Purchase execution logic
+- `hooks/useShopPurchase.ts` - React hook for shop state management
 - `components/ShopConfirmModal.tsx` - Purchase confirmation UI
-- `components/character/ShopItemsDisplay.tsx` - CharacterPanel display
-- `lib/rendering/ShopRenderer.ts` - Canvas rendering for shop items
+- `components/character/ShopItemsDisplay.tsx` - Equipment display in CharacterPanel
+- `components/hud/TopLeftPanel.tsx` - Compact HUD with equipment
+- `components/hud/TopRightPanel.tsx` - Gold counter and minimap
+- `lib/rendering/ShopRenderer.ts` - Canvas rendering for shop rooms
+- `lib/rendering/TooltipRenderer.ts` - Hover tooltip rendering
+
+**Constants:**
+```typescript
+// In lib/constants.ts
+SHOP_SPAWN_CHANCE: 0.08           // 8% spawn rate
+SHOP_MIN_ROOM_SIZE: 6             // Minimum 6x6 tiles
+SHOP_MAX_PER_DUNGEON: 2           // Max 2 shops per run
+SHOP_ITEMS_COUNT: 3               // 3 items per shop
+SHOP_PERKS_COUNT: 3               // 3 perks per shop
+FLOATING_ITEM_AMPLITUDE: 0.3      // Float animation amplitude
+FLOATING_ITEM_SPEED: 2            // Float cycles per second
+```
+
+**Balancing Notes:**
+- Rarity distribution ensures common items are frequent, legendaries are rare
+- Effect multipliers make rarity meaningful (5x for legendary)
+- Caps on powerful stats (75% block, 50% crit, 3 extra lives) prevent overpowered builds
+- Shop spawn rate (8%) and max shops (2) balance progression pacing
+- All values are configurable for future tuning
+
+**Testing Coverage:**
+- Unit tests for rarity rolling, item/perk generation
+- Integration tests for shop spawning, layout calculation
+- Playwright tests for shop interaction, purchase flow, tooltip display
+- Visual regression tests for shop rendering, minimap colors
+- Edge case tests: empty shop, multiple shops, shop at dungeon edge
 
 
 ## Future Enhancements (Planned)
