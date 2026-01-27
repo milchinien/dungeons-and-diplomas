@@ -22,6 +22,7 @@ import { generateDungeonStructure } from './DungeonInitializer';
 import { spawnPlayer, spawnEnemies, spawnTreasures, createShrines, spawnTrashmobs } from './EntitySpawner';
 import type { DroppedItem } from '../items/types';
 import { initializeShopDoorStates } from '../shop/ShopDoor';
+import { generateDungeonFromLayouts } from '../dungeon/layoutGeneration';
 
 export class DungeonManager {
   // Dungeon structure
@@ -147,6 +148,56 @@ export class DungeonManager {
     this.shrines = createShrines(spawnContext);
     this.trashmobs = spawnTrashmobs(spawnContext, this.player);
     
+    // Initialize shop door states based on enemy positions
+    initializeShopDoorStates(this.rooms, this.enemies);
+  }
+
+  /**
+   * Generate a new dungeon using room layouts instead of BSP
+   * Alternative to generateNewDungeon() that uses pre-generated room layouts
+   */
+  async generateFromLayouts(
+    availableSubjects: string[],
+    userId: number | null = null,
+    targetRoomCount: number = 20,
+    seed?: number
+  ) {
+    // Generate dungeon structure from layouts
+    const structure = generateDungeonFromLayouts(targetRoomCount, seed);
+
+    // Apply structure to manager state
+    this.dungeon = structure.dungeon;
+    this.rooms = structure.rooms;
+    this.roomMap = structure.roomMap;
+
+    // Initialize tile variants (needed for rendering)
+    this.tileVariants = Array(this.dungeonHeight).fill(null).map(() =>
+      Array(this.dungeonWidth).fill(null).map(() => ({
+        floor: { x: 0, y: 0 },
+        wall: { x: 0, y: 0 }
+      }))
+    );
+
+    // Initialize door states
+    this.doorStates = new Map();
+
+    // Create spawn context for entity spawning
+    const spawnContext = {
+      dungeon: this.dungeon,
+      rooms: this.rooms,
+      roomMap: this.roomMap,
+      dungeonWidth: this.dungeonWidth,
+      dungeonHeight: this.dungeonHeight,
+      tileSize: this.tileSize
+    };
+
+    // Spawn entities using EntitySpawner
+    spawnPlayer(this.player, spawnContext);
+    this.enemies = await spawnEnemies(spawnContext, availableSubjects, userId, this.player);
+    this.treasures = spawnTreasures(spawnContext);
+    this.shrines = createShrines(spawnContext);
+    this.trashmobs = spawnTrashmobs(spawnContext, this.player);
+
     // Initialize shop door states based on enemy positions
     initializeShopDoorStates(this.rooms, this.enemies);
   }
