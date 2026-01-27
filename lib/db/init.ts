@@ -181,7 +181,56 @@ export function initializeDatabase(database: Database.Database, options: InitOpt
     if (count.count === 0) {
       seedQuestions(database);
     }
+
+    // Seed room layouts
+    seedRoomLayouts(database);
   }
+}
+
+/**
+ * Seeds starter room layouts
+ */
+function seedRoomLayouts(database: Database.Database) {
+  // Check if already seeded
+  const count = database.prepare('SELECT COUNT(*) as count FROM room_layouts').get() as { count: number };
+  if (count.count > 0) {
+    console.log('Room layouts already seeded, skipping...');
+    return;
+  }
+
+  console.log('Seeding room layouts...');
+
+  // Load layouts from JSON file
+  const layoutsPath = path.join(process.cwd(), 'lib', 'data', 'seed-room-layouts.json');
+  const layoutsJson = fs.readFileSync(layoutsPath, 'utf-8');
+  const layouts = JSON.parse(layoutsJson);
+
+  // Prepare insert statement
+  const insert = database.prepare(`
+    INSERT INTO room_layouts (
+      name, width, height, tile_grid, door_positions,
+      room_type, difficulty, tags
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  // Insert all layouts in a transaction
+  const insertMany = database.transaction((layouts: any[]) => {
+    for (const layout of layouts) {
+      insert.run(
+        layout.name,
+        layout.width,
+        layout.height,
+        JSON.stringify(layout.tileGrid),
+        JSON.stringify(layout.doorPositions),
+        layout.roomType || 'any',
+        layout.difficulty || 5,
+        JSON.stringify(layout.tags || [])
+      );
+    }
+  });
+
+  insertMany(layouts);
+  console.log(`✓ Seeded ${layouts.length} room layouts`);
 }
 
 function seedQuestions(database: Database.Database) {
