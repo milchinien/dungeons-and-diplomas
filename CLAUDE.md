@@ -54,6 +54,8 @@ dungeons-and-diplomas/
 ├── app/
 │   ├── layout.tsx                      # Root layout with metadata
 │   ├── page.tsx                        # Main page (renders GameCanvas)
+│   ├── room-editor/                    # Room Layout Editor
+│   │   └── page.tsx                    # Room layout editor page
 │   └── api/                            # API Routes
 │       ├── questions/route.ts          # GET all questions grouped by subject
 │       ├── questions-with-elo/route.ts # GET questions with ELO for subject/user
@@ -61,6 +63,10 @@ dungeons-and-diplomas/
 │       ├── stats/route.ts              # GET user statistics
 │       ├── subjects/route.ts           # GET all distinct subjects
 │       ├── session-elo/route.ts        # GET session ELO scores per subject
+│       ├── room-layouts/               # Room layout CRUD endpoints
+│       │   ├── route.ts                # GET (list/filter) and POST (create)
+│       │   ├── [id]/route.ts           # GET/PUT/DELETE by ID
+│       │   └── random/route.ts         # GET random layout with filters
 │       └── auth/
 │           ├── login/route.ts           # POST login/register user
 │           └── logout/route.ts          # POST logout
@@ -69,7 +75,12 @@ dungeons-and-diplomas/
 │   ├── CombatModal.tsx                  # Combat UI overlay
 │   ├── CharacterPanel.tsx               # Top-left user panel with ELO display
 │   ├── LoginModal.tsx                  # Login/registration modal
-│   └── SkillDashboard.tsx               # Full-screen statistics dashboard
+│   ├── SkillDashboard.tsx               # Full-screen statistics dashboard
+│   └── roomeditor/                      # Room Layout Editor components
+│       ├── RoomLayoutEditor.tsx         # Main editor orchestrator
+│       ├── LayoutManager.tsx            # Layout browser and CRUD controls
+│       ├── LayoutCanvas.tsx             # Tile-based drawing canvas
+│       └── LayoutSettings.tsx           # Metadata form and tool selection
 ├── hooks/
 │   ├── useAuth.ts                       # Authentication state management
 │   ├── useScoring.ts                    # Session ELO tracking
@@ -87,7 +98,8 @@ dungeons-and-diplomas/
 │   ├── dungeon/
 │   │   ├── BSPNode.ts                   # Binary Space Partitioning tree
 │   │   ├── UnionFind.ts                 # Union-Find for connectivity
-│   │   └── generation.ts                # Dungeon generation functions
+│   │   ├── generation.ts                # Dungeon generation functions
+│   │   └── layoutGeneration.ts          # Layout-based dungeon generation
 │   ├── game/
 │   │   ├── GameEngine.ts                # Core game loop logic
 │   │   └── DungeonManager.ts            # Dungeon state management
@@ -100,8 +112,13 @@ dungeons-and-diplomas/
 │   ├── rendering/
 │   │   ├── GameRenderer.ts              # Main canvas rendering
 │   │   └── MinimapRenderer.ts           # Minimap rendering
+│   ├── roomlayouts/                     # Room Layout System
+│   │   ├── types.ts                     # TypeScript interfaces
+│   │   ├── validation.ts                # Layout validation (flood-fill, etc.)
+│   │   └── LayoutPool.ts                # Singleton layout manager
 │   └── data/
-│       └── seed-questions.json          # Question seed data (30 questions)
+│       ├── seed-questions.json          # Question seed data (30 questions)
+│       └── seed-room-layouts.json       # Room layout seed data (18 layouts)
 ├── data/
 │   └── game.db                          # SQLite database
 └── public/
@@ -194,16 +211,42 @@ CREATE TABLE answer_log (
 )
 ```
 
+**room_layouts**
+```sql
+CREATE TABLE room_layouts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  width INTEGER NOT NULL CHECK (width >= 5 AND width <= 15),
+  height INTEGER NOT NULL CHECK (height >= 5 AND height <= 15),
+  tile_grid TEXT NOT NULL,                -- JSON 2D array of TileType
+  door_positions TEXT NOT NULL,           -- JSON object: {north, south, east, west}
+  room_type TEXT DEFAULT 'any' CHECK (room_type IN ('empty', 'treasure', 'combat', 'shop', 'any')),
+  difficulty INTEGER DEFAULT 5 CHECK (difficulty >= 1 AND difficulty <= 10),
+  tags TEXT DEFAULT '[]',                 -- JSON array of strings
+  created_by INTEGER,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (created_by) REFERENCES users(id)
+)
+```
+
 ### Key Database Functions (lib/db/)
 
 **Core Operations:**
 - `getDatabase()`: Singleton database connection
-- `initializeDatabase()`: Creates tables and seeds 30 questions (10 per subject)
+- `initializeDatabase()`: Creates tables and seeds 30 questions (10 per subject) and 18 room layouts
 - `loginUser(username)`: Login or create user, updates last_login
 - `getAllQuestions()`: Returns all questions grouped by subject
 - `getQuestionsWithEloBySubject(subject, userId)`: Returns questions with calculated ELO
 - `getSessionEloScores(userId)`: Returns average ELO per subject
 - `logAnswer(entry)`: Records answer with timing and correctness
+
+**Room Layout Operations (lib/db/roomLayouts.ts):**
+- `createRoomLayout(layout)`: Create new layout with validation
+- `getRoomLayoutById(id)`: Get specific layout
+- `getRoomLayouts(filters?)`: Get all layouts with optional filtering
+- `updateRoomLayout(id, layout)`: Update existing layout
+- `deleteRoomLayout(id)`: Delete layout
+- `getRandomRoomLayout(filters?)`: Get random layout matching filters
 
 **ELO Calculation:**
 ```typescript
@@ -963,6 +1006,234 @@ FLOATING_ITEM_SPEED: 2            // Float cycles per second
 - Playwright tests for shop interaction, purchase flow, tooltip display
 - Visual regression tests for shop rendering, minimap colors
 - Edge case tests: empty shop, multiple shops, shop at dungeon edge
+
+
+### 11. Room Layout System
+
+**Implementation**: lib/roomlayouts/, lib/dungeon/layoutGeneration.ts, components/roomeditor/, app/room-editor/
+
+**Status**: ✅ **Fully Implemented** (Phases 1-5 complete)
+
+**Overview:**
+The Room Layout System provides pre-generated room templates as an alternative to BSP-based procedural generation. Rooms are stored in the database, can be created via a visual editor, and are connected via door-matching algorithm. Includes 18 starter layouts automatically seeded on database initialization.
+
+**Purpose:**
+- **Design Control**: Hand-crafted rooms with specific layouts, obstacles, and aesthetics
+- **Gameplay Variety**: Mix of corridor types, standard rooms, large halls, and special shapes
+- **Editor Support**: Visual tool for creating and editing room layouts
+- **Database-Driven**: All layouts stored in SQLite, easy to add/modify without code changes
+
+**Core Components:**
+
+**1. Database Schema (room_layouts table):**
+```typescript
+interface RoomLayout {
+  id: number;
+  name: string;
+  width: number;           // 5-15 tiles
+  height: number;          // 5-15 tiles
+  tileGrid: TileType[][];  // 2D array: FLOOR=1, WALL=2, DOOR=3
+  doorPositions: {         // Boolean flags for each edge
+    north: boolean;
+    south: boolean;
+    east: boolean;
+    west: boolean;
+  };
+  roomType: 'empty' | 'treasure' | 'combat' | 'shop' | 'any';
+  difficulty: number;      // 1-10
+  tags: string[];
+  createdBy: number | null;
+  createdAt: Date;
+}
+```
+
+**2. Validation System (lib/roomlayouts/validation.ts):**
+- **Size Constraints**: 5-15 tiles width/height
+- **Flood-Fill Algorithm**: Ensures all floor tiles are reachable via BFS traversal
+- **Door Placement**: Doors must be on edges (y=0, y=height-1, x=0, x=width-1)
+- **Floor Requirement**: At least one floor tile must exist
+- **Door Validation**: Door positions must match actual door tiles in tileGrid
+
+**3. Layout Pool Manager (lib/roomlayouts/LayoutPool.ts):**
+```typescript
+class LayoutPool {
+  getRandomLayout(filters?: LayoutFilterOptions): RoomLayout | null;
+  getLayoutWithDoor(side: 'north' | 'south' | 'east' | 'west'): RoomLayout | null;
+  getLayouts(filters?: LayoutFilterOptions): RoomLayout[];
+  reload(): void;
+}
+
+// Singleton pattern for efficient access
+const pool = getLayoutPool();
+```
+
+**Filters:**
+- `roomType`: Filter by room type
+- `minWidth/maxWidth`, `minHeight/maxHeight`: Size constraints
+- `difficulty`: Exact difficulty match
+- `doorSide`: Must have door on specified side
+- `tags`: Match specific tags
+
+**4. Dungeon Generation Algorithm (lib/dungeon/layoutGeneration.ts):**
+
+**Process:**
+1. **Initial Placement**: First room placed in dungeon center
+2. **Door Expansion**: Pick random open door, find opposite side (north↔south, east↔west)
+3. **Layout Matching**: Query LayoutPool for layouts with matching door on opposite side
+4. **Position Calculation**: Align new room's door with existing door position
+5. **Collision Detection**: Check if new room fits without overlapping existing tiles
+6. **Placement**: Copy tiles to dungeon grid, mark room in roomMap, add neighbors
+7. **Repeat**: Continue until target room count reached or no valid placements remain
+8. **Room Type Assignment**: Assign types with probabilistic distribution
+
+**Door Matching Logic:**
+```typescript
+// Example: Existing room has south door at (50, 40)
+// New room needs north door to connect
+// Calculate position so new room's north door aligns at (50, 40)
+
+function calculateNewRoomPosition(
+  door: { x: number, y: number, side: string },
+  newLayout: RoomLayout,
+  doorSide: 'north' | 'south' | 'east' | 'west'
+): { x: number, y: number } {
+  // Find door tile in new layout on specified side
+  // Calculate offset to align doors perfectly
+  // Return top-left position for new room
+}
+```
+
+**5. API Endpoints:**
+
+**GET /api/room-layouts**
+- List all layouts with optional filtering
+- Query params: roomType, minWidth, maxWidth, minHeight, maxHeight, difficulty, doorSide
+- Returns: `RoomLayout[]`
+
+**GET /api/room-layouts/:id**
+- Get specific layout by ID
+- Returns: `RoomLayout`
+
+**POST /api/room-layouts**
+- Create new layout
+- Body: `RoomLayoutInput`
+- Validates before saving
+- Returns: Created `RoomLayout`
+
+**PUT /api/room-layouts/:id**
+- Update existing layout
+- Body: `RoomLayoutInput`
+- Validates before updating
+- Returns: Updated `RoomLayout`
+
+**DELETE /api/room-layouts/:id**
+- Delete layout
+- Returns: Success message
+
+**GET /api/room-layouts/random**
+- Get random layout matching filters
+- Query params: Same as GET /api/room-layouts
+- Returns: Single `RoomLayout`
+
+**6. Visual Editor (app/room-editor/):**
+
+**Components:**
+- **RoomLayoutEditor**: Main orchestrator, manages state
+- **LayoutManager**: Left panel with layout browser, filters, CRUD buttons
+- **LayoutCanvas**: Center canvas with tile-based drawing (32px per tile)
+- **LayoutSettings**: Right panel with metadata form, drawing tools
+
+**Drawing Tools:**
+- **Pen**: Draw floor or wall tiles (selectable)
+- **Eraser**: Set tiles to empty
+- **Fill**: Flood-fill tool for large areas
+- **Door**: Place doors on edges only
+
+**Features:**
+- Real-time preview with hover highlighting
+- Grid resizing (5-15 tiles, preserves existing tiles)
+- SVG thumbnails in layout browser
+- Filter by type, size, difficulty
+- Validation on save (shows errors if invalid)
+- Create, Edit, Delete operations
+- Tags system for categorization
+
+**Accessible at:** `/room-editor`
+
+**7. Starter Layouts (lib/data/seed-room-layouts.json):**
+
+**18 Layouts Included:**
+- **5 Corridors**: Small (5x5), Long (12x5), Vertical (5x12), Crossing (7x7 with 4 doors), T-Junction (8x8)
+- **6 Standard Rooms**: Basic 8x8, Rectangular (10x6), Pillar Room (9x9 with obstacles), Small Chamber (6x6), Medium (7x8), Large (10x10)
+- **3 Large Halls**: 12x12 Hall, 15x10 Throne Room, 14x14 Arena
+- **4 Special Rooms**: L-Shape (10x10 non-rectangular), Labyrinth (11x11 with maze), Cross (9x9 cross shape), Round (11x11 circular)
+
+**Automatic Seeding:**
+- Layouts automatically seeded on database initialization
+- Only seeds if `room_layouts` table is empty
+- Logs success: `✓ Seeded 18 room layouts`
+
+**8. Integration with DungeonManager:**
+
+```typescript
+// DungeonManager.ts
+async generateFromLayouts(
+  availableSubjects: string[],
+  userId: number | null = null,
+  targetRoomCount: number = 20,
+  seed?: number
+) {
+  const structure = generateDungeonFromLayouts(targetRoomCount, seed);
+  this.dungeon = structure.dungeon;
+  this.rooms = structure.rooms;
+  this.roomMap = structure.roomMap;
+  // Spawn entities as usual...
+}
+```
+
+**Usage:**
+```typescript
+// Option 1: BSP-based generation (existing)
+await dungeonManager.generateNewDungeon(availableSubjects);
+
+// Option 2: Layout-based generation (new)
+await dungeonManager.generateFromLayouts(availableSubjects, userId, 20);
+```
+
+**Key Files:**
+- `lib/roomlayouts/types.ts` - TypeScript interfaces
+- `lib/roomlayouts/validation.ts` - Flood-fill validation
+- `lib/roomlayouts/LayoutPool.ts` - Singleton layout manager
+- `lib/db/roomLayouts.ts` - CRUD operations
+- `lib/dungeon/layoutGeneration.ts` - Door-matching algorithm
+- `lib/data/seed-room-layouts.json` - Starter layout data
+- `app/room-editor/page.tsx` - Editor route
+- `components/roomeditor/RoomLayoutEditor.tsx` - Main editor component
+- `components/roomeditor/LayoutManager.tsx` - Layout browser
+- `components/roomeditor/LayoutCanvas.tsx` - Drawing canvas
+- `components/roomeditor/LayoutSettings.tsx` - Metadata form
+
+**Trade-offs:**
+
+**Advantages:**
+- Hand-crafted rooms with intentional design
+- Visual editor for non-programmers
+- Database-driven (no code changes to add layouts)
+- Reusable room templates
+- Controlled pacing and difficulty
+
+**Disadvantages:**
+- Less procedural variety than pure BSP
+- Requires manual layout creation
+- More database storage
+- Door alignment can limit connectivity
+
+**Future Enhancements:**
+- Auto-generation of variant layouts
+- Room rotation/mirroring for more variety
+- Theme-specific layout collections
+- Procedural decoration within layouts
+- Layout import/export (JSON)
 
 
 ## Future Enhancements (Planned)
