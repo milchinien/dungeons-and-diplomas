@@ -337,7 +337,7 @@ export class GameRenderer {
     this.tileRenderer.renderFogOfWar(
       ctx, dungeon, roomMap, rooms, playerRoomIds, tileSize,
       startCol, endCol, startRow, endRow, dungeonWidth, dungeonHeight,
-      playerTileX, playerTileY
+      playerTileX, playerTileY, doorStates
     );
 
     this.renderShrines(ctx, shrines, rooms, tileSize, playerRoomIds);

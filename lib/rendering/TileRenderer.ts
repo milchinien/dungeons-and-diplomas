@@ -148,7 +148,7 @@ export class TileRenderer {
 
         if (tile === TILE.EMPTY) continue;
 
-        const isVisible = VisibilityCalculator.isTileVisible(x, y, roomId, roomMap, rooms, dungeonWidth, dungeonHeight);
+        const isVisible = VisibilityCalculator.isTileVisible(x, y, roomId, roomMap, rooms, dungeonWidth, dungeonHeight, doorStates);
 
         if (!isVisible) {
           this.renderHiddenTile(ctx, x, y, tileSize);
@@ -180,6 +180,7 @@ export class TileRenderer {
    * Render fog of war with animated fog based on room exploration state
    * @param playerTileX - Player's tile X coordinate
    * @param playerTileY - Player's tile Y coordinate
+   * @param doorStates - Map of door states for seeing through open doors
    */
   renderFogOfWar(
     ctx: CanvasRenderingContext2D,
@@ -195,7 +196,8 @@ export class TileRenderer {
     dungeonWidth: number,
     dungeonHeight: number,
     playerTileX: number = -1,
-    playerTileY: number = -1
+    playerTileY: number = -1,
+    doorStates?: Map<string, boolean>
   ): void {
     const fogRenderer = getFogOfWarRenderer();
 
@@ -208,8 +210,8 @@ export class TileRenderer {
 
         const roomId = roomMap[y][x];
 
-        // Check if tile is visible at all (room has been discovered)
-        const isVisible = VisibilityCalculator.isTileVisible(x, y, roomId, roomMap, rooms, dungeonWidth, dungeonHeight);
+        // Check if tile is visible at all (room has been discovered or seen through open door)
+        const isVisible = VisibilityCalculator.isTileVisible(x, y, roomId, roomMap, rooms, dungeonWidth, dungeonHeight, doorStates);
         if (!isVisible) continue;
 
         // Get the room for this tile
@@ -221,12 +223,14 @@ export class TileRenderer {
         if (roomId >= 0 && room) {
           // Floor tile in a room
           fogIntensity = VisibilityCalculator.getTileFogIntensity(
-            x, y, playerTileX, playerTileY, room
+            x, y, playerTileX, playerTileY, room, 4,
+            doorStates, roomMap, rooms, dungeonWidth, dungeonHeight
           );
         } else {
           // Wall or door - use adjacent room logic
           fogIntensity = VisibilityCalculator.getWallFogIntensity(
-            x, y, playerTileX, playerTileY, roomMap, rooms, dungeonWidth, dungeonHeight
+            x, y, playerTileX, playerTileY, roomMap, rooms, dungeonWidth, dungeonHeight, 4,
+            doorStates
           );
         }
 

@@ -3,6 +3,9 @@ import type { Room } from '../constants';
 import type { Player } from '../enemy';
 import { getEntityTilePosition } from '../physics/TileCoordinates';
 
+// How many tiles into an adjacent room can be seen through an open door
+const DOOR_VISION_DISTANCE = 3;
+
 /**
  * Handles fog-of-war visibility calculations for dungeon tiles and rooms.
  * Extracted from GameRenderer and DungeonView to eliminate code duplication.
@@ -10,8 +13,10 @@ import { getEntityTilePosition } from '../physics/TileCoordinates';
 export class VisibilityCalculator {
   /**
    * Check if a tile is visible (fog of war check).
-   * Floor tiles are visible if their room is visible.
+   * Floor tiles are visible if their room is visible, or if visible through an open door.
    * Walls/doors are visible if any adjacent room is visible.
+   *
+   * @param doorStates - Optional map of door states for seeing through open doors
    */
   static isTileVisible(
     x: number,
@@ -20,11 +25,21 @@ export class VisibilityCalculator {
     roomMap: number[][],
     rooms: Room[],
     dungeonWidth: number,
-    dungeonHeight: number
+    dungeonHeight: number,
+    doorStates?: Map<string, boolean>
   ): boolean {
     // Floor tiles in a valid room: check room visibility
     if (roomId >= 0 && rooms[roomId]) {
-      return rooms[roomId].visible;
+      if (rooms[roomId].visible) {
+        return true;
+      }
+      // Room not directly visible - check if visible through an open door
+      if (doorStates) {
+        return this.isTileVisibleThroughDoor(
+          x, y, roomId, roomMap, rooms, dungeonWidth, dungeonHeight, doorStates
+        );
+      }
+      return false;
     }
 
     // Walls (-1) or doors (-2): visible if any adjacent room is visible
@@ -40,6 +55,83 @@ export class VisibilityCalculator {
               return true;
             }
           }
+        }
+      }
+      // Check if wall/door is adjacent to a tile visible through a door
+      if (doorStates) {
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            if (dx === 0 && dy === 0) continue;
+            const ny = y + dy;
+            const nx = x + dx;
+            if (ny >= 0 && ny < dungeonHeight && nx >= 0 && nx < dungeonWidth) {
+              const neighborRoomId = roomMap[ny][nx];
+              if (neighborRoomId >= 0 && !rooms[neighborRoomId]?.visible) {
+                if (this.isTileVisibleThroughDoor(
+                  nx, ny, neighborRoomId, roomMap, rooms, dungeonWidth, dungeonHeight, doorStates
+                )) {
+                  return true;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Check if a tile in a non-visible room is visible through an open door.
+   * Returns true if the tile is within DOOR_VISION_DISTANCE tiles of an open door
+   * that connects to a visible room.
+   */
+  private static isTileVisibleThroughDoor(
+    x: number,
+    y: number,
+    roomId: number,
+    roomMap: number[][],
+    rooms: Room[],
+    dungeonWidth: number,
+    dungeonHeight: number,
+    doorStates: Map<string, boolean>
+  ): boolean {
+    const room = rooms[roomId];
+    if (!room) return false;
+
+    // Find all open doors adjacent to this room that connect to visible rooms
+    for (let doorY = room.y - 1; doorY <= room.y + room.height; doorY++) {
+      for (let doorX = room.x - 1; doorX <= room.x + room.width; doorX++) {
+        if (doorY < 0 || doorY >= dungeonHeight || doorX < 0 || doorX >= dungeonWidth) continue;
+
+        // Check if this is a door tile
+        if (roomMap[doorY][doorX] !== -2) continue;
+
+        const doorKey = `${doorX},${doorY}`;
+        const isOpen = doorStates.get(doorKey) ?? false;
+        if (!isOpen) continue;
+
+        // Check if this door connects to a visible room
+        let connectsToVisibleRoom = false;
+        for (const { dx, dy } of DIRECTION_OFFSETS) {
+          const adjX = doorX + dx;
+          const adjY = doorY + dy;
+          if (adjX >= 0 && adjX < dungeonWidth && adjY >= 0 && adjY < dungeonHeight) {
+            const adjRoomId = roomMap[adjY][adjX];
+            if (adjRoomId >= 0 && adjRoomId !== roomId && rooms[adjRoomId]?.visible) {
+              connectsToVisibleRoom = true;
+              break;
+            }
+          }
+        }
+
+        if (!connectsToVisibleRoom) continue;
+
+        // Calculate distance from tile to door
+        const distance = Math.abs(x - doorX) + Math.abs(y - doorY); // Manhattan distance
+        if (distance <= DOOR_VISION_DISTANCE) {
+          return true;
         }
       }
     }
@@ -180,6 +272,11 @@ export class VisibilityCalculator {
    * @param playerTileY - Player's tile Y coordinate
    * @param room - The room this tile belongs to
    * @param viewRadius - Player's visibility radius in tiles (default 4)
+   * @param doorStates - Optional door states for checking door visibility
+   * @param roomMap - Required if doorStates is provided
+   * @param rooms - Required if doorStates is provided
+   * @param dungeonWidth - Required if doorStates is provided
+   * @param dungeonHeight - Required if doorStates is provided
    * @returns Fog intensity from 0 (clear) to 1 (full fog)
    */
   static getTileFogIntensity(
@@ -188,7 +285,12 @@ export class VisibilityCalculator {
     playerTileX: number,
     playerTileY: number,
     room: Room | null,
-    viewRadius: number = 4
+    viewRadius: number = 4,
+    doorStates?: Map<string, boolean>,
+    roomMap?: number[][],
+    rooms?: Room[],
+    dungeonWidth?: number,
+    dungeonHeight?: number
   ): number {
     // No room = unexplored area (full fog)
     if (!room) return 1;
@@ -196,8 +298,18 @@ export class VisibilityCalculator {
     // Explored rooms have no fog
     if (room.state === 'explored') return 0;
 
-    // Unexplored rooms have full fog
-    if (room.state === 'unexplored') return 1;
+    // Unexplored rooms: check if visible through an open door
+    if (room.state === 'unexplored') {
+      if (doorStates && roomMap && rooms && dungeonWidth !== undefined && dungeonHeight !== undefined) {
+        const doorFog = this.getDoorVisibilityFogIntensity(
+          tileX, tileY, room, roomMap, rooms, dungeonWidth, dungeonHeight, doorStates
+        );
+        if (doorFog < 1) {
+          return doorFog;
+        }
+      }
+      return 1;
+    }
 
     // Exploring rooms: calculate distance-based fog
     const dx = tileX - playerTileX;
@@ -217,6 +329,61 @@ export class VisibilityCalculator {
   }
 
   /**
+   * Calculate fog intensity for a tile visible through an open door.
+   * Returns fog intensity based on distance from the door (further = more fog).
+   */
+  private static getDoorVisibilityFogIntensity(
+    tileX: number,
+    tileY: number,
+    room: Room,
+    roomMap: number[][],
+    rooms: Room[],
+    dungeonWidth: number,
+    dungeonHeight: number,
+    doorStates: Map<string, boolean>
+  ): number {
+    let minFogIntensity = 1;
+
+    // Find open doors connecting to visible rooms
+    for (let doorY = room.y - 1; doorY <= room.y + room.height; doorY++) {
+      for (let doorX = room.x - 1; doorX <= room.x + room.width; doorX++) {
+        if (doorY < 0 || doorY >= dungeonHeight || doorX < 0 || doorX >= dungeonWidth) continue;
+        if (roomMap[doorY][doorX] !== -2) continue;
+
+        const doorKey = `${doorX},${doorY}`;
+        const isOpen = doorStates.get(doorKey) ?? false;
+        if (!isOpen) continue;
+
+        // Check if this door connects to a visible room
+        let connectsToVisibleRoom = false;
+        for (const { dx, dy } of DIRECTION_OFFSETS) {
+          const adjX = doorX + dx;
+          const adjY = doorY + dy;
+          if (adjX >= 0 && adjX < dungeonWidth && adjY >= 0 && adjY < dungeonHeight) {
+            const adjRoomId = roomMap[adjY][adjX];
+            if (adjRoomId >= 0 && adjRoomId !== room.id && rooms[adjRoomId]?.visible) {
+              connectsToVisibleRoom = true;
+              break;
+            }
+          }
+        }
+
+        if (!connectsToVisibleRoom) continue;
+
+        // Calculate fog based on Manhattan distance from door
+        const distance = Math.abs(tileX - doorX) + Math.abs(tileY - doorY);
+        if (distance <= DOOR_VISION_DISTANCE) {
+          // Closer to door = less fog. At door = 0.3, at max distance = 0.7
+          const fogIntensity = 0.3 + (distance / DOOR_VISION_DISTANCE) * 0.4;
+          minFogIntensity = Math.min(minFogIntensity, fogIntensity);
+        }
+      }
+    }
+
+    return minFogIntensity;
+  }
+
+  /**
    * Get fog intensity for walls and doors based on adjacent rooms.
    * Uses the most favorable (lowest) fog intensity from adjacent rooms.
    */
@@ -229,7 +396,8 @@ export class VisibilityCalculator {
     rooms: Room[],
     dungeonWidth: number,
     dungeonHeight: number,
-    viewRadius: number = 4
+    viewRadius: number = 4,
+    doorStates?: Map<string, boolean>
   ): number {
     let minFog = 1;
 
@@ -247,7 +415,8 @@ export class VisibilityCalculator {
               tileX, tileY,
               playerTileX, playerTileY,
               rooms[neighborRoomId],
-              viewRadius
+              viewRadius,
+              doorStates, roomMap, rooms, dungeonWidth, dungeonHeight
             );
             minFog = Math.min(minFog, fog);
           }
