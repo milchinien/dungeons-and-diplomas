@@ -89,10 +89,9 @@ export function generateDungeonFromLayouts(
     // Calculate position for new room
     const { x: newX, y: newY } = calculateNewRoomPosition(door, newLayout, oppositeSide);
 
-    // Check if room would fit and not overlap
+    // Check if room would fit
     if (!canPlaceRoom(dungeon, newLayout, newX, newY)) {
-      // Can't place here, remove door from open list
-      openDoors.splice(doorIndex, 1);
+      // Can't place here, try next attempt but keep door for retry
       continue;
     }
 
@@ -216,7 +215,7 @@ function placeRoomInDungeon(
 }
 
 /**
- * Checks if a room can be placed at given position
+ * Checks if a room can be placed at given position without overlapping existing tiles.
  */
 function canPlaceRoom(
   dungeon: TileType[][],
@@ -229,7 +228,7 @@ function canPlaceRoom(
   if (x + layout.width > DUNGEON_WIDTH) return false;
   if (y + layout.height > DUNGEON_HEIGHT) return false;
 
-  // Check for overlap (all tiles must be EMPTY)
+  // Check for overlap
   for (let ly = 0; ly < layout.height; ly++) {
     for (let lx = 0; lx < layout.width; lx++) {
       const dungeonX = x + lx;
@@ -260,58 +259,50 @@ function calculateNewRoomPosition(
 
   switch (doorSide) {
     case 'north':
-      // Find door in top row of new layout
+      // New layout has north door (top row) → placed one row BELOW existing south door
       for (let lx = 0; lx < newLayout.width; lx++) {
         if (newLayout.tileGrid[0][lx] === TILE.DOOR) {
           doorX = lx;
-          doorY = 0;
           break;
         }
       }
-      // Position new room so its north door aligns with existing south door
       x = door.x - doorX;
-      y = door.y - newLayout.height + 1;
+      y = door.y + 1; // new room's top row starts one below existing south door
       break;
 
     case 'south':
-      // Find door in bottom row of new layout
+      // New layout has south door (bottom row) → placed one row ABOVE existing north door
       for (let lx = 0; lx < newLayout.width; lx++) {
         if (newLayout.tileGrid[newLayout.height - 1][lx] === TILE.DOOR) {
           doorX = lx;
-          doorY = newLayout.height - 1;
           break;
         }
       }
-      // Position new room so its south door aligns with existing north door
       x = door.x - doorX;
-      y = door.y;
+      y = door.y - newLayout.height; // new room's bottom row ends one above existing north door
       break;
 
     case 'west':
-      // Find door in left column of new layout
+      // New layout has west door (left column) → placed one column RIGHT of existing east door
       for (let ly = 0; ly < newLayout.height; ly++) {
         if (newLayout.tileGrid[ly][0] === TILE.DOOR) {
-          doorX = 0;
           doorY = ly;
           break;
         }
       }
-      // Position new room so its west door aligns with existing east door
-      x = door.x - newLayout.width + 1;
+      x = door.x + 1; // new room's left column starts one right of existing east door
       y = door.y - doorY;
       break;
 
     case 'east':
-      // Find door in right column of new layout
+      // New layout has east door (right column) → placed one column LEFT of existing west door
       for (let ly = 0; ly < newLayout.height; ly++) {
         if (newLayout.tileGrid[ly][newLayout.width - 1] === TILE.DOOR) {
-          doorX = newLayout.width - 1;
           doorY = ly;
           break;
         }
       }
-      // Position new room so its east door aligns with existing west door
-      x = door.x;
+      x = door.x - newLayout.width; // new room's right column ends one left of existing west door
       y = door.y - doorY;
       break;
   }

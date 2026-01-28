@@ -23,6 +23,8 @@ import { spawnPlayer, spawnEnemies, spawnTreasures, createShrines, spawnTrashmob
 import type { DroppedItem } from '../items/types';
 import { initializeShopDoorStates } from '../shop/ShopDoor';
 import { generateDungeonFromLayouts } from '../dungeon/layoutGeneration';
+import { getLayoutPool } from '../roomlayouts/LayoutPool';
+import { generateRenderMap } from '../tiletheme/RenderMapGenerator';
 
 export class DungeonManager {
   // Dungeon structure
@@ -81,8 +83,8 @@ export class DungeonManager {
 
     this.playerSprite = playerSprite;
 
-    // Generate initial dungeon (enemies use sprite cache automatically)
-    await this.generateNewDungeon(availableSubjects);
+    // Generate initial dungeon using pre-generated room layouts
+    await this.generateFromLayouts(availableSubjects);
   }
 
   /**
@@ -162,6 +164,16 @@ export class DungeonManager {
     targetRoomCount: number = 20,
     seed?: number
   ) {
+    // Fetch layouts from API and populate the pool
+    const pool = getLayoutPool();
+    const response = await fetch('/api/room-layouts');
+    if (response.ok) {
+      const layouts = await response.json();
+      pool.setLayouts(layouts);
+    } else {
+      throw new Error('Failed to load room layouts from API');
+    }
+
     // Generate dungeon structure from layouts
     const structure = generateDungeonFromLayouts(targetRoomCount, seed);
 
@@ -170,7 +182,7 @@ export class DungeonManager {
     this.rooms = structure.rooms;
     this.roomMap = structure.roomMap;
 
-    // Initialize tile variants (needed for rendering)
+    // Initialize tile variants (needed for legacy rendering path)
     this.tileVariants = Array(this.dungeonHeight).fill(null).map(() =>
       Array(this.dungeonWidth).fill(null).map(() => ({
         floor: { x: 0, y: 0 },
@@ -178,8 +190,41 @@ export class DungeonManager {
       }))
     );
 
-    // Initialize door states
+    // Initialize door states — connected door pairs (adjacent DOOR tiles from
+    // layout-based generation) start open so rooms are reachable; isolated doors
+    // start closed as in BSP-generated dungeons.
     this.doorStates = new Map();
+    for (let y = 0; y < this.dungeonHeight; y++) {
+      for (let x = 0; x < this.dungeonWidth; x++) {
+        if (this.dungeon[y][x] === 3) { // TILE.DOOR
+          this.doorStates.set(`${x},${y}`, false);
+        }
+      }
+    }
+    // Open connected door pairs (two adjacent DOOR tiles created when layout
+    // rooms connect via their edge doors)
+    for (let y = 0; y < this.dungeonHeight; y++) {
+      for (let x = 0; x < this.dungeonWidth; x++) {
+        if (this.dungeon[y][x] === 3) {
+          // Check right neighbor
+          if (x + 1 < this.dungeonWidth && this.dungeon[y][x + 1] === 3) {
+            this.doorStates.set(`${x},${y}`, true);
+            this.doorStates.set(`${x + 1},${y}`, true);
+          }
+          // Check bottom neighbor
+          if (y + 1 < this.dungeonHeight && this.dungeon[y + 1][x] === 3) {
+            this.doorStates.set(`${x},${y}`, true);
+            this.doorStates.set(`${x},${y + 1}`, true);
+          }
+        }
+      }
+    }
+
+    // Generate RenderMap for themed rendering
+    if (this.darkTheme) {
+      const renderSeed = seed ?? Math.floor(Math.random() * 1000000);
+      this.renderMap = generateRenderMap(this.dungeon, this.darkTheme, this.lightTheme, renderSeed);
+    }
 
     // Create spawn context for entity spawning
     const spawnContext = {

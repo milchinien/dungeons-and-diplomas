@@ -1,101 +1,64 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useReducer, useCallback, useMemo } from 'react';
 import { TILE } from '@/lib/constants';
 import type { TileType } from '@/lib/constants';
-import type { RoomLayout, RoomLayoutInput, DoorPositions } from '@/lib/roomlayouts/types';
+import type { RoomLayoutInput, DoorPositions } from '@/lib/roomlayouts/types';
 import { validateRoomLayout } from '@/lib/roomlayouts/validation';
-import LayoutManager from './LayoutManager';
+import { useRouter } from 'next/navigation';
 import LayoutCanvas from './LayoutCanvas';
 import LayoutSettings from './LayoutSettings';
+import LayoutPreview from './LayoutPreview';
 import type { DrawTool } from './LayoutCanvas';
 
-export default function RoomLayoutEditor() {
-  // Current layout being edited
-  const [currentLayoutId, setCurrentLayoutId] = useState<number | null>(null);
-  const [layoutName, setLayoutName] = useState('New Layout');
-  const [width, setWidth] = useState(8);
-  const [height, setHeight] = useState(8);
-  const [roomType, setRoomType] = useState<string>('any');
-  const [difficulty, setDifficulty] = useState(5);
-  const [tags, setTags] = useState<string[]>([]);
-  const [tileGrid, setTileGrid] = useState<TileType[][]>(createEmptyGrid(8, 8));
+// --- Reducer Types ---
 
-  // Drawing state
-  const [activeTool, setActiveTool] = useState<DrawTool>('pen');
-  const [selectedTile, setSelectedTile] = useState<TileType>(TILE.FLOOR);
+type GridAction =
+  | { type: 'SET_TILE'; x: number; y: number; tile: TileType }
+  | { type: 'FLOOD_FILL'; startX: number; startY: number; newTile: TileType; width: number; height: number }
+  | { type: 'RESIZE'; newWidth: number; newHeight: number }
+  | { type: 'RESET'; width: number; height: number }
+  | { type: 'LOAD'; grid: TileType[][] }
+  | { type: 'UNDO' }
+  | { type: 'REDO' };
 
-  // Create new layout
-  const handleCreateNew = () => {
-    if (confirm('Create a new layout? Unsaved changes will be lost.')) {
-      setCurrentLayoutId(null);
-      setLayoutName('New Layout');
-      setWidth(8);
-      setHeight(8);
-      setRoomType('any');
-      setDifficulty(5);
-      setTags([]);
-      setTileGrid(createEmptyGrid(8, 8));
+interface GridState {
+  history: TileType[][][];
+  pointer: number;
+  maxHistory: number;
+}
+
+// --- Reducer ---
+
+function gridReducer(state: GridState, action: GridAction): GridState {
+  const { history, pointer, maxHistory } = state;
+  const currentGrid = history[pointer];
+
+  const pushGrid = (newGrid: TileType[][]): GridState => {
+    // Truncate any redo history after current pointer
+    const truncated = history.slice(0, pointer + 1);
+    truncated.push(newGrid);
+    // Cap at maxHistory
+    if (truncated.length > maxHistory) {
+      truncated.shift();
+      return { history: truncated, pointer: truncated.length - 1, maxHistory };
     }
+    return { history: truncated, pointer: truncated.length - 1, maxHistory };
   };
 
-  // Load existing layout
-  const handleSelectLayout = async (layout: RoomLayout | null) => {
-    if (!layout) return;
-
-    if (confirm('Load this layout? Unsaved changes will be lost.')) {
-      setCurrentLayoutId(layout.id);
-      setLayoutName(layout.name);
-      setWidth(layout.width);
-      setHeight(layout.height);
-      setRoomType(layout.roomType);
-      setDifficulty(layout.difficulty);
-      setTags(layout.tags);
-      setTileGrid(layout.tileGrid);
+  switch (action.type) {
+    case 'SET_TILE': {
+      const newGrid = currentGrid.map(row => [...row]);
+      newGrid[action.y][action.x] = action.tile;
+      return pushGrid(newGrid);
     }
-  };
 
-  // Delete layout
-  const handleDeleteLayout = (layoutId: number) => {
-    if (currentLayoutId === layoutId) {
-      handleCreateNew();
-    }
-  };
+    case 'FLOOD_FILL': {
+      const { startX, startY, newTile, width, height } = action;
+      const targetTile = currentGrid[startY][startX];
+      if (targetTile === newTile) return state;
 
-  // Update settings
-  const handleSettingsChange = (settings: Partial<RoomLayoutInput>) => {
-    if (settings.name !== undefined) setLayoutName(settings.name);
-    if (settings.roomType !== undefined) setRoomType(settings.roomType);
-    if (settings.difficulty !== undefined) setDifficulty(settings.difficulty);
-    if (settings.tags !== undefined) setTags(settings.tags);
-
-    // Handle grid size changes
-    if (settings.width !== undefined && settings.width !== width) {
-      setWidth(settings.width);
-      setTileGrid(resizeGrid(tileGrid, settings.width, height));
-    }
-    if (settings.height !== undefined && settings.height !== height) {
-      setHeight(settings.height);
-      setTileGrid(resizeGrid(tileGrid, width, settings.height));
-    }
-  };
-
-  // Tile change handler
-  const handleTileChange = useCallback((x: number, y: number, tile: TileType) => {
-    setTileGrid(prev => {
-      const newGrid = prev.map(row => [...row]);
-      newGrid[y][x] = tile;
-      return newGrid;
-    });
-  }, []);
-
-  // Flood fill handler
-  const handleFloodFill = useCallback((startX: number, startY: number, newTile: TileType) => {
-    setTileGrid(prev => {
-      const targetTile = prev[startY][startX];
-      if (targetTile === newTile) return prev; // Already the same tile
-
-      const newGrid = prev.map(row => [...row]);
+      const newGrid = currentGrid.map(row => [...row]);
       const queue: [number, number][] = [[startX, startY]];
       const visited = new Set<string>();
 
@@ -110,47 +73,152 @@ export default function RoomLayoutEditor() {
         visited.add(key);
         newGrid[y][x] = newTile;
 
-        // Add neighbors
-        queue.push([x + 1, y]);
-        queue.push([x - 1, y]);
-        queue.push([x, y + 1]);
-        queue.push([x, y - 1]);
+        queue.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
       }
 
-      return newGrid;
-    });
+      return pushGrid(newGrid);
+    }
+
+    case 'RESIZE': {
+      const { newWidth, newHeight } = action;
+      const newGrid = createEmptyGrid(newWidth, newHeight);
+      for (let y = 0; y < Math.min(currentGrid.length, newHeight); y++) {
+        for (let x = 0; x < Math.min(currentGrid[0]?.length || 0, newWidth); x++) {
+          newGrid[y][x] = currentGrid[y][x];
+        }
+      }
+      return pushGrid(newGrid);
+    }
+
+    case 'RESET':
+      return pushGrid(createEmptyGrid(action.width, action.height));
+
+    case 'LOAD':
+      return { history: [action.grid], pointer: 0, maxHistory };
+
+    case 'UNDO':
+      if (pointer <= 0) return state;
+      return { ...state, pointer: pointer - 1 };
+
+    case 'REDO':
+      if (pointer >= history.length - 1) return state;
+      return { ...state, pointer: pointer + 1 };
+
+    default:
+      return state;
+  }
+}
+
+// --- Main Component ---
+
+interface RoomLayoutEditorProps {
+  initialLayoutId?: number;
+}
+
+export default function RoomLayoutEditor({ initialLayoutId }: RoomLayoutEditorProps) {
+  const router = useRouter();
+  const [currentLayoutId, setCurrentLayoutId] = useState<number | null>(initialLayoutId ?? null);
+  const [layoutName, setLayoutName] = useState('New Layout');
+  const [width, setWidth] = useState(8);
+  const [height, setHeight] = useState(8);
+  const [roomType, setRoomType] = useState<string>('any');
+  const [difficulty, setDifficulty] = useState(5);
+  const [tags, setTags] = useState<string[]>([]);
+
+  // Drawing state
+  const [activeTool, setActiveTool] = useState<DrawTool>('pen');
+  const [selectedTile, setSelectedTile] = useState<TileType>(TILE.FLOOR);
+
+  // Preview mode
+  const [showPreview, setShowPreview] = useState(false);
+
+  // Grid state with undo/redo
+  const [gridState, dispatch] = useReducer(gridReducer, {
+    history: [createEmptyGrid(8, 8)],
+    pointer: 0,
+    maxHistory: 30
+  });
+
+  const tileGrid = gridState.history[gridState.pointer];
+  const canUndo = gridState.pointer > 0;
+  const canRedo = gridState.pointer < gridState.history.length - 1;
+
+  // Load initial layout if ID provided
+  useEffect(() => {
+    if (!initialLayoutId) return;
+    const loadLayout = async () => {
+      try {
+        const response = await fetch(`/api/room-layouts/${initialLayoutId}`);
+        if (response.ok) {
+          const layout = await response.json();
+          setCurrentLayoutId(layout.id);
+          setLayoutName(layout.name);
+          setWidth(layout.width);
+          setHeight(layout.height);
+          setRoomType(layout.roomType);
+          setDifficulty(layout.difficulty);
+          setTags(layout.tags);
+          dispatch({ type: 'LOAD', grid: layout.tileGrid });
+        }
+      } catch (error) {
+        console.error('Failed to load layout:', error);
+      }
+    };
+    loadLayout();
+  }, [initialLayoutId]);
+
+  // Live validation
+  const validationResult = useMemo(() => {
+    const doorPositions = detectDoorPositions(tileGrid, width, height);
+    const layoutInput: RoomLayoutInput = {
+      name: layoutName,
+      width,
+      height,
+      tileGrid,
+      doorPositions,
+      roomType: roomType as any,
+      difficulty,
+      tags
+    };
+    return validateRoomLayout(layoutInput);
+  }, [tileGrid, width, height, layoutName, roomType, difficulty, tags]);
+
+  // --- Handlers ---
+
+  const handleSettingsChange = (settings: Partial<RoomLayoutInput>) => {
+    if (settings.name !== undefined) setLayoutName(settings.name);
+    if (settings.roomType !== undefined) setRoomType(settings.roomType);
+    if (settings.difficulty !== undefined) setDifficulty(settings.difficulty);
+    if (settings.tags !== undefined) setTags(settings.tags);
+
+    if (settings.width !== undefined && settings.width !== width) {
+      setWidth(settings.width);
+      dispatch({ type: 'RESIZE', newWidth: settings.width, newHeight: height });
+    }
+    if (settings.height !== undefined && settings.height !== height) {
+      setHeight(settings.height);
+      dispatch({ type: 'RESIZE', newWidth: width, newHeight: settings.height });
+    }
+  };
+
+  const handleTileChange = useCallback((x: number, y: number, tile: TileType) => {
+    dispatch({ type: 'SET_TILE', x, y, tile });
+  }, []);
+
+  const handleFloodFill = useCallback((startX: number, startY: number, newTile: TileType) => {
+    dispatch({ type: 'FLOOD_FILL', startX, startY, newTile, width, height });
   }, [width, height]);
 
-  // Save layout
+  const handleUndo = useCallback(() => {
+    dispatch({ type: 'UNDO' });
+  }, []);
+
+  const handleRedo = useCallback(() => {
+    dispatch({ type: 'REDO' });
+  }, []);
+
   const handleSave = async () => {
-    // Detect door positions
-    const doorPositions: DoorPositions = {
-      north: false,
-      south: false,
-      east: false,
-      west: false
-    };
-
-    // Check top edge
-    for (let x = 0; x < width; x++) {
-      if (tileGrid[0][x] === TILE.DOOR) doorPositions.north = true;
-    }
-
-    // Check bottom edge
-    for (let x = 0; x < width; x++) {
-      if (tileGrid[height - 1][x] === TILE.DOOR) doorPositions.south = true;
-    }
-
-    // Check left edge
-    for (let y = 0; y < height; y++) {
-      if (tileGrid[y][0] === TILE.DOOR) doorPositions.west = true;
-    }
-
-    // Check right edge
-    for (let y = 0; y < height; y++) {
-      if (tileGrid[y][width - 1] === TILE.DOOR) doorPositions.east = true;
-    }
-
+    const doorPositions = detectDoorPositions(tileGrid, width, height);
     const layoutInput: RoomLayoutInput = {
       name: layoutName,
       width,
@@ -162,7 +230,7 @@ export default function RoomLayoutEditor() {
       tags
     };
 
-    // Validate
+    // Validate (redundant with live validation, but ensures correctness)
     const validation = validateRoomLayout(layoutInput);
     if (!validation.isValid) {
       alert(`Validation failed:\n${validation.errors.join('\n')}`);
@@ -172,14 +240,12 @@ export default function RoomLayoutEditor() {
     try {
       let response;
       if (currentLayoutId) {
-        // Update existing
         response = await fetch(`/api/room-layouts/${currentLayoutId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(layoutInput)
         });
       } else {
-        // Create new
         response = await fetch('/api/room-layouts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -201,42 +267,108 @@ export default function RoomLayoutEditor() {
     }
   };
 
-  // Reset canvas
   const handleReset = () => {
     if (confirm('Reset canvas? This will clear all tiles.')) {
-      setTileGrid(createEmptyGrid(width, height));
+      dispatch({ type: 'RESET', width, height });
     }
   };
 
-  // Check if can save (must have at least one floor tile)
-  const canSave = layoutName.trim().length > 0 &&
-                  tileGrid.some(row => row.some(tile => tile === TILE.FLOOR));
+  const canSave = layoutName.trim().length > 0 && validationResult.isValid;
 
   return (
     <div style={{
       display: 'flex',
       width: '100%',
       height: '100%',
-      fontFamily: 'Rajdhani, monospace'
+      fontFamily: 'Rajdhani, monospace',
+      flexDirection: 'column'
     }}>
-      {/* Left Panel: Layout Manager */}
-      <LayoutManager
-        selectedLayoutId={currentLayoutId}
-        onSelectLayout={handleSelectLayout}
-        onCreateNew={handleCreateNew}
-        onDeleteLayout={handleDeleteLayout}
-      />
+      {/* Top Navigation Bar */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        padding: '10px 16px',
+        backgroundColor: '#222',
+        borderBottom: '1px solid #333',
+        gap: '12px',
+        flexShrink: 0
+      }}>
+        <button
+          onClick={() => router.push('/room-editor')}
+          style={{
+            padding: '6px 14px',
+            backgroundColor: '#333',
+            color: '#ccc',
+            border: '1px solid #555',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontFamily: 'Rajdhani, monospace',
+            fontSize: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#3a3a3a'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#333'; }}
+        >
+          ← Zurück
+        </button>
+        <span style={{
+          fontSize: '18px',
+          fontWeight: 'bold',
+          color: '#ddd'
+        }}>
+          {currentLayoutId ? 'Layout bearbeiten' : 'Neues Layout'}
+        </span>
+      </div>
 
-      {/* Center: Canvas */}
-      <LayoutCanvas
-        width={width}
-        height={height}
-        tileGrid={tileGrid}
-        onTileChange={handleTileChange}
-        onFloodFill={handleFloodFill}
-        activeTool={activeTool}
-        selectedTile={selectedTile}
-      />
+      {/* Editor Body */}
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+      {/* Center: Canvas or Preview */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        {showPreview ? (
+          <LayoutPreview tileGrid={tileGrid} width={width} height={height} />
+        ) : (
+          <LayoutCanvas
+            width={width}
+            height={height}
+            tileGrid={tileGrid}
+            onTileChange={handleTileChange}
+            onFloodFill={handleFloodFill}
+            activeTool={activeTool}
+            selectedTile={selectedTile}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
+            canUndo={canUndo}
+            canRedo={canRedo}
+          />
+        )}
+
+        {/* Live Validation Errors */}
+        {!validationResult.isValid && (
+          <div style={{
+            padding: '8px 16px',
+            backgroundColor: '#3a1a1a',
+            borderTop: '1px solid #d44',
+            display: 'flex',
+            gap: '12px',
+            flexWrap: 'wrap'
+          }}>
+            {validationResult.errors.map((error, i) => (
+              <span key={i} style={{
+                fontSize: '12px',
+                color: '#ff6b6b',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}>
+                <span style={{ color: '#d44' }}>⚠</span> {error}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Right Panel: Settings */}
       <LayoutSettings
@@ -254,31 +386,33 @@ export default function RoomLayoutEditor() {
         onToolChange={setActiveTool}
         selectedTile={selectedTile}
         onTileSelect={setSelectedTile}
+        showPreview={showPreview}
+        onPreviewToggle={() => setShowPreview(!showPreview)}
       />
+      </div>
     </div>
   );
 }
 
-/**
- * Creates an empty grid filled with EMPTY tiles
- */
+// --- Utility Functions ---
+
 function createEmptyGrid(width: number, height: number): TileType[][] {
   return Array(height).fill(null).map(() =>
     Array(width).fill(TILE.EMPTY)
   );
 }
 
-/**
- * Resizes a grid, preserving existing tiles and filling new space with EMPTY
- */
-function resizeGrid(oldGrid: TileType[][], newWidth: number, newHeight: number): TileType[][] {
-  const newGrid = createEmptyGrid(newWidth, newHeight);
+function detectDoorPositions(tileGrid: TileType[][], width: number, height: number): DoorPositions {
+  const doorPositions: DoorPositions = { north: false, south: false, east: false, west: false };
 
-  for (let y = 0; y < Math.min(oldGrid.length, newHeight); y++) {
-    for (let x = 0; x < Math.min(oldGrid[0]?.length || 0, newWidth); x++) {
-      newGrid[y][x] = oldGrid[y][x];
-    }
+  for (let x = 0; x < width; x++) {
+    if (tileGrid[0]?.[x] === TILE.DOOR) doorPositions.north = true;
+    if (tileGrid[height - 1]?.[x] === TILE.DOOR) doorPositions.south = true;
+  }
+  for (let y = 0; y < height; y++) {
+    if (tileGrid[y]?.[0] === TILE.DOOR) doorPositions.west = true;
+    if (tileGrid[y]?.[width - 1] === TILE.DOOR) doorPositions.east = true;
   }
 
-  return newGrid;
+  return doorPositions;
 }

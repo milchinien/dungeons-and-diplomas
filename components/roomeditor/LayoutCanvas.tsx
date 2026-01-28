@@ -14,6 +14,10 @@ interface LayoutCanvasProps {
   onFloodFill: (startX: number, startY: number, newTile: TileType) => void;
   activeTool: DrawTool;
   selectedTile: TileType;
+  onUndo: () => void;
+  onRedo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
 }
 
 export default function LayoutCanvas({
@@ -23,15 +27,35 @@ export default function LayoutCanvas({
   onTileChange,
   onFloodFill,
   activeTool,
-  selectedTile
+  selectedTile,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo
 }: LayoutCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hoveredTile, setHoveredTile] = useState<{ x: number; y: number } | null>(null);
 
-  const TILE_SIZE = 32; // pixels per tile
+  const TILE_SIZE = 32;
   const CANVAS_WIDTH = width * TILE_SIZE;
   const CANVAS_HEIGHT = height * TILE_SIZE;
+
+  // Keyboard shortcuts for undo/redo
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        onUndo();
+      } else if (e.ctrlKey && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault();
+        onRedo();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onUndo, onRedo]);
 
   // Render the grid
   useEffect(() => {
@@ -41,11 +65,9 @@ export default function LayoutCanvas({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Clear canvas
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-    // Draw tiles
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const tile = tileGrid[y][x];
@@ -59,7 +81,6 @@ export default function LayoutCanvas({
         ctx.fillStyle = color;
         ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
 
-        // Draw grid lines
         ctx.strokeStyle = '#444';
         ctx.lineWidth = 1;
         ctx.strokeRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
@@ -77,7 +98,6 @@ export default function LayoutCanvas({
         TILE_SIZE
       );
 
-      // Show preview of what will be drawn
       if (activeTool === 'pen') {
         let previewColor = '#000';
         if (selectedTile === TILE.FLOOR) previewColor = 'rgba(102, 102, 102, 0.5)';
@@ -153,7 +173,6 @@ export default function LayoutCanvas({
     } else if (activeTool === 'fill') {
       onFloodFill(x, y, selectedTile);
     } else if (activeTool === 'door') {
-      // Only allow doors on edges
       const isEdge = x === 0 || x === width - 1 || y === 0 || y === height - 1;
       if (isEdge) {
         onTileChange(x, y, TILE.DOOR);
@@ -164,13 +183,58 @@ export default function LayoutCanvas({
   return (
     <div style={{
       display: 'flex',
-      justifyContent: 'center',
+      flexDirection: 'column',
       alignItems: 'center',
+      justifyContent: 'center',
       padding: '20px',
       backgroundColor: '#1a1a1a',
       flex: 1,
       overflow: 'auto'
     }}>
+      {/* Undo/Redo Toolbar */}
+      <div style={{
+        display: 'flex',
+        gap: '8px',
+        marginBottom: '12px'
+      }}>
+        <button
+          onClick={onUndo}
+          disabled={!canUndo}
+          title="Undo (Ctrl+Z)"
+          style={{
+            padding: '6px 16px',
+            backgroundColor: canUndo ? '#444' : '#222',
+            color: canUndo ? 'white' : '#666',
+            border: '1px solid #555',
+            borderRadius: '4px',
+            cursor: canUndo ? 'pointer' : 'not-allowed',
+            fontFamily: 'Rajdhani, monospace',
+            fontSize: '14px',
+            transition: 'all 0.2s'
+          }}
+        >
+          ↩ Undo
+        </button>
+        <button
+          onClick={onRedo}
+          disabled={!canRedo}
+          title="Redo (Ctrl+Shift+Z)"
+          style={{
+            padding: '6px 16px',
+            backgroundColor: canRedo ? '#444' : '#222',
+            color: canRedo ? 'white' : '#666',
+            border: '1px solid #555',
+            borderRadius: '4px',
+            cursor: canRedo ? 'pointer' : 'not-allowed',
+            fontFamily: 'Rajdhani, monospace',
+            fontSize: '14px',
+            transition: 'all 0.2s'
+          }}
+        >
+          ↪ Redo
+        </button>
+      </div>
+
       <canvas
         ref={canvasRef}
         width={CANVAS_WIDTH}

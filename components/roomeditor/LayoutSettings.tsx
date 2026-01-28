@@ -21,6 +21,8 @@ interface LayoutSettingsProps {
   onToolChange: (tool: DrawTool) => void;
   selectedTile: TileType;
   onTileSelect: (tile: TileType) => void;
+  showPreview: boolean;
+  onPreviewToggle: () => void;
 }
 
 export default function LayoutSettings({
@@ -37,7 +39,9 @@ export default function LayoutSettings({
   activeTool,
   onToolChange,
   selectedTile,
-  onTileSelect
+  onTileSelect,
+  showPreview,
+  onPreviewToggle
 }: LayoutSettingsProps) {
   const [tagInput, setTagInput] = useState('');
 
@@ -73,8 +77,32 @@ export default function LayoutSettings({
         Layout Settings
       </div>
 
-      {/* Drawing Tools */}
+      {/* Preview Toggle */}
       <div style={{
+        padding: '12px',
+        borderBottom: '1px solid #444'
+      }}>
+        <button
+          onClick={onPreviewToggle}
+          style={{
+            width: '100%',
+            padding: '10px',
+            backgroundColor: showPreview ? '#6a4eff' : '#333',
+            color: 'white',
+            border: showPreview ? '2px solid #8a6aff' : '1px solid #555',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontFamily: 'Rajdhani, monospace',
+            fontSize: '14px',
+            transition: 'all 0.2s'
+          }}
+        >
+          {showPreview ? '🎨 Editor View' : '👁 Preview View'}
+        </button>
+      </div>
+
+      {/* Drawing Tools */}
+      {!showPreview && <div style={{
         padding: '12px',
         borderBottom: '1px solid #444'
       }}>
@@ -103,10 +131,10 @@ export default function LayoutSettings({
             label="🚪 Door (edges only)"
           />
         </div>
-      </div>
+      </div>}
 
       {/* Tile Selection (for pen tool) */}
-      {activeTool === 'pen' && (
+      {!showPreview && activeTool === 'pen' && (
         <div style={{
           padding: '12px',
           borderBottom: '1px solid #444'

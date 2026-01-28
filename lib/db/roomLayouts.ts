@@ -63,7 +63,7 @@ export function getRoomLayouts(filters?: LayoutFilterOptions): RoomLayout[] {
 
   if (filters) {
     if (filters.roomType) {
-      query += ' AND (room_type = ? OR room_type = "any")';
+      query += " AND (room_type = ? OR room_type = 'any')";
       params.push(filters.roomType);
     }
     if (filters.minWidth !== undefined) {

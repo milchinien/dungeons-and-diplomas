@@ -1,36 +1,36 @@
 /**
  * LayoutPool - Manages available room layouts for dungeon generation
+ *
+ * Client-side safe: does not import database modules.
+ * Layouts are loaded externally (via API) and injected via setLayouts().
  */
 
-import { getRoomLayouts, getRandomRoomLayout } from '../db/roomLayouts';
 import type { RoomLayout, LayoutFilterOptions } from './types';
 
 export class LayoutPool {
   private layouts: RoomLayout[] = [];
 
-  constructor() {
-    this.reload();
-  }
-
   /**
-   * Reloads all layouts from database
+   * Replaces the internal layout list (called after API fetch)
    */
-  reload(): void {
-    this.layouts = getRoomLayouts();
+  setLayouts(layouts: RoomLayout[]): void {
+    this.layouts = layouts;
   }
 
   /**
    * Gets a random layout matching filters
    */
   getRandomLayout(filters?: LayoutFilterOptions): RoomLayout | null {
-    return getRandomRoomLayout(filters);
+    const filtered = this.filterLayouts(filters);
+    if (filtered.length === 0) return null;
+    return filtered[Math.floor(Math.random() * filtered.length)];
   }
 
   /**
    * Gets all layouts matching filters
    */
   getLayouts(filters?: LayoutFilterOptions): RoomLayout[] {
-    return getRoomLayouts(filters);
+    return this.filterLayouts(filters);
   }
 
   /**
@@ -49,6 +49,32 @@ export class LayoutPool {
    */
   getCount(): number {
     return this.layouts.length;
+  }
+
+  /**
+   * Filters layouts based on provided options
+   */
+  private filterLayouts(filters?: LayoutFilterOptions): RoomLayout[] {
+    if (!filters) return [...this.layouts];
+
+    return this.layouts.filter(layout => {
+      if (filters.roomType && layout.roomType !== filters.roomType && layout.roomType !== 'any') {
+        return false;
+      }
+      if (filters.minWidth && layout.width < filters.minWidth) return false;
+      if (filters.maxWidth && layout.width > filters.maxWidth) return false;
+      if (filters.minHeight && layout.height < filters.minHeight) return false;
+      if (filters.maxHeight && layout.height > filters.maxHeight) return false;
+      if (filters.difficulty && layout.difficulty !== filters.difficulty) return false;
+      if (filters.doorSide) {
+        if (!layout.doorPositions[filters.doorSide]) return false;
+      }
+      if (filters.tags && filters.tags.length > 0) {
+        const hasTag = filters.tags.some(tag => layout.tags.includes(tag));
+        if (!hasTag) return false;
+      }
+      return true;
+    });
   }
 }
 
