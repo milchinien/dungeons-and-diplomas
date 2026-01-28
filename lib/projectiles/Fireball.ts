@@ -45,8 +45,9 @@ export class Fireball {
    * @param dt Delta time in seconds
    * @param dungeon Dungeon grid for wall collision
    * @param tileSize Size of a tile in pixels
+   * @param doorStates Optional map of door states (true = open, false/undefined = closed)
    */
-  update(dt: number, dungeon: TileType[][], tileSize: number): void {
+  update(dt: number, dungeon: TileType[][], tileSize: number, doorStates?: Map<string, boolean>): void {
     if (!this.alive) return;
 
     // Update lifetime
@@ -71,11 +72,22 @@ export class Fireball {
       return;
     }
 
-    // Check wall collision
+    // Check wall/door collision (fireballs can't pass through walls or closed doors)
     const tile = dungeon[centerY][centerX];
     if (tile === TILE.WALL || tile === TILE.EMPTY) {
       this.alive = false;
       return;
+    }
+
+    // For doors, check if they are open or closed
+    if (tile === TILE.DOOR) {
+      const isOpen = doorStates?.get(`${centerX},${centerY}`) ?? false;
+      if (!isOpen) {
+        // Closed door blocks fireball
+        this.alive = false;
+        return;
+      }
+      // Open door - fireball passes through
     }
   }
 

@@ -2,6 +2,7 @@
 
 import { CharacterHeader } from './character/CharacterHeader';
 import { HpBar } from './character/HpBar';
+import { ShieldBar } from './character/ShieldBar';
 import { XpProgressBar } from './character/XpProgressBar';
 import { MasteryCircles } from './character/MasteryCircles';
 import { ActionButtons } from './character/ActionButtons';
@@ -17,10 +18,13 @@ interface CharacterPanelProps {
   xpForNextLevel: number;
   currentHp: number;
   maxHp: number;
+  currentShield?: number;
+  maxShield?: number;
   onLogout: () => void;
   onRestart: () => void;
   onSkills: () => void;
   onSettings?: () => void;
+  skillPointsAvailable?: number;
 }
 
 /**
@@ -35,10 +39,13 @@ export default function CharacterPanel({
   xpForNextLevel,
   currentHp,
   maxHp,
+  currentShield = 0,
+  maxShield = 0,
   onLogout,
   onRestart,
   onSkills,
-  onSettings
+  onSettings,
+  skillPointsAvailable
 }: CharacterPanelProps) {
   return (
     <div style={{
@@ -100,6 +107,8 @@ export default function CharacterPanel({
 
       <HpBar currentHp={currentHp} maxHp={maxHp} />
 
+      <ShieldBar currentShield={currentShield} maxShield={maxShield} />
+
       <XpProgressBar
         currentXp={currentXp}
         xpForCurrentLevel={xpForCurrentLevel}
@@ -113,6 +122,7 @@ export default function CharacterPanel({
         onSkills={onSkills}
         onLogout={onLogout}
         onSettings={onSettings}
+        skillPointsAvailable={skillPointsAvailable}
       />
     </div>
   );

@@ -155,6 +155,91 @@ export class GameRenderer {
     tileSize: number
   ): void {
     playerSprite?.draw(ctx, player.x, player.y, tileSize, tileSize);
+    this.renderPlayerHealthBar(ctx, player, tileSize);
+  }
+
+  /**
+   * Render HP and Shield bar above the player
+   */
+  private renderPlayerHealthBar(
+    ctx: CanvasRenderingContext2D,
+    player: Player,
+    tileSize: number
+  ): void {
+    const barWidth = tileSize * 1.0;
+    const barHeight = 8;
+    const barX = player.x + (tileSize - barWidth) / 2;
+    let barY = player.y - 12; // Above the player sprite
+
+    const hpPercent = Math.max(0, Math.min(1, player.hp / player.maxHp));
+    const hasShield = player.buffs?.hasShield && player.buffs.maxShield > 0;
+    const currentShield = hasShield ? Math.floor(player.buffs!.currentShield) : 0;
+    const maxShield = hasShield ? player.buffs!.maxShield : 0;
+    const shieldPercent = hasShield
+      ? Math.max(0, Math.min(1, currentShield / maxShield))
+      : 0;
+
+    ctx.save();
+
+    // Move bars up if we have shield
+    if (hasShield) {
+      barY -= barHeight + 4;
+    }
+
+    // Shield bar (if player has shield) - drawn first (above HP)
+    if (hasShield) {
+      const shieldBarY = barY;
+      // Background
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+      ctx.fillRect(barX - 1, shieldBarY - 1, barWidth + 2, barHeight + 2);
+      // Bar background
+      ctx.fillStyle = '#222';
+      ctx.fillRect(barX, shieldBarY, barWidth, barHeight);
+      // Shield fill
+      ctx.fillStyle = '#4a9eff';
+      ctx.fillRect(barX, shieldBarY, barWidth * shieldPercent, barHeight);
+      // Border
+      ctx.strokeStyle = '#666';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(barX, shieldBarY, barWidth, barHeight);
+      // Shield text
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 8px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = '#000';
+      ctx.shadowBlur = 2;
+      ctx.fillText(`${currentShield}/${maxShield}`, barX + barWidth / 2, shieldBarY + barHeight / 2);
+      ctx.shadowBlur = 0;
+    }
+
+    // HP bar
+    const hpBarY = hasShield ? barY + barHeight + 2 : barY;
+    // Background
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.fillRect(barX - 1, hpBarY - 1, barWidth + 2, barHeight + 2);
+    // Bar background
+    ctx.fillStyle = '#222';
+    ctx.fillRect(barX, hpBarY, barWidth, barHeight);
+    // HP fill
+    const hpColor = hpPercent > 0.5 ? '#00dd00' : hpPercent > 0.25 ? '#ddaa00' : '#dd0000';
+    ctx.fillStyle = hpColor;
+    ctx.fillRect(barX, hpBarY, barWidth * hpPercent, barHeight);
+    // Border
+    ctx.strokeStyle = '#666';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(barX, hpBarY, barWidth, barHeight);
+    // HP text
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 8px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = '#000';
+    ctx.shadowBlur = 2;
+    ctx.fillText(`${Math.floor(player.hp)}/${player.maxHp}`, barX + barWidth / 2, hpBarY + barHeight / 2);
+    ctx.shadowBlur = 0;
+
+    ctx.restore();
   }
 
   /**

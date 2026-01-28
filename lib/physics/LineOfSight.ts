@@ -18,6 +18,7 @@ import type { TileType } from '../constants';
  * @param y2 Target Y position (pixels)
  * @param dungeon Dungeon tile grid
  * @param tileSize Size of a tile in pixels
+ * @param doorStates Optional map of door states (true = open, false/undefined = closed)
  * @returns true if line of sight is clear (no walls), false if blocked
  */
 export function hasLineOfSight(
@@ -26,7 +27,8 @@ export function hasLineOfSight(
   x2: number,
   y2: number,
   dungeon: TileType[][],
-  tileSize: number
+  tileSize: number,
+  doorStates?: Map<string, boolean>
 ): boolean {
   // Convert pixel positions to tile positions
   const startTileX = Math.floor(x1 / tileSize);
@@ -51,7 +53,7 @@ export function hasLineOfSight(
 
   if (steps === 0) {
     // Same tile - check if it's walkable
-    return !isBlocking(dungeon[startTileY][startTileX]);
+    return !isBlocking(dungeon[startTileY][startTileX], startTileX, startTileY, doorStates);
   }
 
   // Step increments
@@ -74,7 +76,7 @@ export function hasLineOfSight(
 
     // Check if this tile blocks line of sight
     const tile = dungeon[tileY][tileX];
-    if (isBlocking(tile)) {
+    if (isBlocking(tile, tileX, tileY, doorStates)) {
       return false;
     }
 
@@ -88,7 +90,29 @@ export function hasLineOfSight(
 
 /**
  * Check if a tile type blocks line of sight
+ * Walls, empty tiles, and closed doors block vision
+ * Open doors do NOT block vision
  */
-function isBlocking(tile: TileType): boolean {
-  return tile === TILE.WALL || tile === TILE.EMPTY;
+function isBlocking(
+  tile: TileType,
+  tileX: number,
+  tileY: number,
+  doorStates?: Map<string, boolean>
+): boolean {
+  if (tile === TILE.WALL || tile === TILE.EMPTY) {
+    return true;
+  }
+
+  // For doors, check if they are open or closed
+  if (tile === TILE.DOOR) {
+    // If no doorStates provided, assume closed (blocking)
+    if (!doorStates) {
+      return true;
+    }
+    // Check door state: true = open (not blocking), false/undefined = closed (blocking)
+    const isOpen = doorStates.get(`${tileX},${tileY}`) ?? false;
+    return !isOpen;
+  }
+
+  return false;
 }

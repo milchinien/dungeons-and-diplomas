@@ -15,8 +15,10 @@ import DamageFlash from './DamageFlash';
 import FloatingXpBubble from './FloatingXpBubble';
 import InventoryModal, { Equipment, Item, EquipmentSlot } from './InventoryModal';
 import ItemDropNotification from './ItemDropNotification';
+import SkillTreeModal from './SkillTreeModal';
 import type { DroppedItem, ItemDefinition } from '@/lib/items';
-import { calculateEquipmentBonuses } from '@/lib/items';
+import { calculateCombinedBonuses, calculateEquipmentBonuses } from '@/lib/items';
+import type { UserSkill } from '@/lib/skills/types';
 import { useAuth } from '@/hooks/useAuth';
 import { useScoring } from '@/hooks/useScoring';
 import { useCombat } from '@/hooks/useCombat';
@@ -41,7 +43,10 @@ export default function GameCanvas() {
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
   const [showSkillDashboard, setShowSkillDashboard] = useState(false);
   const [showInventory, setShowInventory] = useState(false);
+  const [showSkillTree, setShowSkillTree] = useState(false);
   const [playerHp, setPlayerHp] = useState(PLAYER_MAX_HP);
+  const [playerShield, setPlayerShield] = useState(0);
+  const [maxShield, setMaxShield] = useState(0);
   const [treasureBubbles, setTreasureBubbles] = useState<Array<{ id: number; x: number; y: number; xp: number }>>([]);
 
   // Session stats for highscore tracking
@@ -83,6 +88,10 @@ export default function GameCanvas() {
 
   // Auth (includes XP state)
   const { userId, username, userXp, setUserXp, showLogin, handleLogin, handleLogout } = useAuth();
+
+  // User skills state
+  const [userSkills, setUserSkills] = useState<UserSkill[]>([]);
+  const [skillPointsAvailable, setSkillPointsAvailable] = useState(0);
 
   // Scoring
   const { sessionScores, loadSessionElos, updateSessionScores } = useScoring(userId);
@@ -234,9 +243,42 @@ export default function GameCanvas() {
     footstepManager.setVolumeMultiplier(audioSettings.effectiveSfxVolume);
   }, [audioSettings.effectiveMusicVolume, audioSettings.effectiveSfxVolume]);
 
-  const handleXpGained = (amount: number) => {
+  const handleXpGained = async (amount: number) => {
+    if (!userId) return;
+
+    // Update local state immediately for responsive UI
     setUserXp(prev => prev + amount);
     setSessionXpGained(prev => prev + amount);
+
+    // Call API to check for level-up and award skill points
+    try {
+      const response = await fetch('/api/xp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: userId,
+          xp_amount: amount,
+          reason: 'combat_victory',
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+
+        // Update XP from server (should match local state)
+        if (data.user?.xp !== undefined) {
+          setUserXp(data.user.xp);
+        }
+
+        // If player leveled up, update skill points
+        if (data.leveledUp && data.skillPointsAvailable !== undefined) {
+          setSkillPointsAvailable(data.skillPointsAvailable);
+          console.log(`🎉 Level Up! Neues Level: ${data.newLevel}, Verfügbare Skill Points: ${data.skillPointsAvailable}`);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to award XP:', error);
+    }
   };
 
   // Track enemy defeats for session stats
@@ -333,22 +375,50 @@ export default function GameCanvas() {
     buffs: { ...INITIAL_PLAYER_BUFFS }
   });
 
-  // Calculate equipment bonuses whenever equipment changes
+  // Calculate combined bonuses from equipment AND skills
+  const combinedBonuses = calculateCombinedBonuses(equipment, userSkills);
+
+  // Keep legacy equipmentBonuses for backwards compatibility
   const equipmentBonuses = calculateEquipmentBonuses(equipment);
 
   // Ref to hold shrine enemy defeated callback (set after gameState is initialized)
   const shrineEnemyDefeatedRef = useRef<((enemyId: number, shrineId: number) => void) | null>(null);
 
-  // Update player maxHp when equipment changes
+  // Update player maxHp when equipment or skills change
   useEffect(() => {
-    const newMaxHp = PLAYER_MAX_HP + equipmentBonuses.maxHpBonus;
+    const newMaxHp = PLAYER_MAX_HP + combinedBonuses.maxHpBonus;
     playerRef.current.maxHp = newMaxHp;
     // If current HP exceeds new max, clamp it
     if (playerRef.current.hp > newMaxHp) {
       playerRef.current.hp = newMaxHp;
       setPlayerHp(newMaxHp);
     }
-  }, [equipmentBonuses.maxHpBonus]);
+  }, [combinedBonuses.maxHpBonus]);
+
+  // Apply skill bonuses to player buffs (shield, regen)
+  useEffect(() => {
+    if (!playerRef.current.buffs) return;
+
+    // Shield from skills
+    if (combinedBonuses.shieldMaxBonus > 0) {
+      playerRef.current.buffs.hasShield = true;
+      playerRef.current.buffs.maxShield = combinedBonuses.shieldMaxBonus;
+      // Only set currentShield if it's not already set (first load)
+      if (playerRef.current.buffs.currentShield === 0) {
+        playerRef.current.buffs.currentShield = combinedBonuses.shieldMaxBonus;
+      }
+      playerRef.current.buffs.shieldRegenRate = combinedBonuses.shieldRegenBonus;
+
+      // Update React state for UI
+      setMaxShield(combinedBonuses.shieldMaxBonus);
+      setPlayerShield(Math.floor(playerRef.current.buffs.currentShield));
+    }
+
+    // HP regen from skills
+    if (combinedBonuses.hpRegenBonus > 0) {
+      playerRef.current.buffs.regenRate = combinedBonuses.hpRegenBonus;
+    }
+  }, [combinedBonuses.shieldMaxBonus, combinedBonuses.shieldRegenBonus, combinedBonuses.hpRegenBonus]);
 
   // Combat - initialized first so we have inCombatRef and startCombat
   // Note: onShrineEnemyDefeated uses ref pattern because the handler needs gameState
@@ -364,6 +434,23 @@ export default function GameCanvas() {
       resetPlayerBuffs(playerRef.current);
       resetRegenTimer();
       resetSessionStats();
+
+      // Restore maxHp from skill/equipment bonuses BEFORE generating dungeon
+      const newMaxHp = PLAYER_MAX_HP + combinedBonuses.maxHpBonus;
+      playerRef.current.maxHp = newMaxHp;
+      playerRef.current.hp = newMaxHp;
+      setPlayerHp(newMaxHp);
+
+      // Reset shield to full if player has shield bonus
+      if (playerRef.current.buffs && combinedBonuses.shieldMaxBonus > 0) {
+        playerRef.current.buffs.hasShield = true;
+        playerRef.current.buffs.maxShield = combinedBonuses.shieldMaxBonus;
+        playerRef.current.buffs.currentShield = combinedBonuses.shieldMaxBonus;
+        playerRef.current.buffs.shieldRegenRate = combinedBonuses.shieldRegenBonus;
+        setMaxShield(combinedBonuses.shieldMaxBonus);
+        setPlayerShield(combinedBonuses.shieldMaxBonus);
+      }
+
       gameState.generateNewDungeon();
     },
     onXpGained: handleXpGained,
@@ -374,7 +461,7 @@ export default function GameCanvas() {
     onShrineEnemyDefeated: (enemyId, shrineId) => {
       shrineEnemyDefeatedRef.current?.(enemyId, shrineId);
     },
-    equipmentBonuses,
+    equipmentBonuses: combinedBonuses, // Pass combined bonuses (equipment + skills)
     comboBonus: combo.damageBonus,
     tileSize: 64
   });
@@ -396,6 +483,10 @@ export default function GameCanvas() {
     userId,
     gameStarted,
     onPlayerHpUpdate: setPlayerHp,
+    onPlayerShieldUpdate: (current, max) => {
+      setPlayerShield(Math.floor(current));
+      setMaxShield(max);
+    },
     onXpGained: handleXpGained,
     onTreasureCollected: handleTreasureCollected,
     onItemDropped: handleItemDropped,
@@ -551,6 +642,21 @@ export default function GameCanvas() {
     setShowInventory(false);
   };
 
+  const handleOpenSkillTree = () => {
+    gameState.gamePausedRef.current = true;
+    setShowSkillTree(true);
+  };
+
+  const handleCloseSkillTree = () => {
+    gameState.gamePausedRef.current = false;
+    setShowSkillTree(false);
+  };
+
+  const handleSkillAllocated = (skills: UserSkill[], availablePoints: number) => {
+    setUserSkills(skills);
+    setSkillPointsAvailable(availablePoints);
+  };
+
   // Pause menu handlers
   const handleOpenPauseMenu = () => {
     gameState.gamePausedRef.current = true;
@@ -564,12 +670,7 @@ export default function GameCanvas() {
 
   const handlePauseMenuRestart = () => {
     setShowPauseMenu(false);
-    combo.resetCombo();
-    combo.resetMaxCombo();
-    resetPlayerBuffs(playerRef.current);
-    resetRegenTimer();
-    resetSessionStats();
-    gameState.generateNewDungeon();
+    handleRestart();
     gameState.gamePausedRef.current = false;
   };
 
@@ -597,6 +698,23 @@ export default function GameCanvas() {
     resetPlayerBuffs(playerRef.current);
     resetRegenTimer();
     resetSessionStats();
+
+    // Restore maxHp from skill/equipment bonuses BEFORE generating dungeon
+    const newMaxHp = PLAYER_MAX_HP + combinedBonuses.maxHpBonus;
+    playerRef.current.maxHp = newMaxHp;
+    playerRef.current.hp = newMaxHp;
+    setPlayerHp(newMaxHp);
+
+    // Reset shield to full if player has shield bonus
+    if (playerRef.current.buffs && combinedBonuses.shieldMaxBonus > 0) {
+      playerRef.current.buffs.hasShield = true;
+      playerRef.current.buffs.maxShield = combinedBonuses.shieldMaxBonus;
+      playerRef.current.buffs.currentShield = combinedBonuses.shieldMaxBonus;
+      playerRef.current.buffs.shieldRegenRate = combinedBonuses.shieldRegenBonus;
+      setMaxShield(combinedBonuses.shieldMaxBonus);
+      setPlayerShield(combinedBonuses.shieldMaxBonus);
+    }
+
     gameState.generateNewDungeon();
   };
 
@@ -624,7 +742,20 @@ export default function GameCanvas() {
         } else {
           // Close other modals first
           if (showSkillDashboard) handleCloseSkills();
+          if (showSkillTree) handleCloseSkillTree();
           handleOpenInventory();
+        }
+      }
+
+      // Skill Tree toggle with K key
+      if (e.key.toLowerCase() === 'k' && !showLogin && !combat.inCombat && !showPauseMenu && !showOptionsMenu) {
+        if (showSkillTree) {
+          handleCloseSkillTree();
+        } else {
+          // Close other modals first
+          if (showSkillDashboard) handleCloseSkills();
+          if (showInventory) handleCloseInventory();
+          handleOpenSkillTree();
         }
       }
 
@@ -636,6 +767,8 @@ export default function GameCanvas() {
           handleOptionsBack();
         } else if (showInventory) {
           handleCloseInventory();
+        } else if (showSkillTree) {
+          handleCloseSkillTree();
         } else if (showSkillDashboard) {
           handleCloseSkills();
         } else if (showPauseMenu) {
@@ -650,12 +783,28 @@ export default function GameCanvas() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showInventory, showLogin, showSkillDashboard, combat.inCombat, showPauseMenu, showBuffSelection, showOptionsMenu]);
+  }, [showInventory, showSkillTree, showLogin, showSkillDashboard, combat.inCombat, showPauseMenu, showBuffSelection, showOptionsMenu]);
 
   const handleLoginWithElo = async (id: number, name: string, xp?: number) => {
     await handleLogin(id, name, xp);
     await loadSessionElos(id);
+    // Load user skills
+    await loadUserSkills(id);
     // Game starts automatically via useEffect when userId is set
+  };
+
+  // Load user skills from API
+  const loadUserSkills = async (id: number) => {
+    try {
+      const response = await fetch(`/api/skills?userId=${id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setUserSkills(data.skills || []);
+        setSkillPointsAvailable(data.skillPoints?.availablePoints || 0);
+      }
+    } catch (error) {
+      console.error('Failed to load user skills:', error);
+    }
   };
 
   // Calculate level info from current XP
@@ -711,9 +860,12 @@ export default function GameCanvas() {
             xpForNextLevel={levelInfo.xpForNextLevel}
             currentHp={playerHp}
             maxHp={playerRef.current.maxHp}
+            currentShield={playerShield}
+            maxShield={maxShield}
             onLogout={handleLogout}
             onRestart={handleRestart}
-            onSkills={handleOpenSkills}
+            skillPointsAvailable={skillPointsAvailable}
+            onSkills={handleOpenSkillTree}
           />
         )}
 
@@ -800,6 +952,21 @@ export default function GameCanvas() {
             inventory={inventory}
             onEquip={handleEquipItem}
             onUnequip={handleUnequipItem}
+          />
+        )}
+
+        {/* Skill Tree Modal */}
+        {showSkillTree && userId && (
+          <SkillTreeModal
+            userId={userId}
+            userSkills={userSkills}
+            skillPoints={{
+              totalPoints: 0, // Will be loaded from API
+              spentPoints: userSkills.reduce((sum, s) => sum + s.level, 0),
+              availablePoints: skillPointsAvailable,
+            }}
+            onClose={handleCloseSkillTree}
+            onSkillAllocated={handleSkillAllocated}
           />
         )}
 

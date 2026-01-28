@@ -19,6 +19,7 @@ import type { Highscore, HighscoreEntry } from '../highscores';
 import type { EditorLevel } from '../editorLevels';
 import type { AnswerLogEntry, XpLogEntry, SubjectEloScore } from '../../types/api';
 import type { ImportedTileset, TileTheme, DungeonTheme } from '../../tiletheme/types';
+import type { UserSkill, SkillPoints } from '../../skills/types';
 import {
   calculateEloOrNull,
   calculateProgressiveElo,
@@ -877,5 +878,111 @@ export class SQLiteAdapter implements DatabaseAdapter {
   async deleteDungeonTheme(id: number): Promise<void> {
     this.initializeTilethemeTables();
     this.db.prepare('DELETE FROM dungeon_themes WHERE id = ?').run(id);
+  }
+
+  // ============================================================================
+  // Skills
+  // ============================================================================
+
+  async getUserSkills(userId: number): Promise<UserSkill[]> {
+    const rows = this.db
+      .prepare('SELECT skill_id, level FROM user_skills WHERE user_id = ?')
+      .all(userId) as Array<{ skill_id: string; level: number }>;
+
+    return rows.map((row) => ({
+      skillId: row.skill_id,
+      level: row.level,
+    }));
+  }
+
+  async getUserSkillPoints(userId: number): Promise<SkillPoints> {
+    // Ensure user has a skill_points entry
+    this.db
+      .prepare(
+        'INSERT OR IGNORE INTO skill_points (user_id, total_points, spent_points, available_points) VALUES (?, 0, 0, 0)'
+      )
+      .run(userId);
+
+    const row = this.db
+      .prepare('SELECT total_points, spent_points, available_points FROM skill_points WHERE user_id = ?')
+      .get(userId) as
+      | { total_points: number; spent_points: number; available_points: number }
+      | undefined;
+
+    if (!row) {
+      // Should not happen due to INSERT OR IGNORE above
+      return { totalPoints: 0, spentPoints: 0, availablePoints: 0 };
+    }
+
+    return {
+      totalPoints: row.total_points,
+      spentPoints: row.spent_points,
+      availablePoints: row.available_points,
+    };
+  }
+
+  async allocateSkillPoint(userId: number, skillId: string): Promise<void> {
+    // Use a transaction to ensure atomicity
+    const allocate = this.db.transaction(() => {
+      // Increment skill level (or insert if doesn't exist)
+      const existing = this.db
+        .prepare('SELECT level FROM user_skills WHERE user_id = ? AND skill_id = ?')
+        .get(userId, skillId) as { level: number } | undefined;
+
+      if (existing) {
+        this.db
+          .prepare('UPDATE user_skills SET level = level + 1 WHERE user_id = ? AND skill_id = ?')
+          .run(userId, skillId);
+      } else {
+        this.db
+          .prepare('INSERT INTO user_skills (user_id, skill_id, level) VALUES (?, ?, 1)')
+          .run(userId, skillId);
+      }
+
+      // Update skill_points: increment spent, decrement available
+      this.db
+        .prepare(
+          'UPDATE skill_points SET spent_points = spent_points + 1, available_points = available_points - 1 WHERE user_id = ?'
+        )
+        .run(userId);
+    });
+
+    allocate();
+  }
+
+  async updateSkillPoints(userId: number, totalPoints: number): Promise<void> {
+    // Calculate new available points
+    // available = total - spent
+    const currentPoints = await this.getUserSkillPoints(userId);
+    const newAvailable = totalPoints - currentPoints.spentPoints;
+
+    this.db
+      .prepare(
+        'INSERT OR REPLACE INTO skill_points (user_id, total_points, spent_points, available_points) VALUES (?, ?, ?, ?)'
+      )
+      .run(userId, totalPoints, currentPoints.spentPoints, newAvailable);
+  }
+
+  async resetUserSkills(userId: number): Promise<void> {
+    // Use a transaction to reset all skills
+    const reset = this.db.transaction(() => {
+      // Delete all skill allocations
+      this.db.prepare('DELETE FROM user_skills WHERE user_id = ?').run(userId);
+
+      // Reset skill_points (keep total_points, reset spent and available)
+      const currentPoints = this.db
+        .prepare('SELECT total_points FROM skill_points WHERE user_id = ?')
+        .get(userId) as { total_points: number } | undefined;
+
+      if (currentPoints) {
+        this.db
+          .prepare(
+            'UPDATE skill_points SET spent_points = 0, available_points = ? WHERE user_id = ?'
+          )
+          .run(currentPoints.total_points, userId);
+      }
+    });
+
+    reset();
   }
 }

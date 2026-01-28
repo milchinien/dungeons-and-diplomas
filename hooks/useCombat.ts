@@ -12,7 +12,7 @@ import { loadSubjectElo, findSubjectElo, DEFAULT_ELO } from '@/lib/scoring/EloSe
 import { useTimer } from './useTimer';
 import { type Clock, defaultClock } from '@/lib/time';
 import { logHookError } from '@/lib/hooks';
-import { generateEnemyLoot, generateBossLoot, isBoss, type DroppedItem, type EquipmentBonuses, DEFAULT_BONUSES } from '@/lib/items';
+import { generateEnemyLoot, generateBossLoot, isBoss, type DroppedItem, type EquipmentBonuses, type CombinedBonuses, DEFAULT_BONUSES } from '@/lib/items';
 import { applyDamageToPlayer, getTimeBonus, getDamageBoost, getDamageReduction } from '@/lib/buff';
 import { getEffectsManager } from '@/lib/effects';
 
@@ -33,8 +33,8 @@ interface UseCombatProps {
   onComboBreak?: () => void;
   /** Called when a shrine enemy is defeated - used for shrine completion tracking */
   onShrineEnemyDefeated?: (enemyId: number, shrineId: number) => void;
-  /** Equipment bonuses from currently equipped items */
-  equipmentBonuses?: EquipmentBonuses;
+  /** Equipment bonuses from currently equipped items (can include skill bonuses via CombinedBonuses) */
+  equipmentBonuses?: EquipmentBonuses | CombinedBonuses;
   /** Bonus damage from combo system */
   comboBonus?: number;
   tileSize?: number;
@@ -221,8 +221,11 @@ export function useCombat({
       timeBonus: equipmentBonuses.timeBonus + getTimeBonus(playerRef.current),
     };
 
+    // Check if this is the first question in combat (for first strike bonus)
+    const isFirstQuestion = state.askedQuestionIds.length === 1; // Length is 1 because current question is already added
+
     // Apply equipment bonuses and combo bonus to combat calculations
-    const result = CombatEngine.processAnswer(selectedIndex, question, state.playerElo, enemy.level, combinedBonuses, comboBonus);
+    const result = CombatEngine.processAnswer(selectedIndex, question, state.playerElo, enemy.level, combinedBonuses, comboBonus, isFirstQuestion);
 
     // Track flawless status - wrong answer or timeout breaks the combo
     if (!result.isCorrect) {
