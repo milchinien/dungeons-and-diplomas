@@ -1,10 +1,14 @@
 import { DIRECTION_OFFSETS } from '../constants';
-import type { Room } from '../constants';
+import type { Room, TileType } from '../constants';
 import type { Player } from '../enemy';
 import { getEntityTilePosition } from '../physics/TileCoordinates';
+import { hasLineOfSight } from '../physics/LineOfSight';
 
-// How many tiles into an adjacent room can be seen through an open door
-const DOOR_VISION_DISTANCE = 3;
+// Maximum fog intensity distance for tiles seen through doors (for fog gradient)
+const DOOR_FOG_MAX_DISTANCE = 8;
+
+// Maximum distance (in tiles) from a door to be considered "near" the door
+const DOOR_PROXIMITY_DISTANCE = 4;
 
 /**
  * Handles fog-of-war visibility calculations for dungeon tiles and rooms.
@@ -126,11 +130,8 @@ export class VisibilityCalculator {
           }
         }
 
-        if (!connectsToVisibleRoom) continue;
-
-        // Calculate distance from tile to door
-        const distance = Math.abs(x - doorX) + Math.abs(y - doorY); // Manhattan distance
-        if (distance <= DOOR_VISION_DISTANCE) {
+        if (connectsToVisibleRoom) {
+          // Entire room is visible through this open door
           return true;
         }
       }
@@ -371,12 +372,11 @@ export class VisibilityCalculator {
         if (!connectsToVisibleRoom) continue;
 
         // Calculate fog based on Manhattan distance from door
+        // Closer to door = less fog. At door = 0.15, increases with distance up to 0.45
         const distance = Math.abs(tileX - doorX) + Math.abs(tileY - doorY);
-        if (distance <= DOOR_VISION_DISTANCE) {
-          // Closer to door = less fog. At door = 0.3, at max distance = 0.7
-          const fogIntensity = 0.3 + (distance / DOOR_VISION_DISTANCE) * 0.4;
-          minFogIntensity = Math.min(minFogIntensity, fogIntensity);
-        }
+        const normalizedDist = Math.min(distance / DOOR_FOG_MAX_DISTANCE, 1);
+        const fogIntensity = 0.15 + normalizedDist * 0.3;
+        minFogIntensity = Math.min(minFogIntensity, fogIntensity);
       }
     }
 
@@ -425,5 +425,225 @@ export class VisibilityCalculator {
     }
 
     return minFog;
+  }
+
+  /**
+   * Check if an enemy is visible through an open door.
+   * Returns true if:
+   * 1. Both player AND enemy are near the same open door
+   * 2. There is a clear line of sight from the player to the enemy
+   *
+   * @param enemyX - Enemy X position in pixels
+   * @param enemyY - Enemy Y position in pixels
+   * @param enemyRoomId - The room ID the enemy is in
+   * @param playerX - Player X position in pixels
+   * @param playerY - Player Y position in pixels
+   * @param playerRoomIds - Set of room IDs the player is currently in
+   * @param tileSize - Size of a tile in pixels
+   * @param roomMap - 2D array mapping tiles to room IDs
+   * @param rooms - Array of all rooms
+   * @param dungeon - The dungeon tile grid
+   * @param doorStates - Map of door states (true = open)
+   * @param proximityDistance - Max distance from door to be "near" (default: DOOR_PROXIMITY_DISTANCE)
+   */
+  static isEnemyVisibleThroughDoor(
+    enemyX: number,
+    enemyY: number,
+    enemyRoomId: number,
+    playerX: number,
+    playerY: number,
+    playerRoomIds: Set<number>,
+    tileSize: number,
+    roomMap: number[][],
+    rooms: Room[],
+    dungeon: TileType[][],
+    doorStates: Map<string, boolean>,
+    proximityDistance: number = DOOR_PROXIMITY_DISTANCE
+  ): boolean {
+    const dungeonWidth = roomMap[0]?.length ?? 0;
+    const dungeonHeight = roomMap.length;
+
+    // Check if enemy room is valid
+    const enemyRoom = enemyRoomId >= 0 ? rooms[enemyRoomId] : null;
+    if (!enemyRoom) return false;
+
+    // If player is already in the enemy's room, no need for door check
+    if (playerRoomIds.has(enemyRoomId)) return false;
+
+    // Calculate center positions
+    const enemyCenterX = enemyX + tileSize / 2;
+    const enemyCenterY = enemyY + tileSize / 2;
+    const playerCenterX = playerX + tileSize / 2;
+    const playerCenterY = playerY + tileSize / 2;
+
+    // Find open doors between player's room(s) and enemy's room
+    // where BOTH player and enemy are within proximity distance
+    let foundValidDoor = false;
+
+    // Check all player rooms for connecting doors
+    for (const playerRoomId of playerRoomIds) {
+      if (foundValidDoor) break;
+
+      const playerRoom = rooms[playerRoomId];
+      if (!playerRoom) continue;
+
+      // Check if enemy room is a neighbor
+      if (!playerRoom.neighbors.includes(enemyRoomId)) continue;
+
+      // Find the door(s) between these rooms
+      // Scan the perimeter of the player's room for doors
+      for (let doorY = playerRoom.y - 1; doorY <= playerRoom.y + playerRoom.height; doorY++) {
+        if (foundValidDoor) break;
+
+        for (let doorX = playerRoom.x - 1; doorX <= playerRoom.x + playerRoom.width; doorX++) {
+          if (doorY < 0 || doorY >= dungeonHeight || doorX < 0 || doorX >= dungeonWidth) continue;
+
+          // Check if this is a door tile
+          if (roomMap[doorY][doorX] !== -2) continue;
+
+          const doorKey = `${doorX},${doorY}`;
+          const isOpen = doorStates.get(doorKey) ?? false;
+          if (!isOpen) continue;
+
+          // Check if this door connects to the enemy's room
+          let connectsToEnemyRoom = false;
+          for (const { dx: ddx, dy: ddy } of DIRECTION_OFFSETS) {
+            const adjX = doorX + ddx;
+            const adjY = doorY + ddy;
+            if (adjX >= 0 && adjX < dungeonWidth && adjY >= 0 && adjY < dungeonHeight) {
+              if (roomMap[adjY][adjX] === enemyRoomId) {
+                connectsToEnemyRoom = true;
+                break;
+              }
+            }
+          }
+
+          if (!connectsToEnemyRoom) continue;
+
+          // Calculate door center position
+          const doorCenterX = doorX * tileSize + tileSize / 2;
+          const doorCenterY = doorY * tileSize + tileSize / 2;
+
+          // Check if player is near this door
+          const playerDistToDoor = Math.sqrt(
+            (playerCenterX - doorCenterX) ** 2 + (playerCenterY - doorCenterY) ** 2
+          ) / tileSize;
+
+          if (playerDistToDoor > proximityDistance) continue;
+
+          // Check if enemy is near this door
+          const enemyDistToDoor = Math.sqrt(
+            (enemyCenterX - doorCenterX) ** 2 + (enemyCenterY - doorCenterY) ** 2
+          ) / tileSize;
+
+          if (enemyDistToDoor > proximityDistance) continue;
+
+          // Both player and enemy are near this open door!
+          foundValidDoor = true;
+          break;
+        }
+      }
+    }
+
+    if (!foundValidDoor) {
+      return false;
+    }
+
+    // Finally, check line of sight from player to enemy
+    return hasLineOfSight(
+      playerCenterX,
+      playerCenterY,
+      enemyCenterX,
+      enemyCenterY,
+      dungeon,
+      tileSize,
+      doorStates
+    );
+  }
+
+  /**
+   * Check if an entity standing ON a door tile is visible to the player.
+   * Returns true if:
+   * 1. The door is open
+   * 2. The player is near the door (in an adjacent room)
+   * 3. There is line of sight
+   *
+   * @param entityX - Entity X position in pixels
+   * @param entityY - Entity Y position in pixels
+   * @param doorTileX - Door tile X coordinate
+   * @param doorTileY - Door tile Y coordinate
+   * @param playerX - Player X position in pixels
+   * @param playerY - Player Y position in pixels
+   * @param playerRoomIds - Set of room IDs the player is in
+   * @param tileSize - Size of a tile in pixels
+   * @param roomMap - 2D array mapping tiles to room IDs
+   * @param rooms - Array of all rooms
+   * @param dungeon - The dungeon tile grid
+   * @param doorStates - Map of door states (true = open)
+   * @param proximityDistance - Max distance from door to be "near" (default: DOOR_PROXIMITY_DISTANCE)
+   */
+  static isEntityOnDoorVisible(
+    entityX: number,
+    entityY: number,
+    doorTileX: number,
+    doorTileY: number,
+    playerX: number,
+    playerY: number,
+    playerRoomIds: Set<number>,
+    tileSize: number,
+    roomMap: number[][],
+    rooms: Room[],
+    dungeon: TileType[][],
+    doorStates: Map<string, boolean>,
+    proximityDistance: number = DOOR_PROXIMITY_DISTANCE
+  ): boolean {
+    const dungeonWidth = roomMap[0]?.length ?? 0;
+    const dungeonHeight = roomMap.length;
+
+    // Calculate positions
+    const entityCenterX = entityX + tileSize / 2;
+    const entityCenterY = entityY + tileSize / 2;
+    const playerCenterX = playerX + tileSize / 2;
+    const playerCenterY = playerY + tileSize / 2;
+    const doorCenterX = doorTileX * tileSize + tileSize / 2;
+    const doorCenterY = doorTileY * tileSize + tileSize / 2;
+
+    // Check if player is near this door
+    const playerDistToDoor = Math.sqrt(
+      (playerCenterX - doorCenterX) ** 2 + (playerCenterY - doorCenterY) ** 2
+    ) / tileSize;
+
+    if (playerDistToDoor > proximityDistance) {
+      return false;
+    }
+
+    // Check if player is in a room adjacent to this door
+    let playerAdjacentToDoor = false;
+    for (const { dx, dy } of DIRECTION_OFFSETS) {
+      const adjX = doorTileX + dx;
+      const adjY = doorTileY + dy;
+      if (adjX >= 0 && adjX < dungeonWidth && adjY >= 0 && adjY < dungeonHeight) {
+        const adjRoomId = roomMap[adjY][adjX];
+        if (adjRoomId >= 0 && playerRoomIds.has(adjRoomId)) {
+          playerAdjacentToDoor = true;
+          break;
+        }
+      }
+    }
+
+    if (!playerAdjacentToDoor) {
+      return false;
+    }
+
+    // Check line of sight
+    return hasLineOfSight(
+      playerCenterX,
+      playerCenterY,
+      entityCenterX,
+      entityCenterY,
+      dungeon,
+      tileSize,
+      doorStates
+    );
   }
 }

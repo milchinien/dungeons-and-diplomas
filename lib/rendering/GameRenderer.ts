@@ -81,7 +81,7 @@ export class GameRenderer {
   }
 
   /**
-   * Render all enemies visible in player's rooms
+   * Render all enemies visible in player's rooms or through open doors
    */
   private renderEnemies(
     ctx: CanvasRenderingContext2D,
@@ -89,10 +89,69 @@ export class GameRenderer {
     rooms: Room[],
     tileSize: number,
     player: Player,
-    playerRoomIds: Set<number>
+    playerRoomIds: Set<number>,
+    roomMap: number[][],
+    dungeon: TileType[][],
+    doorStates: Map<string, boolean>
   ): void {
     for (const enemy of enemies) {
-      enemy.draw(ctx, rooms, tileSize, player, playerRoomIds);
+      // Calculate current tile position
+      const enemyTileX = Math.floor((enemy.x + tileSize / 2) / tileSize);
+      const enemyTileY = Math.floor((enemy.y + tileSize / 2) / tileSize);
+
+      // Check bounds
+      if (enemyTileY < 0 || enemyTileY >= roomMap.length ||
+          enemyTileX < 0 || enemyTileX >= roomMap[0]?.length) {
+        continue;
+      }
+
+      const currentTileRoomId = roomMap[enemyTileY][enemyTileX];
+
+      // Special case: enemy is standing on an open door tile
+      if (currentTileRoomId === -2) {
+        const doorKey = `${enemyTileX},${enemyTileY}`;
+        const isDoorOpen = doorStates.get(doorKey) ?? false;
+
+        if (isDoorOpen) {
+          const isVisible = VisibilityCalculator.isEntityOnDoorVisible(
+            enemy.x,
+            enemy.y,
+            enemyTileX,
+            enemyTileY,
+            player.x,
+            player.y,
+            playerRoomIds,
+            tileSize,
+            roomMap,
+            rooms,
+            dungeon,
+            doorStates
+          );
+
+          if (isVisible) {
+            enemy.draw(ctx, rooms, tileSize, player, playerRoomIds, true);
+          }
+        }
+        continue;
+      }
+
+      // Check if enemy is visible through an open door
+      const isVisibleThroughDoor = !playerRoomIds.has(enemy.roomId) &&
+        VisibilityCalculator.isEnemyVisibleThroughDoor(
+          enemy.x,
+          enemy.y,
+          enemy.roomId,
+          player.x,
+          player.y,
+          playerRoomIds,
+          tileSize,
+          roomMap,
+          rooms,
+          dungeon,
+          doorStates
+        );
+
+      enemy.draw(ctx, rooms, tileSize, player, playerRoomIds, isVisibleThroughDoor);
     }
   }
 
@@ -100,7 +159,7 @@ export class GameRenderer {
   private trashmobRenderDebugCounter = 0;
 
   /**
-   * Render all trashmobs visible in player's rooms
+   * Render all trashmobs visible in player's rooms or through open doors
    */
   private renderTrashmobs(
     ctx: CanvasRenderingContext2D,
@@ -108,7 +167,10 @@ export class GameRenderer {
     rooms: Room[],
     tileSize: number,
     playerRoomIds: Set<number>,
-    roomMap: number[][]
+    roomMap: number[][],
+    player: Player,
+    dungeon: TileType[][],
+    doorStates: Map<string, boolean>
   ): void {
     // Debug log every 120 frames
     this.trashmobRenderDebugCounter++;
@@ -133,13 +195,57 @@ export class GameRenderer {
 
       const currentRoomId = roomMap[trashmobTileY][trashmobTileX];
 
-      // Only render if trashmob is in a visible room
-      const room = currentRoomId >= 0 ? rooms[currentRoomId] : null;
-      if (!room || !room.visible) continue;
+      // Special case: trashmob is standing on an open door tile
+      if (currentRoomId === -2) {
+        const doorKey = `${trashmobTileX},${trashmobTileY}`;
+        const isDoorOpen = doorStates.get(doorKey) ?? false;
 
-      // Additional check: only render if player is in the same room or an adjacent room
-      // This prevents seeing trashmobs through walls in distant but previously visited rooms
-      if (!playerRoomIds.has(currentRoomId)) continue;
+        if (isDoorOpen) {
+          // Check if player is near this door
+          const isVisible = VisibilityCalculator.isEntityOnDoorVisible(
+            trashmob.x,
+            trashmob.y,
+            trashmobTileX,
+            trashmobTileY,
+            player.x,
+            player.y,
+            playerRoomIds,
+            tileSize,
+            roomMap,
+            rooms,
+            dungeon,
+            doorStates
+          );
+
+          if (isVisible) {
+            trashmob.draw(ctx, tileSize);
+          }
+        }
+        continue;
+      }
+
+      const room = currentRoomId >= 0 ? rooms[currentRoomId] : null;
+      if (!room) continue;
+
+      // Check visibility conditions:
+      // 1. Player is in the same room (directly visible)
+      // 2. OR trashmob is visible through an open door (with LOS and distance check)
+      const isInPlayerRoom = playerRoomIds.has(currentRoomId);
+      const isVisibleThroughDoor = !isInPlayerRoom && VisibilityCalculator.isEnemyVisibleThroughDoor(
+        trashmob.x,
+        trashmob.y,
+        currentRoomId,
+        player.x,
+        player.y,
+        playerRoomIds,
+        tileSize,
+        roomMap,
+        rooms,
+        dungeon,
+        doorStates
+      );
+
+      if (!isInPlayerRoom && !isVisibleThroughDoor) continue;
 
       trashmob.draw(ctx, tileSize);
     }
@@ -323,9 +429,7 @@ export class GameRenderer {
       roomMap,
       dungeonWidth,
       dungeonHeight,
-      true,  // includeAdjacentThroughDoors - show trashmobs through open doors
-      doorStates,
-      rooms
+      false  // Only show enemies in player's current room
     );
     const { tx: playerTileX, ty: playerTileY } = getEntityTilePosition(player, tileSize);
 
@@ -342,10 +446,10 @@ export class GameRenderer {
 
     this.renderShrines(ctx, shrines, rooms, tileSize, playerRoomIds);
 
-    this.renderEnemies(ctx, enemies, rooms, tileSize, player, playerRoomIds);
+    this.renderEnemies(ctx, enemies, rooms, tileSize, player, playerRoomIds, roomMap, dungeon, doorStates);
 
     // Render trashmobs
-    this.renderTrashmobs(ctx, trashmobs, rooms, tileSize, playerRoomIds, roomMap);
+    this.renderTrashmobs(ctx, trashmobs, rooms, tileSize, playerRoomIds, roomMap, player, dungeon, doorStates);
 
     // Render fireballs
     for (const fireball of fireballs) {

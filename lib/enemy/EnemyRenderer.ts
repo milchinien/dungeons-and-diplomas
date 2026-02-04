@@ -16,20 +16,22 @@ export class EnemyRenderer {
     rooms: Room[],
     tileSize: number,
     player?: Player,
-    playerRoomIds?: Set<number>
+    playerRoomIds?: Set<number>,
+    isVisibleThroughDoor?: boolean
   ): void {
     if (!enemy.sprite || !enemy.sprite.loaded) return;
-
-    // Only draw if the enemy's room is visible
-    if (enemy.roomId >= 0 && rooms[enemy.roomId] && !rooms[enemy.roomId].visible) {
-      return;
-    }
 
     // Only show aggro visuals after reaction timer has elapsed
     const hasAggro = enemy.aiState === AI_STATE.FOLLOWING && enemy.aggroReactionTimer <= 0;
 
-    // Only draw enemies in the player's current room(s) OR if they have aggro
-    if (playerRoomIds !== undefined && playerRoomIds.size > 0 && !playerRoomIds.has(enemy.roomId) && !hasAggro) {
+    // Check visibility:
+    // 1. Player is in the same room (directly visible)
+    // 2. OR enemy has aggro (chase behavior makes them visible)
+    // 3. OR enemy is visible through an open door (LOS + distance check)
+    const isInPlayerRoom = playerRoomIds !== undefined && playerRoomIds.size > 0 && playerRoomIds.has(enemy.roomId);
+    const shouldRender = isInPlayerRoom || hasAggro || isVisibleThroughDoor;
+
+    if (!shouldRender) {
       return;
     }
 
