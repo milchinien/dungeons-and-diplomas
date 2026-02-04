@@ -18,6 +18,8 @@ interface LayoutCanvasProps {
   onRedo: () => void;
   canUndo: boolean;
   canRedo: boolean;
+  showGrid: boolean;
+  onCursorMove: (pos: { x: number; y: number } | null) => void;
 }
 
 export default function LayoutCanvas({
@@ -31,7 +33,9 @@ export default function LayoutCanvas({
   onUndo,
   onRedo,
   canUndo,
-  canRedo
+  canRedo,
+  showGrid,
+  onCursorMove
 }: LayoutCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -81,9 +85,11 @@ export default function LayoutCanvas({
         ctx.fillStyle = color;
         ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
 
-        ctx.strokeStyle = '#444';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+        if (showGrid) {
+          ctx.strokeStyle = '#444';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+        }
       }
     }
 
@@ -121,7 +127,7 @@ export default function LayoutCanvas({
         );
       }
     }
-  }, [width, height, tileGrid, hoveredTile, activeTool, selectedTile, CANVAS_WIDTH, CANVAS_HEIGHT, TILE_SIZE]);
+  }, [width, height, tileGrid, hoveredTile, activeTool, selectedTile, CANVAS_WIDTH, CANVAS_HEIGHT, TILE_SIZE, showGrid]);
 
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     setIsDrawing(true);
@@ -138,8 +144,10 @@ export default function LayoutCanvas({
 
     if (x >= 0 && x < width && y >= 0 && y < height) {
       setHoveredTile({ x, y });
+      onCursorMove({ x, y });
     } else {
       setHoveredTile(null);
+      onCursorMove(null);
     }
 
     if (isDrawing && activeTool !== 'fill') {
@@ -154,6 +162,7 @@ export default function LayoutCanvas({
   const handleMouseLeave = () => {
     setIsDrawing(false);
     setHoveredTile(null);
+    onCursorMove(null);
   };
 
   const handleDraw = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -191,50 +200,6 @@ export default function LayoutCanvas({
       flex: 1,
       overflow: 'auto'
     }}>
-      {/* Undo/Redo Toolbar */}
-      <div style={{
-        display: 'flex',
-        gap: '8px',
-        marginBottom: '12px'
-      }}>
-        <button
-          onClick={onUndo}
-          disabled={!canUndo}
-          title="Undo (Ctrl+Z)"
-          style={{
-            padding: '6px 16px',
-            backgroundColor: canUndo ? '#444' : '#222',
-            color: canUndo ? 'white' : '#666',
-            border: '1px solid #555',
-            borderRadius: '4px',
-            cursor: canUndo ? 'pointer' : 'not-allowed',
-            fontFamily: 'Rajdhani, monospace',
-            fontSize: '14px',
-            transition: 'all 0.2s'
-          }}
-        >
-          ↩ Undo
-        </button>
-        <button
-          onClick={onRedo}
-          disabled={!canRedo}
-          title="Redo (Ctrl+Shift+Z)"
-          style={{
-            padding: '6px 16px',
-            backgroundColor: canRedo ? '#444' : '#222',
-            color: canRedo ? 'white' : '#666',
-            border: '1px solid #555',
-            borderRadius: '4px',
-            cursor: canRedo ? 'pointer' : 'not-allowed',
-            fontFamily: 'Rajdhani, monospace',
-            fontSize: '14px',
-            transition: 'all 0.2s'
-          }}
-        >
-          ↪ Redo
-        </button>
-      </div>
-
       <canvas
         ref={canvasRef}
         width={CANVAS_WIDTH}

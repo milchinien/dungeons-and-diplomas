@@ -6,8 +6,23 @@ import type { TileType } from '../constants';
 
 /**
  * Door positions for a room layout
+ * Stores exact position of single door on each edge
+ * - north/south: X-position along edge (0 to width-1)
+ * - east/west: Y-position along edge (0 to height-1)
+ * - null: No door on that side
  */
 export interface DoorPositions {
+  north: number | null;
+  south: number | null;
+  east: number | null;
+  west: number | null;
+}
+
+/**
+ * Legacy door positions (boolean-based)
+ * Used only for migration purposes
+ */
+export interface LegacyDoorPositions {
   north: boolean;
   south: boolean;
   east: boolean;
@@ -19,7 +34,7 @@ export interface DoorPositions {
  */
 export interface LayoutMetadata {
   name: string;
-  roomType: 'empty' | 'treasure' | 'combat' | 'shop' | 'any';
+  roomType: 'empty' | 'treasure' | 'combat' | 'shop' | 'spawn' | 'end' | 'any';
   difficulty: number;  // 1-10
   tags: string[];
 }
@@ -34,7 +49,7 @@ export interface RoomLayout {
   height: number;     // 5-15
   tileGrid: TileType[][];
   doorPositions: DoorPositions;
-  roomType: 'empty' | 'treasure' | 'combat' | 'shop' | 'any';
+  roomType: 'empty' | 'treasure' | 'combat' | 'shop' | 'spawn' | 'end' | 'any';
   difficulty: number;
   tags: string[];
   createdBy: number | null;
@@ -50,7 +65,7 @@ export interface RoomLayoutInput {
   height: number;
   tileGrid: TileType[][];
   doorPositions: DoorPositions;
-  roomType?: 'empty' | 'treasure' | 'combat' | 'shop' | 'any';
+  roomType?: 'empty' | 'treasure' | 'combat' | 'shop' | 'spawn' | 'end' | 'any';
   difficulty?: number;
   tags?: string[];
   createdBy?: number;

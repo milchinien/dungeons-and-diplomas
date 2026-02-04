@@ -67,7 +67,7 @@ export class LayoutPool {
       if (filters.maxHeight && layout.height > filters.maxHeight) return false;
       if (filters.difficulty && layout.difficulty !== filters.difficulty) return false;
       if (filters.doorSide) {
-        if (!layout.doorPositions[filters.doorSide]) return false;
+        if (layout.doorPositions[filters.doorSide] === null) return false;
       }
       if (filters.tags && filters.tags.length > 0) {
         const hasTag = filters.tags.some(tag => layout.tags.includes(tag));

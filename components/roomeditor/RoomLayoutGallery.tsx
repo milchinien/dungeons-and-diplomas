@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import type { RoomLayout } from '@/lib/roomlayouts/types';
 import { TILE } from '@/lib/constants';
+import ConfirmModal from './ConfirmModal';
 
 type SortField = 'name' | 'size' | 'difficulty';
 type SortDirection = 'asc' | 'desc';
@@ -26,6 +27,10 @@ export default function RoomLayoutGallery() {
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [sortOpen, setSortOpen] = useState(false);
   const [roomTypeFilter, setRoomTypeFilter] = useState<RoomTypeFilter>('all');
+  const [confirmDelete, setConfirmDelete] = useState<{
+    layoutId: number;
+    layoutName: string;
+  } | null>(null);
 
   useEffect(() => {
     const loadLayouts = async () => {
@@ -71,6 +76,28 @@ export default function RoomLayoutGallery() {
     const labels: Record<SortField, string> = { name: 'Name', size: 'Größe', difficulty: 'Schwierigkeit' };
     return `${labels[sortField]} (${sortDirection === 'asc' ? 'A→Z' : 'Z→A'})`;
   }, [sortField, sortDirection]);
+
+  const handleDelete = async () => {
+    if (!confirmDelete) return;
+
+    try {
+      const response = await fetch(`/api/room-layouts/${confirmDelete.layoutId}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        // Remove from local state
+        setLayouts(layouts.filter(l => l.id !== confirmDelete.layoutId));
+      } else {
+        alert('Failed to delete layout');
+      }
+    } catch (error) {
+      console.error('Failed to delete layout:', error);
+      alert('Failed to delete layout');
+    } finally {
+      setConfirmDelete(null);
+    }
+  };
 
   return (
     <div style={{
@@ -302,11 +329,25 @@ export default function RoomLayoutGallery() {
                 key={layout.id}
                 layout={layout}
                 onClick={() => router.push(`/room-editor/edit/${layout.id}`)}
+                onDelete={() => setConfirmDelete({ layoutId: layout.id, layoutName: layout.name })}
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {confirmDelete && (
+        <ConfirmModal
+          title="Delete Layout?"
+          message={`Are you sure you want to delete "${confirmDelete.layoutName}"? This action cannot be undone.`}
+          confirmText="Delete"
+          cancelText="Cancel"
+          variant="danger"
+          onConfirm={handleDelete}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      )}
     </div>
   );
 }
@@ -314,9 +355,10 @@ export default function RoomLayoutGallery() {
 interface LayoutCardProps {
   layout: RoomLayout;
   onClick: () => void;
+  onDelete: () => void;
 }
 
-function LayoutCard({ layout, onClick }: LayoutCardProps) {
+function LayoutCard({ layout, onClick, onDelete }: LayoutCardProps) {
   const thumbnailSize = 180;
   const tileSize = Math.min(
     thumbnailSize / layout.width,
@@ -403,15 +445,57 @@ function LayoutCard({ layout, onClick }: LayoutCardProps) {
         flexDirection: 'column',
         gap: '8px'
       }}>
-        {/* Name */}
+        {/* Name and Delete Button */}
         <div style={{
           fontSize: '16px',
           fontWeight: 'bold',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis'
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '8px'
         }}>
-          {layout.name}
+          <span style={{
+            flex: 1,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+          }}>
+            {layout.name}
+          </span>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+            title="Raum löschen"
+            style={{
+              padding: '4px 8px',
+              backgroundColor: '#d44',
+              color: 'white',
+              border: '2px solid #d44',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.2s',
+              flexShrink: 0
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#a33';
+              e.currentTarget.style.borderColor = '#a33';
+              e.currentTarget.style.transform = 'scale(1.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#d44';
+              e.currentTarget.style.borderColor = '#d44';
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+          >
+            🗑️
+          </button>
         </div>
 
         {/* Metadata Row */}

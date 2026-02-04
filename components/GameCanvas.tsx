@@ -552,7 +552,8 @@ export default function GameCanvas() {
       loadSessionElos(userId);
       shopPurchase.loadGold();
     }
-  }, [userId, loadSessionElos, shopPurchase.loadGold]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]); // Only trigger when userId changes, not when functions change
 
   // Cheat system hook
   const cheatSystem = useCheatSystem({

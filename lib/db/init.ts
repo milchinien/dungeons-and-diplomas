@@ -4,7 +4,7 @@
 import type Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
-import { migrateEditorLevelsIfNeeded, migrateQuestionsIfNeeded, migrateUserXpIfNeeded, migrateUserGoldIfNeeded } from './migrations';
+import { migrateEditorLevelsIfNeeded, migrateQuestionsIfNeeded, migrateUserXpIfNeeded, migrateUserGoldIfNeeded, migrateRoomLayoutDoorPositionsIfNeeded } from './migrations';
 
 export interface InitOptions {
   /** Whether to seed with initial question data (default: true) */
@@ -173,6 +173,9 @@ export function initializeDatabase(database: Database.Database, options: InitOpt
 
   // Check if we need to add gold column to existing users table
   migrateUserGoldIfNeeded(database);
+
+  // Check if we need to migrate room layout door positions
+  migrateRoomLayoutDoorPositionsIfNeeded(database);
 
   // Check if we need to seed the database
   if (shouldSeed) {

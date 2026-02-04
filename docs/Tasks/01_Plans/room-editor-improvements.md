@@ -1,4 +1,4 @@
-# Room Editor & Layout System — Verbesserungen & Optimierungen
+c# Room Editor & Layout System — Verbesserungen & Optimierungen
 
 **Erstellt:** 2026-01-28
 **Aufgrund:** Playwright-Testlauf (32/32 passed) + Code-Review

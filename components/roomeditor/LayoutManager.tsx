@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import type { RoomLayout } from '@/lib/roomlayouts/types';
 import { TILE } from '@/lib/constants';
+import ConfirmModal from './ConfirmModal';
 
 interface LayoutManagerProps {
   selectedLayoutId: number | null;
@@ -27,6 +28,10 @@ export default function LayoutManager({
     maxHeight: '',
     difficulty: ''
   });
+  const [confirmDelete, setConfirmDelete] = useState<{
+    layoutId: number;
+    layoutName: string;
+  } | null>(null);
 
   // Load layouts from API
   const loadLayouts = async () => {
@@ -56,16 +61,16 @@ export default function LayoutManager({
     loadLayouts();
   }, [filter]);
 
-  const handleDelete = async (layoutId: number) => {
-    if (!confirm('Are you sure you want to delete this layout?')) return;
+  const handleDelete = async () => {
+    if (!confirmDelete) return;
 
     try {
-      const response = await fetch(`/api/room-layouts/${layoutId}`, {
+      const response = await fetch(`/api/room-layouts/${confirmDelete.layoutId}`, {
         method: 'DELETE'
       });
 
       if (response.ok) {
-        onDeleteLayout(layoutId);
+        onDeleteLayout(confirmDelete.layoutId);
         loadLayouts();
       } else {
         alert('Failed to delete layout');
@@ -73,6 +78,8 @@ export default function LayoutManager({
     } catch (error) {
       console.error('Failed to delete layout:', error);
       alert('Failed to delete layout');
+    } finally {
+      setConfirmDelete(null);
     }
   };
 
@@ -255,11 +262,24 @@ export default function LayoutManager({
               layout={layout}
               isSelected={layout.id === selectedLayoutId}
               onSelect={() => onSelectLayout(layout)}
-              onDelete={() => handleDelete(layout.id)}
+              onDelete={() => setConfirmDelete({ layoutId: layout.id, layoutName: layout.name })}
             />
           ))
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {confirmDelete && (
+        <ConfirmModal
+          title="Delete Layout?"
+          message={`Are you sure you want to delete "${confirmDelete.layoutName}"? This action cannot be undone.`}
+          confirmText="Delete"
+          cancelText="Cancel"
+          variant="danger"
+          onConfirm={handleDelete}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      )}
     </div>
   );
 }
@@ -296,34 +316,52 @@ function LayoutThumbnail({ layout, isSelected, onSelect, onDelete }: LayoutThumb
         if (!isSelected) e.currentTarget.style.backgroundColor = '#222';
       }}
     >
-      {/* Layout Name */}
+      {/* Layout Name and Delete Button */}
       <div style={{
         fontSize: '14px',
         fontWeight: 'bold',
         marginBottom: '8px',
         display: 'flex',
         justifyContent: 'space-between',
-        alignItems: 'center'
+        alignItems: 'center',
+        gap: '8px'
       }}>
-        <span>{layout.name}</span>
+        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {layout.name}
+        </span>
         <button
           onClick={(e) => {
             e.stopPropagation();
             onDelete();
           }}
+          title="Raum löschen"
           style={{
-            padding: '4px 8px',
+            padding: '6px 10px',
             backgroundColor: '#d44',
             color: 'white',
-            border: 'none',
-            borderRadius: '3px',
+            border: '2px solid #d44',
+            borderRadius: '6px',
             cursor: 'pointer',
-            fontSize: '12px'
+            fontSize: '14px',
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s',
+            flexShrink: 0
           }}
-          onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#c33')}
-          onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#d44')}
+          onMouseOver={(e) => {
+            e.currentTarget.style.backgroundColor = '#a33';
+            e.currentTarget.style.borderColor = '#a33';
+            e.currentTarget.style.transform = 'scale(1.05)';
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.backgroundColor = '#d44';
+            e.currentTarget.style.borderColor = '#d44';
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
         >
-          Delete
+          🗑️
         </button>
       </div>
 

@@ -87,8 +87,8 @@ export function getRoomLayouts(filters?: LayoutFilterOptions): RoomLayout[] {
       params.push(filters.difficulty);
     }
     if (filters.doorSide) {
-      // Filter by specific door position
-      query += ` AND json_extract(door_positions, '$.${filters.doorSide}') = 1`;
+      // Filter by specific door position (not null means door exists)
+      query += ` AND json_extract(door_positions, '$.${filters.doorSide}') IS NOT NULL`;
     }
   }
 

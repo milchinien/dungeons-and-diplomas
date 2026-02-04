@@ -101,38 +101,6 @@ export default function LayoutSettings({
         </button>
       </div>
 
-      {/* Drawing Tools */}
-      {!showPreview && <div style={{
-        padding: '12px',
-        borderBottom: '1px solid #444'
-      }}>
-        <div style={{ fontSize: '14px', marginBottom: '8px', fontWeight: 'bold' }}>
-          Drawing Tools
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <ToolButton
-            active={activeTool === 'pen'}
-            onClick={() => onToolChange('pen')}
-            label="✏️ Pen"
-          />
-          <ToolButton
-            active={activeTool === 'eraser'}
-            onClick={() => onToolChange('eraser')}
-            label="🗑️ Eraser"
-          />
-          <ToolButton
-            active={activeTool === 'fill'}
-            onClick={() => onToolChange('fill')}
-            label="🪣 Fill"
-          />
-          <ToolButton
-            active={activeTool === 'door'}
-            onClick={() => onToolChange('door')}
-            label="🚪 Door (edges only)"
-          />
-        </div>
-      </div>}
-
       {/* Tile Selection (for pen tool) */}
       {!showPreview && activeTool === 'pen' && (
         <div style={{
@@ -418,40 +386,6 @@ export default function LayoutSettings({
         </button>
       </div>
     </div>
-  );
-}
-
-interface ToolButtonProps {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-}
-
-function ToolButton({ active, onClick, label }: ToolButtonProps) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        padding: '10px',
-        backgroundColor: active ? '#4a9eff' : '#333',
-        color: 'white',
-        border: active ? '2px solid #6af' : '1px solid #555',
-        borderRadius: '4px',
-        cursor: 'pointer',
-        fontFamily: 'Rajdhani, monospace',
-        fontSize: '14px',
-        textAlign: 'left',
-        transition: 'all 0.2s'
-      }}
-      onMouseOver={(e) => {
-        if (!active) e.currentTarget.style.backgroundColor = '#3a3a3a';
-      }}
-      onMouseOut={(e) => {
-        if (!active) e.currentTarget.style.backgroundColor = '#333';
-      }}
-    >
-      {label}
-    </button>
   );
 }
 

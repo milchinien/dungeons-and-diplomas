@@ -9,6 +9,10 @@ import { useRouter } from 'next/navigation';
 import LayoutCanvas from './LayoutCanvas';
 import LayoutSettings from './LayoutSettings';
 import LayoutPreview from './LayoutPreview';
+import ToolBar from './ToolBar';
+import StatusBar from './StatusBar';
+import HelpOverlay from './HelpOverlay';
+import ConfirmModal from './ConfirmModal';
 import type { DrawTool } from './LayoutCanvas';
 
 // --- Reducer Types ---
@@ -132,6 +136,27 @@ export default function RoomLayoutEditor({ initialLayoutId }: RoomLayoutEditorPr
   // Preview mode
   const [showPreview, setShowPreview] = useState(false);
 
+  // Grid visibility
+  const [showGrid, setShowGrid] = useState(true);
+
+  // Help overlay
+  const [showHelp, setShowHelp] = useState(false);
+
+  // Confirmation modals
+  const [confirmModal, setConfirmModal] = useState<{
+    type: 'reset' | 'delete';
+    data?: any;
+  } | null>(null);
+
+  // Toast notifications
+  const [toast, setToast] = useState<{
+    message: string;
+    type: 'success' | 'error';
+  } | null>(null);
+
+  // Cursor position for status bar
+  const [cursorPosition, setCursorPosition] = useState<{ x: number; y: number } | null>(null);
+
   // Grid state with undo/redo
   const [gridState, dispatch] = useReducer(gridReducer, {
     history: [createEmptyGrid(8, 8)],
@@ -202,8 +227,53 @@ export default function RoomLayoutEditor({ initialLayoutId }: RoomLayoutEditorPr
   };
 
   const handleTileChange = useCallback((x: number, y: number, tile: TileType) => {
+    // If placing a door on an edge, remove other doors on same edge
+    if (tile === TILE.DOOR) {
+      const isEdge = x === 0 || x === width - 1 || y === 0 || y === height - 1;
+      if (isEdge) {
+        const currentGrid = gridState.history[gridState.pointer];
+
+        // North edge (y = 0)
+        if (y === 0) {
+          for (let checkX = 0; checkX < width; checkX++) {
+            if (checkX !== x && currentGrid[0]?.[checkX] === TILE.DOOR) {
+              dispatch({ type: 'SET_TILE', x: checkX, y: 0, tile: TILE.EMPTY });
+            }
+          }
+        }
+
+        // South edge (y = height - 1)
+        if (y === height - 1) {
+          for (let checkX = 0; checkX < width; checkX++) {
+            if (checkX !== x && currentGrid[height - 1]?.[checkX] === TILE.DOOR) {
+              dispatch({ type: 'SET_TILE', x: checkX, y: height - 1, tile: TILE.EMPTY });
+            }
+          }
+        }
+
+        // West edge (x = 0)
+        if (x === 0) {
+          for (let checkY = 0; checkY < height; checkY++) {
+            if (checkY !== y && currentGrid[checkY]?.[0] === TILE.DOOR) {
+              dispatch({ type: 'SET_TILE', x: 0, y: checkY, tile: TILE.EMPTY });
+            }
+          }
+        }
+
+        // East edge (x = width - 1)
+        if (x === width - 1) {
+          for (let checkY = 0; checkY < height; checkY++) {
+            if (checkY !== y && currentGrid[checkY]?.[width - 1] === TILE.DOOR) {
+              dispatch({ type: 'SET_TILE', x: width - 1, y: checkY, tile: TILE.EMPTY });
+            }
+          }
+        }
+      }
+    }
+
+    // Place the tile
     dispatch({ type: 'SET_TILE', x, y, tile });
-  }, []);
+  }, [width, height, gridState.history, gridState.pointer]);
 
   const handleFloodFill = useCallback((startX: number, startY: number, newTile: TileType) => {
     dispatch({ type: 'FLOOD_FILL', startX, startY, newTile, width, height });
@@ -233,7 +303,8 @@ export default function RoomLayoutEditor({ initialLayoutId }: RoomLayoutEditorPr
     // Validate (redundant with live validation, but ensures correctness)
     const validation = validateRoomLayout(layoutInput);
     if (!validation.isValid) {
-      alert(`Validation failed:\n${validation.errors.join('\n')}`);
+      setToast({ message: `❌ Validation failed: ${validation.errors[0]}`, type: 'error' });
+      setTimeout(() => setToast(null), 3000);
       return;
     }
 
@@ -256,24 +327,78 @@ export default function RoomLayoutEditor({ initialLayoutId }: RoomLayoutEditorPr
       if (response.ok) {
         const saved = await response.json();
         setCurrentLayoutId(saved.id);
-        alert('Layout saved successfully!');
+        setToast({ message: '✓ Layout saved!', type: 'success' });
+        setTimeout(() => setToast(null), 2000);
       } else {
         const error = await response.json();
-        alert(`Failed to save: ${error.error || 'Unknown error'}`);
+        setToast({ message: `❌ Failed to save: ${error.error || 'Unknown error'}`, type: 'error' });
+        setTimeout(() => setToast(null), 3000);
       }
     } catch (error) {
       console.error('Save error:', error);
-      alert('Failed to save layout');
+      setToast({ message: '❌ Failed to save layout', type: 'error' });
+      setTimeout(() => setToast(null), 3000);
     }
   };
 
   const handleReset = () => {
-    if (confirm('Reset canvas? This will clear all tiles.')) {
-      dispatch({ type: 'RESET', width, height });
-    }
+    setConfirmModal({ type: 'reset' });
+  };
+
+  const confirmReset = () => {
+    dispatch({ type: 'RESET', width, height });
+    setConfirmModal(null);
   };
 
   const canSave = layoutName.trim().length > 0 && validationResult.isValid;
+
+  // Keyboard shortcut handlers
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Help overlay
+      if ((e.key === '?' || e.key.toLowerCase() === 'h') && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        setShowHelp(true);
+        return;
+      }
+
+      // ESC to close modals
+      if (e.key === 'Escape') {
+        if (showHelp) {
+          setShowHelp(false);
+        } else if (confirmModal) {
+          setConfirmModal(null);
+        }
+        return;
+      }
+
+      // Don't handle tool shortcuts if typing in input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      // Tool shortcuts
+      if (e.key.toLowerCase() === 'p' && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        setActiveTool('pen');
+      } else if (e.key.toLowerCase() === 'e' && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        setActiveTool('eraser');
+      } else if (e.key.toLowerCase() === 'f' && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        setActiveTool('fill');
+      } else if (e.key.toLowerCase() === 'd' && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        setActiveTool('door');
+      } else if (e.key.toLowerCase() === 'g' && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        setShowGrid(!showGrid);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showHelp, confirmModal, showGrid]);
 
   return (
     <div style={{
@@ -323,6 +448,22 @@ export default function RoomLayoutEditor({ initialLayoutId }: RoomLayoutEditorPr
         </span>
       </div>
 
+      {/* Toolbar */}
+      <ToolBar
+        activeTool={activeTool}
+        onToolChange={setActiveTool}
+        onGridToggle={() => setShowGrid(!showGrid)}
+        onHelpToggle={() => setShowHelp(true)}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        onSave={handleSave}
+        onReset={handleReset}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        canSave={canSave}
+        gridVisible={showGrid}
+      />
+
       {/* Editor Body */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
       {/* Center: Canvas or Preview */}
@@ -342,32 +483,21 @@ export default function RoomLayoutEditor({ initialLayoutId }: RoomLayoutEditorPr
             onRedo={handleRedo}
             canUndo={canUndo}
             canRedo={canRedo}
+            showGrid={showGrid}
+            onCursorMove={setCursorPosition}
           />
         )}
 
-        {/* Live Validation Errors */}
-        {!validationResult.isValid && (
-          <div style={{
-            padding: '8px 16px',
-            backgroundColor: '#3a1a1a',
-            borderTop: '1px solid #d44',
-            display: 'flex',
-            gap: '12px',
-            flexWrap: 'wrap'
-          }}>
-            {validationResult.errors.map((error, i) => (
-              <span key={i} style={{
-                fontSize: '12px',
-                color: '#ff6b6b',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}>
-                <span style={{ color: '#d44' }}>⚠</span> {error}
-              </span>
-            ))}
-          </div>
-        )}
+        {/* Status Bar */}
+        <StatusBar
+          cursorX={cursorPosition?.x ?? null}
+          cursorY={cursorPosition?.y ?? null}
+          activeTool={activeTool}
+          canvasWidth={width}
+          canvasHeight={height}
+          validationState={validationResult}
+          gridVisible={showGrid}
+        />
       </div>
 
       {/* Right Panel: Settings */}
@@ -390,6 +520,43 @@ export default function RoomLayoutEditor({ initialLayoutId }: RoomLayoutEditorPr
         onPreviewToggle={() => setShowPreview(!showPreview)}
       />
       </div>
+
+      {/* Help Overlay */}
+      {showHelp && <HelpOverlay onClose={() => setShowHelp(false)} />}
+
+      {/* Confirmation Modals */}
+      {confirmModal?.type === 'reset' && (
+        <ConfirmModal
+          title="Reset Canvas?"
+          message="This will clear all tiles. This action cannot be undone."
+          confirmText="Reset"
+          cancelText="Cancel"
+          variant="danger"
+          onConfirm={confirmReset}
+          onCancel={() => setConfirmModal(null)}
+        />
+      )}
+
+      {/* Toast Notifications */}
+      {toast && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          padding: '12px 20px',
+          backgroundColor: toast.type === 'success' ? '#4ade80' : '#ef4444',
+          color: 'white',
+          borderRadius: '8px',
+          fontSize: '14px',
+          fontWeight: 'bold',
+          fontFamily: 'Rajdhani, monospace',
+          zIndex: 1001,
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+          animation: 'slideIn 0.3s ease-out'
+        }}>
+          {toast.message}
+        </div>
+      )}
     </div>
   );
 }
@@ -402,16 +569,48 @@ function createEmptyGrid(width: number, height: number): TileType[][] {
   );
 }
 
+/**
+ * Detects exact door positions from tile grid
+ * Returns first door found on each side (editor should only allow one)
+ */
 function detectDoorPositions(tileGrid: TileType[][], width: number, height: number): DoorPositions {
-  const doorPositions: DoorPositions = { north: false, south: false, east: false, west: false };
+  const doorPositions: DoorPositions = {
+    north: null,
+    south: null,
+    east: null,
+    west: null
+  };
 
+  // North (top row, y=0)
   for (let x = 0; x < width; x++) {
-    if (tileGrid[0]?.[x] === TILE.DOOR) doorPositions.north = true;
-    if (tileGrid[height - 1]?.[x] === TILE.DOOR) doorPositions.south = true;
+    if (tileGrid[0]?.[x] === TILE.DOOR) {
+      doorPositions.north = x;
+      break; // Only first door
+    }
   }
+
+  // South (bottom row, y=height-1)
+  for (let x = 0; x < width; x++) {
+    if (tileGrid[height - 1]?.[x] === TILE.DOOR) {
+      doorPositions.south = x;
+      break;
+    }
+  }
+
+  // West (left column, x=0)
   for (let y = 0; y < height; y++) {
-    if (tileGrid[y]?.[0] === TILE.DOOR) doorPositions.west = true;
-    if (tileGrid[y]?.[width - 1] === TILE.DOOR) doorPositions.east = true;
+    if (tileGrid[y]?.[0] === TILE.DOOR) {
+      doorPositions.west = y;
+      break;
+    }
+  }
+
+  // East (right column, x=width-1)
+  for (let y = 0; y < height; y++) {
+    if (tileGrid[y]?.[width - 1] === TILE.DOOR) {
+      doorPositions.east = y;
+      break;
+    }
   }
 
   return doorPositions;

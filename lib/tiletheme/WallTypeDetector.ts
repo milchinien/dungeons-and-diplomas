@@ -80,6 +80,10 @@ export const WALL_TYPE_FALLBACKS: { [key in WallType]?: WallType } = {
 /**
  * Detect door type based on orientation
  * isOpen: In game, door becomes "open" when player passes through
+ *
+ * FIXED: Now checks all 4 neighbors for floor/door tiles
+ * - Vertical door: Has floor/door above AND below (connects rooms vertically)
+ * - Horizontal door: Has floor/door left AND right (connects rooms horizontally)
  */
 export function detectDoorType(
   dungeon: TileType[][],
@@ -87,17 +91,29 @@ export function detectDoorType(
   y: number,
   isOpen: boolean = false
 ): DoorType {
-  // Check horizontal vs vertical orientation
-  const hasWallLeft = x > 0 && dungeon[y][x - 1] === TILE.WALL;
-  const hasWallRight = x < dungeon[0].length - 1 && dungeon[y][x + 1] === TILE.WALL;
+  const width = dungeon[0]?.length || 0;
+  const height = dungeon.length;
 
-  // Door is vertical if walls are on left/right
-  const isVertical = hasWallLeft || hasWallRight;
+  // Check all 4 neighbors for floor/door tiles
+  const hasFloorOrDoorAbove = y > 0 && (dungeon[y - 1][x] === TILE.FLOOR || dungeon[y - 1][x] === TILE.DOOR);
+  const hasFloorOrDoorBelow = y < height - 1 && (dungeon[y + 1][x] === TILE.FLOOR || dungeon[y + 1][x] === TILE.DOOR);
+  const hasFloorOrDoorLeft = x > 0 && (dungeon[y][x - 1] === TILE.FLOOR || dungeon[y][x - 1] === TILE.DOOR);
+  const hasFloorOrDoorRight = x < width - 1 && (dungeon[y][x + 1] === TILE.FLOOR || dungeon[y][x + 1] === TILE.DOOR);
 
-  if (isVertical) {
+  // Vertical door: Has floor/door above AND below (connects rooms vertically)
+  const isVertical = hasFloorOrDoorAbove && hasFloorOrDoorBelow;
+
+  // Horizontal door: Has floor/door left AND right (connects rooms horizontally)
+  const isHorizontal = hasFloorOrDoorLeft && hasFloorOrDoorRight;
+
+  // If both or neither, default to vertical
+  if (isVertical && !isHorizontal) {
     return isOpen ? DOOR_TYPE.VERTICAL_OPEN : DOOR_TYPE.VERTICAL_CLOSED;
-  } else {
+  } else if (isHorizontal && !isVertical) {
     return isOpen ? DOOR_TYPE.HORIZONTAL_OPEN : DOOR_TYPE.HORIZONTAL_CLOSED;
+  } else {
+    // Ambiguous or corner case - default to vertical
+    return isOpen ? DOOR_TYPE.VERTICAL_OPEN : DOOR_TYPE.VERTICAL_CLOSED;
   }
 }
 
