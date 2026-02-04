@@ -232,7 +232,7 @@ export function connectRooms(dungeon: TileType[][], roomMap: number[][], rooms: 
   }
 }
 
-export function addWalls(dungeon: TileType[][], config?: Partial<DungeonConfig>) {
+export function addWalls(dungeon: TileType[][], config?: Partial<DungeonConfig>, roomMap?: number[][]) {
   const width = config?.width ?? dungeon[0]?.length ?? DUNGEON_WIDTH;
   const height = config?.height ?? dungeon.length ?? DUNGEON_HEIGHT;
 
@@ -246,6 +246,82 @@ export function addWalls(dungeon: TileType[][], config?: Partial<DungeonConfig>)
     if (dungeon[y][0] === TILE.EMPTY) dungeon[y][0] = TILE.WALL;
     if (dungeon[y][width - 1] === TILE.EMPTY) dungeon[y][width - 1] = TILE.WALL;
   }
+
+  // FIX: Call the comprehensive double wall removal function
+  if (roomMap) {
+    removeDoubleWalls(dungeon, roomMap, width, height);
+  }
+}
+
+/**
+ * Remove ALL double walls by converting sequences of walls into single walls.
+ * Multi-pass algorithm: repeatedly finds and removes double walls until none remain.
+ * IMPORTANT: Only removes walls when there are floors/doors on BOTH sides (AND logic)
+ */
+export function removeDoubleWalls(dungeon: TileType[][], roomMap: number[][], width: number, height: number) {
+  console.log('[DungeonGen] removeDoubleWalls called');
+
+  let totalRemoved = 0;
+  let iteration = 0;
+  let removedThisIteration = 0;
+
+  // Keep looping until no more double walls are found
+  do {
+    removedThisIteration = 0;
+    iteration++;
+
+    // Find and remove horizontal double walls (vertical stacks)
+    for (let y = 0; y < height - 1; y++) {
+      for (let x = 0; x < width; x++) {
+        if (dungeon[y][x] === TILE.WALL && dungeon[y + 1][x] === TILE.WALL) {
+          // CRITICAL: Only remove if floors/doors on BOTH sides (AND not OR)
+          const hasAccessAbove = y > 0 && (dungeon[y - 1][x] === TILE.FLOOR || dungeon[y - 1][x] === TILE.DOOR);
+          const hasAccessBelow = y + 2 < height && (dungeon[y + 2][x] === TILE.FLOOR || dungeon[y + 2][x] === TILE.DOOR);
+
+          if (hasAccessAbove && hasAccessBelow) {  // Changed from OR to AND
+            // Remove the first wall
+            dungeon[y][x] = TILE.FLOOR;
+
+            // Assign to adjacent room
+            if (roomMap[y - 1][x] >= 0) {
+              roomMap[y][x] = roomMap[y - 1][x];
+            }
+
+            removedThisIteration++;
+            totalRemoved++;
+          }
+        }
+      }
+    }
+
+    // Find and remove vertical double walls (horizontal pairs)
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width - 1; x++) {
+        if (dungeon[y][x] === TILE.WALL && dungeon[y][x + 1] === TILE.WALL) {
+          // CRITICAL: Only remove if floors/doors on BOTH sides (AND not OR)
+          const hasAccessLeft = x > 0 && (dungeon[y][x - 1] === TILE.FLOOR || dungeon[y][x - 1] === TILE.DOOR);
+          const hasAccessRight = x + 2 < width && (dungeon[y][x + 2] === TILE.FLOOR || dungeon[y][x + 2] === TILE.DOOR);
+
+          if (hasAccessLeft && hasAccessRight) {  // Changed from OR to AND
+            // Remove the first wall
+            dungeon[y][x] = TILE.FLOOR;
+
+            // Assign to adjacent room
+            if (roomMap[y][x - 1] >= 0) {
+              roomMap[y][x] = roomMap[y][x - 1];
+            }
+
+            removedThisIteration++;
+            totalRemoved++;
+          }
+        }
+      }
+    }
+
+    console.log(`[DungeonGen] Iteration ${iteration}: Removed ${removedThisIteration} double walls`);
+  } while (removedThisIteration > 0 && iteration < 10); // Max 10 iterations to prevent infinite loops
+
+  console.log(`[DungeonGen] Total removed: ${totalRemoved} double walls in ${iteration} iteration(s)`);
 }
 
 

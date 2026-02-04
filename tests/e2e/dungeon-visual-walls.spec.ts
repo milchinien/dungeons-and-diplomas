@@ -7,9 +7,13 @@ test.describe('Dungeon Visual - Wall Rendering', () => {
     await page.waitForLoadState('networkidle');
 
     // Login
-    await page.waitForSelector('text=Login', { timeout: 10000 });
+    await page.waitForSelector('text=Dungeons & Diplomas', { timeout: 10000 });
     await page.fill('input[type="text"]', 'WallTestUser');
-    await page.click('button:has-text("Login")');
+    await page.click('button:has-text("Starten")');
+
+    // Wait for main menu and click Spielen
+    await page.waitForSelector('button:has-text("Spielen")', { timeout: 10000 });
+    await page.click('button:has-text("Spielen")');
 
     // Wait for game to render
     await page.waitForTimeout(3000);
@@ -97,9 +101,13 @@ test.describe('Dungeon Visual - Wall Rendering', () => {
     await page.waitForLoadState('networkidle');
 
     // Login
-    await page.waitForSelector('text=Login', { timeout: 10000 });
+    await page.waitForSelector('text=Dungeons & Diplomas', { timeout: 10000 });
     await page.fill('input[type="text"]', 'DataTestUser');
-    await page.click('button:has-text("Login")');
+    await page.click('button:has-text("Starten")');
+
+    // Wait for main menu and click Spielen
+    await page.waitForSelector('button:has-text("Spielen")', { timeout: 10000 });
+    await page.click('button:has-text("Spielen")');
 
     // Wait for game
     await page.waitForTimeout(2000);

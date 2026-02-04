@@ -422,7 +422,20 @@ export default function GameCanvas() {
     onTrashmobDamage: handleTrashmobDamage,
     playerRef
   });
-// Handle shrine enemy defeated - tracks progress toward shrine completion
+
+  // Expose dungeon data for E2E testing
+  // Use a small delay to ensure dungeon generation is complete
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (typeof window !== 'undefined' && gameState.dungeonManagerRef.current?.dungeon) {
+        (window as any).dungeonTestData = gameState.dungeonManagerRef.current.getDungeonData();
+        console.log('[GameCanvas] Exposed dungeon test data');
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [gameState.dungeonManagerRef.current?.dungeon, gameStarted]);
+
+  // Handle shrine enemy defeated - tracks progress toward shrine completion
   const handleShrineEnemyDefeated = useCallback((enemyId: number, shrineId: number) => {
     const manager = gameState.dungeonManagerRef.current;
     if (!manager) return;

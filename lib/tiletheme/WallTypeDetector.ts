@@ -50,16 +50,18 @@ export function detectWallType(
     if (hasLeft && hasTop) return WALL_TYPE.CORNER_BR;
 
     // Linear (opposite sides)
-    if (hasLeft && hasRight) return WALL_TYPE.HORIZONTAL;
-    if (hasTop && hasBottom) return WALL_TYPE.VERTICAL;
+    // BUG FIX: Swapped HORIZONTAL and VERTICAL to match tileset orientation
+    if (hasLeft && hasRight) return WALL_TYPE.VERTICAL;    // Wall runs left-right → needs vertical tile
+    if (hasTop && hasBottom) return WALL_TYPE.HORIZONTAL;  // Wall runs top-bottom → needs horizontal tile
   }
 
   // 1 neighbor = end piece
+  // BUG FIX: Swapped to match vertical/horizontal swap above
   if (count === 1) {
-    if (hasRight) return WALL_TYPE.END_LEFT;
-    if (hasLeft) return WALL_TYPE.END_RIGHT;
-    if (hasBottom) return WALL_TYPE.END_TOP;
-    if (hasTop) return WALL_TYPE.END_BOTTOM;
+    if (hasRight) return WALL_TYPE.END_TOP;     // Swapped from END_LEFT
+    if (hasLeft) return WALL_TYPE.END_BOTTOM;   // Swapped from END_RIGHT
+    if (hasBottom) return WALL_TYPE.END_LEFT;   // Swapped from END_TOP
+    if (hasTop) return WALL_TYPE.END_RIGHT;     // Swapped from END_BOTTOM
   }
 
   // 0 neighbors = isolated
@@ -68,13 +70,14 @@ export function detectWallType(
 
 /**
  * Lookup map for fallbacks when optional types are not filled
+ * BUG FIX: Swapped HORIZONTAL/VERTICAL to match the swap in detectWallType
  */
 export const WALL_TYPE_FALLBACKS: { [key in WallType]?: WallType } = {
-  [WALL_TYPE.ISOLATED]: WALL_TYPE.HORIZONTAL,
-  [WALL_TYPE.END_LEFT]: WALL_TYPE.HORIZONTAL,
-  [WALL_TYPE.END_RIGHT]: WALL_TYPE.HORIZONTAL,
-  [WALL_TYPE.END_TOP]: WALL_TYPE.VERTICAL,
-  [WALL_TYPE.END_BOTTOM]: WALL_TYPE.VERTICAL,
+  [WALL_TYPE.ISOLATED]: WALL_TYPE.VERTICAL,
+  [WALL_TYPE.END_LEFT]: WALL_TYPE.VERTICAL,      // Swapped from HORIZONTAL
+  [WALL_TYPE.END_RIGHT]: WALL_TYPE.VERTICAL,     // Swapped from HORIZONTAL
+  [WALL_TYPE.END_TOP]: WALL_TYPE.HORIZONTAL,     // Swapped from VERTICAL
+  [WALL_TYPE.END_BOTTOM]: WALL_TYPE.HORIZONTAL,  // Swapped from VERTICAL
 };
 
 /**

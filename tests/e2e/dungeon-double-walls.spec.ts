@@ -7,9 +7,13 @@ test.describe('Dungeon Generation - Double Walls Check', () => {
     await page.waitForLoadState('networkidle');
 
     // Wait for login modal and login
-    await page.waitForSelector('text=Login', { timeout: 10000 });
+    await page.waitForSelector('text=Dungeons & Diplomas', { timeout: 10000 });
     await page.fill('input[type="text"]', 'TestUser');
-    await page.click('button:has-text("Login")');
+    await page.click('button:has-text("Starten")');
+
+    // Wait for main menu and click Spielen
+    await page.waitForSelector('button:has-text("Spielen")', { timeout: 10000 });
+    await page.click('button:has-text("Spielen")');
 
     // Wait for game to load
     await page.waitForTimeout(2000);
@@ -95,9 +99,13 @@ test.describe('Dungeon Generation - Double Walls Check', () => {
     await page.waitForLoadState('networkidle');
 
     // Login
-    await page.waitForSelector('text=Login', { timeout: 10000 });
+    await page.waitForSelector('text=Dungeons & Diplomas', { timeout: 10000 });
     await page.fill('input[type="text"]', 'TestUser2');
-    await page.click('button:has-text("Login")');
+    await page.click('button:has-text("Starten")');
+
+    // Wait for main menu and click Spielen
+    await page.waitForSelector('button:has-text("Spielen")', { timeout: 10000 });
+    await page.click('button:has-text("Spielen")');
 
     // Wait for game to load
     await page.waitForTimeout(2000);

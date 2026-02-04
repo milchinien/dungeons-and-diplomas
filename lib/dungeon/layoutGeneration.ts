@@ -77,8 +77,23 @@ export function generateDungeonFromLayouts(
     // Get opposite side for new layout
     const oppositeSide = getOppositeSide(door.side);
 
-    // Try to get layout with matching door
-    const newLayout = pool.getLayoutWithDoor(oppositeSide);
+    // Bug #4 Fix: 20% chance to use dead-end layout if close to target room count
+    const roomsRemaining = targetRoomCount - placedRooms.length;
+    const useDeadEnd = roomsRemaining <= 5 && Math.random() < 0.2;
+
+    // Try to get layout with matching door (prefer dead-end if conditions met)
+    let newLayout: RoomLayout | null = null;
+    if (useDeadEnd) {
+      newLayout = pool.getRandomDeadEndLayout(oppositeSide);
+      if (newLayout) {
+        console.log(`[layoutGeneration] Using dead-end layout: ${newLayout.name}`);
+      }
+    }
+
+    // Fallback to normal layout
+    if (!newLayout) {
+      newLayout = pool.getLayoutWithDoor(oppositeSide);
+    }
 
     if (!newLayout) {
       // No matching layout, remove door from open list
@@ -150,24 +165,27 @@ function placeRoomInDungeon(
       if (dungeonX >= 0 && dungeonX < DUNGEON_WIDTH && dungeonY >= 0 && dungeonY < DUNGEON_HEIGHT) {
         const tile = layout.tileGrid[ly][lx];
 
-        // Skip walls on shared wall side (but keep doors)
-        let skipThisTile = false;
+        // Convert walls on shared wall side to FLOOR (opening between rooms)
+        let finalTile = tile;
         if (tile === TILE.WALL && sharedWallSide) {
-          if (sharedWallSide === 'north' && ly === 0) skipThisTile = true;
-          if (sharedWallSide === 'south' && ly === layout.height - 1) skipThisTile = true;
-          if (sharedWallSide === 'west' && lx === 0) skipThisTile = true;
-          if (sharedWallSide === 'east' && lx === layout.width - 1) skipThisTile = true;
+          let onSharedEdge = false;
+          if (sharedWallSide === 'north' && ly === 0) onSharedEdge = true;
+          if (sharedWallSide === 'south' && ly === layout.height - 1) onSharedEdge = true;
+          if (sharedWallSide === 'west' && lx === 0) onSharedEdge = true;
+          if (sharedWallSide === 'east' && lx === layout.width - 1) onSharedEdge = true;
+
+          if (onSharedEdge) {
+            finalTile = TILE.FLOOR; // Convert wall to floor at connection
+          }
         }
 
-        if (!skipThisTile) {
-          dungeon[dungeonY][dungeonX] = tile;
+        dungeon[dungeonY][dungeonX] = finalTile;
 
-          // Mark in roomMap (only floors and doors, not walls)
-          if (tile === TILE.FLOOR) {
-            roomMap[dungeonY][dungeonX] = roomId;
-          } else if (tile === TILE.DOOR) {
-            roomMap[dungeonY][dungeonX] = -2; // Door marker
-          }
+        // Mark in roomMap (only floors and doors, not walls)
+        if (finalTile === TILE.FLOOR) {
+          roomMap[dungeonY][dungeonX] = roomId;
+        } else if (finalTile === TILE.DOOR) {
+          roomMap[dungeonY][dungeonX] = -2; // Door marker
         }
       }
     }
@@ -330,46 +348,64 @@ function getOppositeSide(side: 'north' | 'south' | 'east' | 'west'): 'north' | '
  * Removes double walls between adjacent rooms
  * Scans the entire dungeon grid for wall-wall patterns between rooms
  */
+/**
+ * Remove ALL double walls by converting sequences of walls into single walls.
+ * Multi-pass algorithm: repeatedly finds and removes double walls until none remain.
+ * Same algorithm as in generation.ts to ensure consistency.
+ * IMPORTANT: Only removes walls when there are floors/doors on BOTH sides (AND logic)
+ */
 function removeDoubleWalls(dungeon: TileType[][], rooms: Room[]): void {
-  // Scan for horizontal double walls (walls stacked vertically)
-  for (let y = 0; y < DUNGEON_HEIGHT - 1; y++) {
-    for (let x = 0; x < DUNGEON_WIDTH; x++) {
-      const current = dungeon[y][x];
-      const below = dungeon[y + 1][x];
+  console.log('[layoutGeneration] Removing all double walls...');
 
-      // If both are walls, check if they're between different rooms
-      if (current === TILE.WALL && below === TILE.WALL) {
-        // Check if there's floor above or below this double wall
-        let hasFloorAbove = y > 0 && dungeon[y - 1][x] === TILE.FLOOR;
-        let hasFloorBelow = y + 2 < DUNGEON_HEIGHT && dungeon[y + 2][x] === TILE.FLOOR;
+  let totalRemoved = 0;
+  let iteration = 0;
+  let removedThisIteration = 0;
 
-        if (hasFloorAbove && hasFloorBelow) {
-          // This is a double wall between rooms - remove the bottom wall
-          dungeon[y + 1][x] = TILE.EMPTY;
+  // Keep looping until no more double walls are found
+  do {
+    removedThisIteration = 0;
+    iteration++;
+
+    // Find and remove horizontal double walls (vertical stacks)
+    for (let y = 0; y < DUNGEON_HEIGHT - 1; y++) {
+      for (let x = 0; x < DUNGEON_WIDTH; x++) {
+        if (dungeon[y][x] === TILE.WALL && dungeon[y + 1][x] === TILE.WALL) {
+          // CRITICAL: Only remove if floors/doors on BOTH sides (AND not OR)
+          const hasAccessAbove = y > 0 && (dungeon[y - 1][x] === TILE.FLOOR || dungeon[y - 1][x] === TILE.DOOR);
+          const hasAccessBelow = y + 2 < DUNGEON_HEIGHT && (dungeon[y + 2][x] === TILE.FLOOR || dungeon[y + 2][x] === TILE.DOOR);
+
+          if (hasAccessAbove && hasAccessBelow) {  // Changed from OR to AND
+            // Remove the first wall
+            dungeon[y][x] = TILE.FLOOR;
+            removedThisIteration++;
+            totalRemoved++;
+          }
         }
       }
     }
-  }
 
-  // Scan for vertical double walls (walls side by side)
-  for (let y = 0; y < DUNGEON_HEIGHT; y++) {
-    for (let x = 0; x < DUNGEON_WIDTH - 1; x++) {
-      const current = dungeon[y][x];
-      const right = dungeon[y][x + 1];
+    // Find and remove vertical double walls (horizontal pairs)
+    for (let y = 0; y < DUNGEON_HEIGHT; y++) {
+      for (let x = 0; x < DUNGEON_WIDTH - 1; x++) {
+        if (dungeon[y][x] === TILE.WALL && dungeon[y][x + 1] === TILE.WALL) {
+          // CRITICAL: Only remove if floors/doors on BOTH sides (AND not OR)
+          const hasAccessLeft = x > 0 && (dungeon[y][x - 1] === TILE.FLOOR || dungeon[y][x - 1] === TILE.DOOR);
+          const hasAccessRight = x + 2 < DUNGEON_WIDTH && (dungeon[y][x + 2] === TILE.FLOOR || dungeon[y][x + 2] === TILE.DOOR);
 
-      // If both are walls, check if they're between different rooms
-      if (current === TILE.WALL && right === TILE.WALL) {
-        // Check if there's floor left or right of this double wall
-        let hasFloorLeft = x > 0 && dungeon[y][x - 1] === TILE.FLOOR;
-        let hasFloorRight = x + 2 < DUNGEON_WIDTH && dungeon[y][x + 2] === TILE.FLOOR;
-
-        if (hasFloorLeft && hasFloorRight) {
-          // This is a double wall between rooms - remove the right wall
-          dungeon[y][x + 1] = TILE.EMPTY;
+          if (hasAccessLeft && hasAccessRight) {  // Changed from OR to AND
+            // Remove the first wall
+            dungeon[y][x] = TILE.FLOOR;
+            removedThisIteration++;
+            totalRemoved++;
+          }
         }
       }
     }
-  }
+
+    console.log(`[layoutGeneration] Iteration ${iteration}: Removed ${removedThisIteration} double walls`);
+  } while (removedThisIteration > 0 && iteration < 10); // Max 10 iterations
+
+  console.log(`[layoutGeneration] Total removed: ${totalRemoved} double walls in ${iteration} iteration(s)`);
 }
 
 /**

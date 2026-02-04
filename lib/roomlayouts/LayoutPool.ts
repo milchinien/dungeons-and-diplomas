@@ -52,6 +52,33 @@ export class LayoutPool {
   }
 
   /**
+   * Gets dead-end layouts (layouts with exactly 1 door)
+   * Useful for placing at the end of paths/branches
+   */
+  getDeadEndLayouts(): RoomLayout[] {
+    return this.layouts.filter(layout => {
+      const doorCount = [
+        layout.doorPositions.north,
+        layout.doorPositions.south,
+        layout.doorPositions.east,
+        layout.doorPositions.west
+      ].filter(d => d !== null).length;
+      return doorCount === 1;
+    });
+  }
+
+  /**
+   * Gets a random dead-end layout with a door on a specific side
+   */
+  getRandomDeadEndLayout(doorSide: 'north' | 'south' | 'east' | 'west'): RoomLayout | null {
+    const deadEnds = this.getDeadEndLayouts().filter(
+      layout => layout.doorPositions[doorSide] !== null
+    );
+    if (deadEnds.length === 0) return null;
+    return deadEnds[Math.floor(Math.random() * deadEnds.length)];
+  }
+
+  /**
    * Filters layouts based on provided options
    */
   private filterLayouts(filters?: LayoutFilterOptions): RoomLayout[] {

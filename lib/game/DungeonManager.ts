@@ -246,4 +246,23 @@ export class DungeonManager {
     // Initialize shop door states based on enemy positions
     initializeShopDoorStates(this.rooms, this.enemies);
   }
+
+  /**
+   * Get dungeon data for testing purposes
+   */
+  getDungeonData() {
+    return {
+      dungeon: this.dungeon,
+      rooms: this.rooms,
+      roomMap: this.roomMap,
+      width: this.dungeonWidth,
+      height: this.dungeonHeight,
+      doorStates: this.doorStates,
+      enemies: this.enemies,
+      trashmobs: this.trashmobs,
+      treasures: this.treasures,
+      shrines: this.shrines,
+      player: this.player
+    };
+  }
 }
