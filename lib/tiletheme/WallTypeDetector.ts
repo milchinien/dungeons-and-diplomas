@@ -50,9 +50,9 @@ export function detectWallType(
     if (hasLeft && hasTop) return WALL_TYPE.CORNER_BR;
 
     // Linear (opposite sides)
-    // BUG FIX: Swapped HORIZONTAL and VERTICAL to match tileset orientation
-    if (hasLeft && hasRight) return WALL_TYPE.VERTICAL;    // Wall runs left-right → needs vertical tile
-    if (hasTop && hasBottom) return WALL_TYPE.HORIZONTAL;  // Wall runs top-bottom → needs horizontal tile
+    // INTUITIVE: HORIZONTAL = left-right walls, VERTICAL = top-bottom walls
+    if (hasLeft && hasRight) return WALL_TYPE.HORIZONTAL;    // Wall runs left-right → HORIZONTAL
+    if (hasTop && hasBottom) return WALL_TYPE.VERTICAL;      // Wall runs top-bottom → VERTICAL
   }
 
   // 1 neighbor = end piece
@@ -70,14 +70,14 @@ export function detectWallType(
 
 /**
  * Lookup map for fallbacks when optional types are not filled
- * BUG FIX: Swapped HORIZONTAL/VERTICAL to match the swap in detectWallType
+ * INTUITIVE: horizontal = ↔, vertical = ↕
  */
 export const WALL_TYPE_FALLBACKS: { [key in WallType]?: WallType } = {
-  [WALL_TYPE.ISOLATED]: WALL_TYPE.VERTICAL,
-  [WALL_TYPE.END_LEFT]: WALL_TYPE.VERTICAL,      // Swapped from HORIZONTAL
-  [WALL_TYPE.END_RIGHT]: WALL_TYPE.VERTICAL,     // Swapped from HORIZONTAL
-  [WALL_TYPE.END_TOP]: WALL_TYPE.HORIZONTAL,     // Swapped from VERTICAL
-  [WALL_TYPE.END_BOTTOM]: WALL_TYPE.HORIZONTAL,  // Swapped from VERTICAL
+  [WALL_TYPE.ISOLATED]: WALL_TYPE.HORIZONTAL,
+  [WALL_TYPE.END_LEFT]: WALL_TYPE.HORIZONTAL,      // Left-right end → HORIZONTAL
+  [WALL_TYPE.END_RIGHT]: WALL_TYPE.HORIZONTAL,     // Left-right end → HORIZONTAL
+  [WALL_TYPE.END_TOP]: WALL_TYPE.VERTICAL,         // Top-bottom end → VERTICAL
+  [WALL_TYPE.END_BOTTOM]: WALL_TYPE.VERTICAL,      // Top-bottom end → VERTICAL
 };
 
 /**

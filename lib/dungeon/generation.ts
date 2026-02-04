@@ -236,8 +236,43 @@ export function addWalls(dungeon: TileType[][], config?: Partial<DungeonConfig>,
   const width = config?.width ?? dungeon[0]?.length ?? DUNGEON_WIDTH;
   const height = config?.height ?? dungeon.length ?? DUNGEON_HEIGHT;
 
-  // Walls are already created by the room generation algorithm
-  // This function now only adds outer boundary walls if needed
+  console.log('[DungeonGen] addWalls: Starting wall generation');
+  let wallsAdded = 0;
+
+  // Add walls around all floor and door tiles
+  // This ensures every room has proper outer walls
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      // If this is a floor or door, check all 8 neighbors
+      if (dungeon[y][x] === TILE.FLOOR || dungeon[y][x] === TILE.DOOR) {
+        // Check all 8 neighbors
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            if (dx === 0 && dy === 0) continue; // Skip center
+
+            const ny = y + dy;
+            const nx = x + dx;
+
+            // Skip out of bounds
+            if (ny < 0 || ny >= height || nx < 0 || nx >= width) continue;
+
+            // If neighbor is empty, make it a wall
+            if (dungeon[ny][nx] === TILE.EMPTY) {
+              dungeon[ny][nx] = TILE.WALL;
+              if (roomMap) {
+                roomMap[ny][nx] = -1; // -1 for walls
+              }
+              wallsAdded++;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  console.log(`[DungeonGen] addWalls: Added ${wallsAdded} walls around floor/door tiles`);
+
+  // Add outer boundary walls
   for (let x = 0; x < width; x++) {
     if (dungeon[0][x] === TILE.EMPTY) dungeon[0][x] = TILE.WALL;
     if (dungeon[height - 1][x] === TILE.EMPTY) dungeon[height - 1][x] = TILE.WALL;
@@ -247,10 +282,14 @@ export function addWalls(dungeon: TileType[][], config?: Partial<DungeonConfig>,
     if (dungeon[y][width - 1] === TILE.EMPTY) dungeon[y][width - 1] = TILE.WALL;
   }
 
-  // FIX: Call the comprehensive double wall removal function
+  console.log('[DungeonGen] addWalls: Added boundary walls');
+
+  // Remove double walls between rooms
   if (roomMap) {
     removeDoubleWalls(dungeon, roomMap, width, height);
   }
+
+  console.log('[DungeonGen] addWalls: Complete');
 }
 
 /**
@@ -274,11 +313,11 @@ export function removeDoubleWalls(dungeon: TileType[][], roomMap: number[][], wi
     for (let y = 0; y < height - 1; y++) {
       for (let x = 0; x < width; x++) {
         if (dungeon[y][x] === TILE.WALL && dungeon[y + 1][x] === TILE.WALL) {
-          // CRITICAL: Only remove if floors/doors on BOTH sides (AND not OR)
+          // Only remove if floors/doors on BOTH sides (AND logic)
           const hasAccessAbove = y > 0 && (dungeon[y - 1][x] === TILE.FLOOR || dungeon[y - 1][x] === TILE.DOOR);
           const hasAccessBelow = y + 2 < height && (dungeon[y + 2][x] === TILE.FLOOR || dungeon[y + 2][x] === TILE.DOOR);
 
-          if (hasAccessAbove && hasAccessBelow) {  // Changed from OR to AND
+          if (hasAccessAbove && hasAccessBelow) {  // AND logic to preserve outer walls
             // Remove the first wall
             dungeon[y][x] = TILE.FLOOR;
 
@@ -298,11 +337,11 @@ export function removeDoubleWalls(dungeon: TileType[][], roomMap: number[][], wi
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width - 1; x++) {
         if (dungeon[y][x] === TILE.WALL && dungeon[y][x + 1] === TILE.WALL) {
-          // CRITICAL: Only remove if floors/doors on BOTH sides (AND not OR)
+          // Only remove if floors/doors on BOTH sides (AND logic)
           const hasAccessLeft = x > 0 && (dungeon[y][x - 1] === TILE.FLOOR || dungeon[y][x - 1] === TILE.DOOR);
           const hasAccessRight = x + 2 < width && (dungeon[y][x + 2] === TILE.FLOOR || dungeon[y][x + 2] === TILE.DOOR);
 
-          if (hasAccessLeft && hasAccessRight) {  // Changed from OR to AND
+          if (hasAccessLeft && hasAccessRight) {  // AND logic to preserve outer walls
             // Remove the first wall
             dungeon[y][x] = TILE.FLOOR;
 

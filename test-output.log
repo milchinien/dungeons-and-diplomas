@@ -1,0 +1,232 @@
+
+> dungeons-and-diplomas@0.1.0 test
+> playwright test tests/e2e/dungeon-generation-fixes.spec.ts --workers=1 --timeout=90000
+
+
+Running 7 tests using 1 worker
+
+  ✘  1 [chromium] › tests\e2e\dungeon-generation-fixes.spec.ts:46:7 › Dungeon Generation Fixes › should generate dungeons without double walls (multiple runs) (1.6m)
+  ✘  2 [chromium] › tests\e2e\dungeon-generation-fixes.spec.ts:113:7 › Dungeon Generation Fixes › should ensure all shop rooms have shop inventory (1.6m)
+  ✘  3 [chromium] › tests\e2e\dungeon-generation-fixes.spec.ts:169:7 › Dungeon Generation Fixes › should validate that doors connect valid areas (1.6m)
+  ✘  4 [chromium] › tests\e2e\dungeon-generation-fixes.spec.ts:245:7 › Dungeon Generation Fixes › should check wall continuity and completeness (1.5m)
+  ✘  5 [chromium] › tests\e2e\dungeon-generation-fixes.spec.ts:326:7 › Dungeon Generation Fixes › should verify shop room size constraints (1.6m)
+  ✘  6 [chromium] › tests\e2e\dungeon-generation-fixes.spec.ts:370:7 › Dungeon Generation Fixes › should test with different generation methods (BSP vs Layout) (1.6m)
+  ✘  7 [chromium] › tests\e2e\dungeon-generation-fixes.spec.ts:444:7 › Dungeon Generation Fixes › comprehensive dungeon quality check (0ms)
+
+
+  1) [chromium] › tests\e2e\dungeon-generation-fixes.spec.ts:46:7 › Dungeon Generation Fixes › should generate dungeons without double walls (multiple runs) 
+
+    [31mTest timeout of 90000ms exceeded while running "beforeEach" hook.[39m
+
+      14 |
+      15 | test.describe('Dungeon Generation Fixes', () => {
+    > 16 |   test.beforeEach(async ({ page }) => {
+         |        ^
+      17 |     // Navigate to the game
+      18 |     await page.goto('http://localhost:3000');
+      19 |
+        at C:\src\dungeons-and-diplomas\tests\e2e\dungeon-generation-fixes.spec.ts:16:8
+
+    Error: page.waitForFunction: Test timeout of 90000ms exceeded.
+
+      37 |
+      38 |     // Wait for game to load and dungeon manager to be available
+    > 39 |     await page.waitForFunction(() => {
+         |                ^
+      40 |       return (window as any).__dungeonManager !== undefined;
+      41 |     }, { timeout: 15000 });
+      42 |
+        at C:\src\dungeons-and-diplomas\tests\e2e\dungeon-generation-fixes.spec.ts:39:16
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\dungeon-generation-fixes-D-68af9-double-walls-multiple-runs--chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\dungeon-generation-fixes-D-68af9-double-walls-multiple-runs--chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\dungeon-generation-fixes-D-68af9-double-walls-multiple-runs--chromium\error-context.md
+
+  2) [chromium] › tests\e2e\dungeon-generation-fixes.spec.ts:113:7 › Dungeon Generation Fixes › should ensure all shop rooms have shop inventory 
+
+    [31mTest timeout of 90000ms exceeded while running "beforeEach" hook.[39m
+
+      14 |
+      15 | test.describe('Dungeon Generation Fixes', () => {
+    > 16 |   test.beforeEach(async ({ page }) => {
+         |        ^
+      17 |     // Navigate to the game
+      18 |     await page.goto('http://localhost:3000');
+      19 |
+        at C:\src\dungeons-and-diplomas\tests\e2e\dungeon-generation-fixes.spec.ts:16:8
+
+    Error: page.waitForFunction: Test timeout of 90000ms exceeded.
+
+      37 |
+      38 |     // Wait for game to load and dungeon manager to be available
+    > 39 |     await page.waitForFunction(() => {
+         |                ^
+      40 |       return (window as any).__dungeonManager !== undefined;
+      41 |     }, { timeout: 15000 });
+      42 |
+        at C:\src\dungeons-and-diplomas\tests\e2e\dungeon-generation-fixes.spec.ts:39:16
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\dungeon-generation-fixes-D-34d66-p-rooms-have-shop-inventory-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\dungeon-generation-fixes-D-34d66-p-rooms-have-shop-inventory-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\dungeon-generation-fixes-D-34d66-p-rooms-have-shop-inventory-chromium\error-context.md
+
+  3) [chromium] › tests\e2e\dungeon-generation-fixes.spec.ts:169:7 › Dungeon Generation Fixes › should validate that doors connect valid areas 
+
+    [31mTest timeout of 90000ms exceeded while running "beforeEach" hook.[39m
+
+      14 |
+      15 | test.describe('Dungeon Generation Fixes', () => {
+    > 16 |   test.beforeEach(async ({ page }) => {
+         |        ^
+      17 |     // Navigate to the game
+      18 |     await page.goto('http://localhost:3000');
+      19 |
+        at C:\src\dungeons-and-diplomas\tests\e2e\dungeon-generation-fixes.spec.ts:16:8
+
+    Error: page.waitForFunction: Test timeout of 90000ms exceeded.
+
+      37 |
+      38 |     // Wait for game to load and dungeon manager to be available
+    > 39 |     await page.waitForFunction(() => {
+         |                ^
+      40 |       return (window as any).__dungeonManager !== undefined;
+      41 |     }, { timeout: 15000 });
+      42 |
+        at C:\src\dungeons-and-diplomas\tests\e2e\dungeon-generation-fixes.spec.ts:39:16
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\dungeon-generation-fixes-D-3fbfb-t-doors-connect-valid-areas-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\dungeon-generation-fixes-D-3fbfb-t-doors-connect-valid-areas-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\dungeon-generation-fixes-D-3fbfb-t-doors-connect-valid-areas-chromium\error-context.md
+
+  4) [chromium] › tests\e2e\dungeon-generation-fixes.spec.ts:245:7 › Dungeon Generation Fixes › should check wall continuity and completeness 
+
+    [31mTest timeout of 90000ms exceeded while running "beforeEach" hook.[39m
+
+      14 |
+      15 | test.describe('Dungeon Generation Fixes', () => {
+    > 16 |   test.beforeEach(async ({ page }) => {
+         |        ^
+      17 |     // Navigate to the game
+      18 |     await page.goto('http://localhost:3000');
+      19 |
+        at C:\src\dungeons-and-diplomas\tests\e2e\dungeon-generation-fixes.spec.ts:16:8
+
+    Error: page.waitForFunction: Test timeout of 90000ms exceeded.
+
+      37 |
+      38 |     // Wait for game to load and dungeon manager to be available
+    > 39 |     await page.waitForFunction(() => {
+         |                ^
+      40 |       return (window as any).__dungeonManager !== undefined;
+      41 |     }, { timeout: 15000 });
+      42 |
+        at C:\src\dungeons-and-diplomas\tests\e2e\dungeon-generation-fixes.spec.ts:39:16
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\dungeon-generation-fixes-D-79a1d-continuity-and-completeness-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\dungeon-generation-fixes-D-79a1d-continuity-and-completeness-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\dungeon-generation-fixes-D-79a1d-continuity-and-completeness-chromium\error-context.md
+
+  5) [chromium] › tests\e2e\dungeon-generation-fixes.spec.ts:326:7 › Dungeon Generation Fixes › should verify shop room size constraints 
+
+    [31mTest timeout of 90000ms exceeded while running "beforeEach" hook.[39m
+
+      14 |
+      15 | test.describe('Dungeon Generation Fixes', () => {
+    > 16 |   test.beforeEach(async ({ page }) => {
+         |        ^
+      17 |     // Navigate to the game
+      18 |     await page.goto('http://localhost:3000');
+      19 |
+        at C:\src\dungeons-and-diplomas\tests\e2e\dungeon-generation-fixes.spec.ts:16:8
+
+    Error: page.waitForFunction: Test timeout of 90000ms exceeded.
+
+      37 |
+      38 |     // Wait for game to load and dungeon manager to be available
+    > 39 |     await page.waitForFunction(() => {
+         |                ^
+      40 |       return (window as any).__dungeonManager !== undefined;
+      41 |     }, { timeout: 15000 });
+      42 |
+        at C:\src\dungeons-and-diplomas\tests\e2e\dungeon-generation-fixes.spec.ts:39:16
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\dungeon-generation-fixes-D-74329--shop-room-size-constraints-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\dungeon-generation-fixes-D-74329--shop-room-size-constraints-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\dungeon-generation-fixes-D-74329--shop-room-size-constraints-chromium\error-context.md
+
+  6) [chromium] › tests\e2e\dungeon-generation-fixes.spec.ts:370:7 › Dungeon Generation Fixes › should test with different generation methods (BSP vs Layout) 
+
+    [31mTest timeout of 90000ms exceeded while running "beforeEach" hook.[39m
+
+      14 |
+      15 | test.describe('Dungeon Generation Fixes', () => {
+    > 16 |   test.beforeEach(async ({ page }) => {
+         |        ^
+      17 |     // Navigate to the game
+      18 |     await page.goto('http://localhost:3000');
+      19 |
+        at C:\src\dungeons-and-diplomas\tests\e2e\dungeon-generation-fixes.spec.ts:16:8
+
+    Error: page.waitForFunction: Test timeout of 90000ms exceeded.
+
+      37 |
+      38 |     // Wait for game to load and dungeon manager to be available
+    > 39 |     await page.waitForFunction(() => {
+         |                ^
+      40 |       return (window as any).__dungeonManager !== undefined;
+      41 |     }, { timeout: 15000 });
+      42 |
+        at C:\src\dungeons-and-diplomas\tests\e2e\dungeon-generation-fixes.spec.ts:39:16
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\dungeon-generation-fixes-D-28c9e-tion-methods-BSP-vs-Layout--chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\dungeon-generation-fixes-D-28c9e-tion-methods-BSP-vs-Layout--chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\dungeon-generation-fixes-D-28c9e-tion-methods-BSP-vs-Layout--chromium\error-context.md
+
+  7) [chromium] › tests\e2e\dungeon-generation-fixes.spec.ts:444:7 › Dungeon Generation Fixes › comprehensive dungeon quality check 
+
+    Error: worker process exited unexpectedly (code=3221225794, signal=null)
+
+  7 failed
+    [chromium] › tests\e2e\dungeon-generation-fixes.spec.ts:46:7 › Dungeon Generation Fixes › should generate dungeons without double walls (multiple runs) 
+    [chromium] › tests\e2e\dungeon-generation-fixes.spec.ts:113:7 › Dungeon Generation Fixes › should ensure all shop rooms have shop inventory 
+    [chromium] › tests\e2e\dungeon-generation-fixes.spec.ts:169:7 › Dungeon Generation Fixes › should validate that doors connect valid areas 
+    [chromium] › tests\e2e\dungeon-generation-fixes.spec.ts:245:7 › Dungeon Generation Fixes › should check wall continuity and completeness 
+    [chromium] › tests\e2e\dungeon-generation-fixes.spec.ts:326:7 › Dungeon Generation Fixes › should verify shop room size constraints 
+    [chromium] › tests\e2e\dungeon-generation-fixes.spec.ts:370:7 › Dungeon Generation Fixes › should test with different generation methods (BSP vs Layout) 
+    [chromium] › tests\e2e\dungeon-generation-fixes.spec.ts:444:7 › Dungeon Generation Fixes › comprehensive dungeon quality check 
