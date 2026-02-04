@@ -4,9 +4,10 @@
  */
 
 import type { Room, TileType } from '../constants';
-import { TILE, DUNGEON_WIDTH, DUNGEON_HEIGHT } from '../constants';
+import { TILE, DUNGEON_WIDTH, DUNGEON_HEIGHT, SHOP_MIN_ROOM_SIZE, SHOP_MAX_ROOM_SIZE } from '../constants';
 import { getLayoutPool } from '../roomlayouts/LayoutPool';
 import type { RoomLayout } from '../roomlayouts/types';
+import { generateShopInventory } from '../shop/ShopInventory';
 
 interface PlacedRoom {
   layout: RoomLayout;
@@ -165,8 +166,7 @@ function placeRoomInDungeon(
       if (dungeonX >= 0 && dungeonX < DUNGEON_WIDTH && dungeonY >= 0 && dungeonY < DUNGEON_HEIGHT) {
         const tile = layout.tileGrid[ly][lx];
 
-        // Convert walls on shared wall side to FLOOR (opening between rooms)
-        let finalTile = tile;
+        // Skip walls on shared wall side (keep existing room's walls)
         if (tile === TILE.WALL && sharedWallSide) {
           let onSharedEdge = false;
           if (sharedWallSide === 'north' && ly === 0) onSharedEdge = true;
@@ -175,16 +175,17 @@ function placeRoomInDungeon(
           if (sharedWallSide === 'east' && lx === layout.width - 1) onSharedEdge = true;
 
           if (onSharedEdge) {
-            finalTile = TILE.FLOOR; // Convert wall to floor at connection
+            // Don't overwrite existing walls - skip this tile
+            continue;
           }
         }
 
-        dungeon[dungeonY][dungeonX] = finalTile;
+        dungeon[dungeonY][dungeonX] = tile;
 
         // Mark in roomMap (only floors and doors, not walls)
-        if (finalTile === TILE.FLOOR) {
+        if (tile === TILE.FLOOR) {
           roomMap[dungeonY][dungeonX] = roomId;
-        } else if (finalTile === TILE.DOOR) {
+        } else if (tile === TILE.DOOR) {
           roomMap[dungeonY][dungeonX] = -2; // Door marker
         }
       }
@@ -262,20 +263,44 @@ function canPlaceRoom(
   if (x + layout.width > DUNGEON_WIDTH) return false;
   if (y + layout.height > DUNGEON_HEIGHT) return false;
 
-  // Check for overlap (allow shared wall on connection side)
+  // Check for overlap
   for (let ly = 0; ly < layout.height; ly++) {
     for (let lx = 0; lx < layout.width; lx++) {
-      // Skip the shared wall edge (these tiles are allowed to overlap)
-      if (sharedWallSide === 'north' && ly === 0) continue;
-      if (sharedWallSide === 'south' && ly === layout.height - 1) continue;
-      if (sharedWallSide === 'west' && lx === 0) continue;
-      if (sharedWallSide === 'east' && lx === layout.width - 1) continue;
-
+      const newTile = layout.tileGrid[ly][lx];
       const dungeonX = x + lx;
       const dungeonY = y + ly;
+      const existingTile = dungeon[dungeonY][dungeonX];
 
-      if (dungeon[dungeonY][dungeonX] !== TILE.EMPTY) {
-        return false;
+      // Check if on shared wall edge
+      let onSharedEdge = false;
+      if (sharedWallSide === 'north' && ly === 0) onSharedEdge = true;
+      if (sharedWallSide === 'south' && ly === layout.height - 1) onSharedEdge = true;
+      if (sharedWallSide === 'west' && lx === 0) onSharedEdge = true;
+      if (sharedWallSide === 'east' && lx === layout.width - 1) onSharedEdge = true;
+
+      if (onSharedEdge) {
+        // On shared edge: walls can overlap (won't be written anyway), doors must align with doors/walls
+        if (newTile === TILE.WALL) {
+          // Wall on shared edge - okay (will be skipped during placement)
+          continue;
+        } else if (newTile === TILE.DOOR) {
+          // Door must connect to door, wall, or floor
+          if (existingTile === TILE.DOOR || existingTile === TILE.WALL || existingTile === TILE.FLOOR) {
+            continue;
+          }
+          return false;
+        } else if (newTile === TILE.FLOOR) {
+          // Floor on shared edge is unusual but allowed if connecting to floor
+          if (existingTile === TILE.FLOOR) {
+            continue;
+          }
+          return false;
+        }
+      } else {
+        // Not on shared edge: no overlap allowed
+        if (existingTile !== TILE.EMPTY) {
+          return false;
+        }
       }
     }
   }
@@ -285,16 +310,22 @@ function canPlaceRoom(
 
 /**
  * Calculates position for new room based on door connection
- * Uses exact door positions (no searching required)
+ *
+ * Algorithm:
+ * 1. door.x, door.y = global coordinates of existing door in dungeon
+ * 2. newDoorPos = local index of door in new layout (0..width-1 or 0..height-1)
+ * 3. Calculate new room's top-left corner such that:
+ *    - New room's door aligns exactly with existing door
+ *    - Rooms share the wall where doors meet (overlap by 1 row/column)
+ *
+ * Example: Existing south door at (50, 20), new north door at local x=3
+ *   → New room placed at (47, 20) so door is at (47+3, 20) = (50, 20) ✓
  */
 function calculateNewRoomPosition(
   door: DoorConnection,
   newLayout: RoomLayout,
   doorSide: 'north' | 'south' | 'east' | 'west'
 ): { x: number; y: number } {
-  let x = 0;
-  let y = 0;
-
   const newDoorPos = newLayout.doorPositions[doorSide];
 
   // Safety check: layout should have door on specified side
@@ -303,28 +334,39 @@ function calculateNewRoomPosition(
     return { x: 0, y: 0 }; // Fallback (will fail canPlaceRoom check)
   }
 
+  let x = 0;
+  let y = 0;
+
   switch (doorSide) {
     case 'north':
-      // New layout has north door (top row) → share the wall with existing south door
+      // New room has north door (y=0) → connects to existing south door (y=door.y)
+      // Align x: door.x = newRoom.x + newDoorPos → newRoom.x = door.x - newDoorPos
+      // Share wall: newRoom.y = door.y (both rooms have edge at y=door.y)
       x = door.x - newDoorPos;
-      y = door.y; // Same row = shared wall
+      y = door.y;
       break;
 
     case 'south':
-      // New layout has south door (bottom row) → share the wall with existing north door
+      // New room has south door (y=height-1) → connects to existing north door (y=door.y)
+      // Align x: door.x = newRoom.x + newDoorPos → newRoom.x = door.x - newDoorPos
+      // Share wall: door.y = newRoom.y + height - 1 → newRoom.y = door.y - height + 1
       x = door.x - newDoorPos;
-      y = door.y - newLayout.height + 1; // Overlap by one row = shared wall
+      y = door.y - newLayout.height + 1;
       break;
 
     case 'west':
-      // New layout has west door (left column) → share the wall with existing east door
-      x = door.x; // Same column = shared wall
+      // New room has west door (x=0) → connects to existing east door (x=door.x)
+      // Share wall: newRoom.x = door.x (both rooms have edge at x=door.x)
+      // Align y: door.y = newRoom.y + newDoorPos → newRoom.y = door.y - newDoorPos
+      x = door.x;
       y = door.y - newDoorPos;
       break;
 
     case 'east':
-      // New layout has east door (right column) → share the wall with existing west door
-      x = door.x - newLayout.width + 1; // Overlap by one column = shared wall
+      // New room has east door (x=width-1) → connects to existing west door (x=door.x)
+      // Share wall: door.x = newRoom.x + width - 1 → newRoom.x = door.x - width + 1
+      // Align y: door.y = newRoom.y + newDoorPos → newRoom.y = door.y - newDoorPos
+      x = door.x - newLayout.width + 1;
       y = door.y - newDoorPos;
       break;
   }
@@ -370,11 +412,11 @@ function removeDoubleWalls(dungeon: TileType[][], rooms: Room[]): void {
     for (let y = 0; y < DUNGEON_HEIGHT - 1; y++) {
       for (let x = 0; x < DUNGEON_WIDTH; x++) {
         if (dungeon[y][x] === TILE.WALL && dungeon[y + 1][x] === TILE.WALL) {
-          // CRITICAL: Only remove if floors/doors on BOTH sides (AND not OR)
+          // Only remove if floors/doors on BOTH sides (AND logic)
           const hasAccessAbove = y > 0 && (dungeon[y - 1][x] === TILE.FLOOR || dungeon[y - 1][x] === TILE.DOOR);
           const hasAccessBelow = y + 2 < DUNGEON_HEIGHT && (dungeon[y + 2][x] === TILE.FLOOR || dungeon[y + 2][x] === TILE.DOOR);
 
-          if (hasAccessAbove && hasAccessBelow) {  // Changed from OR to AND
+          if (hasAccessAbove && hasAccessBelow) {
             // Remove the first wall
             dungeon[y][x] = TILE.FLOOR;
             removedThisIteration++;
@@ -388,11 +430,11 @@ function removeDoubleWalls(dungeon: TileType[][], rooms: Room[]): void {
     for (let y = 0; y < DUNGEON_HEIGHT; y++) {
       for (let x = 0; x < DUNGEON_WIDTH - 1; x++) {
         if (dungeon[y][x] === TILE.WALL && dungeon[y][x + 1] === TILE.WALL) {
-          // CRITICAL: Only remove if floors/doors on BOTH sides (AND not OR)
+          // Only remove if floors/doors on BOTH sides (AND logic)
           const hasAccessLeft = x > 0 && (dungeon[y][x - 1] === TILE.FLOOR || dungeon[y][x - 1] === TILE.DOOR);
           const hasAccessRight = x + 2 < DUNGEON_WIDTH && (dungeon[y][x + 2] === TILE.FLOOR || dungeon[y][x + 2] === TILE.DOOR);
 
-          if (hasAccessLeft && hasAccessRight) {  // Changed from OR to AND
+          if (hasAccessLeft && hasAccessRight) {
             // Remove the first wall
             dungeon[y][x] = TILE.FLOOR;
             removedThisIteration++;
@@ -406,6 +448,14 @@ function removeDoubleWalls(dungeon: TileType[][], rooms: Room[]): void {
   } while (removedThisIteration > 0 && iteration < 10); // Max 10 iterations
 
   console.log(`[layoutGeneration] Total removed: ${totalRemoved} double walls in ${iteration} iteration(s)`);
+}
+
+/**
+ * Checks if a room has the right size for a shop (not too small, not too large).
+ */
+function isRoomRightSizeForShop(room: Room): boolean {
+  return room.width >= SHOP_MIN_ROOM_SIZE && room.height >= SHOP_MIN_ROOM_SIZE &&
+         room.width <= SHOP_MAX_ROOM_SIZE && room.height <= SHOP_MAX_ROOM_SIZE;
 }
 
 /**
@@ -425,8 +475,11 @@ function assignRoomTypes(rooms: Room[]): void {
       rooms[i].type = 'treasure';
     } else if (rand < 0.2) {
       rooms[i].type = 'combat';
-    } else if (rand < 0.28) {
+    } else if (rand < 0.28 && isRoomRightSizeForShop(rooms[i])) {
+      // FIX: Only assign shop if room size is appropriate
       rooms[i].type = 'shop';
+      rooms[i].shopInventory = generateShopInventory(rooms[i].id, Math.random, rooms[i].width);
+      rooms[i].shopDoorOpen = false;
     } else {
       rooms[i].type = 'empty';
     }
@@ -435,16 +488,32 @@ function assignRoomTypes(rooms: Room[]): void {
   // Ensure at least one shop (max 2)
   const shopCount = rooms.filter(r => r.type === 'shop').length;
   if (shopCount === 0 && rooms.length > 5) {
-    // Make a random room (not first) a shop
-    const randomIndex = Math.floor(Math.random() * (rooms.length - 1)) + 1;
-    rooms[randomIndex].type = 'shop';
+    // Find a room with the right size (not first room)
+    let shopRoomIndex = -1;
+    for (let i = 1; i < rooms.length; i++) {
+      if (isRoomRightSizeForShop(rooms[i])) {
+        shopRoomIndex = i;
+        break;
+      }
+    }
+
+    // If found, make it a shop
+    if (shopRoomIndex >= 0) {
+      rooms[shopRoomIndex].type = 'shop';
+      rooms[shopRoomIndex].shopInventory = generateShopInventory(rooms[shopRoomIndex].id, Math.random, rooms[shopRoomIndex].width);
+      rooms[shopRoomIndex].shopDoorOpen = false;
+    }
   } else if (shopCount > 2) {
     // Remove excess shops
     const shopRooms = rooms.filter(r => r.type === 'shop');
     for (let i = 2; i < shopCount; i++) {
       shopRooms[i].type = 'empty';
+      shopRooms[i].shopInventory = undefined;
+      shopRooms[i].shopDoorOpen = undefined;
     }
   }
+
+  console.log(`[layoutGeneration] Assigned room types: ${rooms.filter(r => r.type === 'shop').length} shops created`);
 }
 
 /**
@@ -468,7 +537,8 @@ function updateRoomMapAfterWallRemoval(
 
       // If tile became FLOOR after wall removal, find which room it should belong to
       else if (tile === TILE.FLOOR && currentRoomId === -1) {
-        // Check neighbors to find room ID
+        // Collect all neighboring room IDs (prefer most common one)
+        const neighborRoomIds: number[] = [];
         const neighbors = [
           { x: x - 1, y },
           { x: x + 1, y },
@@ -481,10 +551,20 @@ function updateRoomMapAfterWallRemoval(
               neighbor.y >= 0 && neighbor.y < DUNGEON_HEIGHT) {
             const neighborRoomId = roomMap[neighbor.y][neighbor.x];
             if (neighborRoomId >= 0) {
-              roomMap[y][x] = neighborRoomId;
-              break;
+              neighborRoomIds.push(neighborRoomId);
             }
           }
+        }
+
+        // Assign most common room ID (or first if tie)
+        if (neighborRoomIds.length > 0) {
+          const counts = new Map<number, number>();
+          for (const id of neighborRoomIds) {
+            counts.set(id, (counts.get(id) || 0) + 1);
+          }
+          const mostCommon = Array.from(counts.entries())
+            .sort((a, b) => b[1] - a[1])[0][0];
+          roomMap[y][x] = mostCommon;
         }
       }
     }

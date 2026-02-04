@@ -5,17 +5,26 @@
 import type { TileType } from '../constants';
 
 /**
- * Door positions for a room layout
- * Stores exact position of single door on each edge
- * - north/south: X-position along edge (0 to width-1)
- * - east/west: Y-position along edge (0 to height-1)
+ * Door positions for a room layout (LOCAL coordinates)
+ *
+ * Stores exact position of single door on each edge using LOCAL indices:
+ * - north/south: X-index along edge (0 to width-1)
+ *   Example: north=3 means door is at local position (3, 0)
+ * - east/west: Y-index along edge (0 to height-1)
+ *   Example: west=2 means door is at local position (0, 2)
  * - null: No door on that side
+ *
+ * Transformation to GLOBAL dungeon coordinates:
+ * - North door: (roomX + doorPositions.north, roomY)
+ * - South door: (roomX + doorPositions.south, roomY + height - 1)
+ * - West door: (roomX, roomY + doorPositions.west)
+ * - East door: (roomX + width - 1, roomY + doorPositions.east)
  */
 export interface DoorPositions {
-  north: number | null;
-  south: number | null;
-  east: number | null;
-  west: number | null;
+  north: number | null;  // X-index (0..width-1)
+  south: number | null;  // X-index (0..width-1)
+  east: number | null;   // Y-index (0..height-1)
+  west: number | null;   // Y-index (0..height-1)
 }
 
 /**
