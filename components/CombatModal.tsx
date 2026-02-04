@@ -1,4 +1,4 @@
-import { PLAYER_MAX_HP, GOBLIN_MAX_HP } from '@/lib/constants';
+import { GOBLIN_MAX_HP } from '@/lib/constants';
 import type { TileType, Room } from '@/lib/constants';
 import type { Question } from '@/lib/questions';
 import type { Enemy, Player } from '@/lib/enemy';
@@ -116,7 +116,7 @@ export default function CombatModal({
         transform: 'translateX(-50%)',
         zIndex: 15
       }}>
-        <HPBar current={playerHp} max={PLAYER_MAX_HP} color="#00ff00" label="SPIELER" />
+        <HPBar current={playerHp} max={player?.maxHp ?? 100} color="#00ff00" label="SPIELER" />
       </div>
 
       <div style={{

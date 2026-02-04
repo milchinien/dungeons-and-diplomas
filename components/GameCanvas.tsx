@@ -387,9 +387,17 @@ export default function GameCanvas() {
   // Update player maxHp when equipment or skills change
   useEffect(() => {
     const newMaxHp = PLAYER_MAX_HP + combinedBonuses.maxHpBonus;
+    const oldMaxHp = playerRef.current.maxHp;
     playerRef.current.maxHp = newMaxHp;
+
+    // If maxHp increased and player was at full health, keep them at full health
+    // This ensures that on first load with constitution skill, player starts at full HP
+    if (newMaxHp > oldMaxHp && playerRef.current.hp === oldMaxHp) {
+      playerRef.current.hp = newMaxHp;
+      setPlayerHp(newMaxHp);
+    }
     // If current HP exceeds new max, clamp it
-    if (playerRef.current.hp > newMaxHp) {
+    else if (playerRef.current.hp > newMaxHp) {
       playerRef.current.hp = newMaxHp;
       setPlayerHp(newMaxHp);
     }
