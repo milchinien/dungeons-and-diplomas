@@ -313,11 +313,11 @@ export function removeDoubleWalls(dungeon: TileType[][], roomMap: number[][], wi
     for (let y = 0; y < height - 1; y++) {
       for (let x = 0; x < width; x++) {
         if (dungeon[y][x] === TILE.WALL && dungeon[y + 1][x] === TILE.WALL) {
-          // Only remove if floors/doors on BOTH sides (AND logic)
+          // Remove if floors/doors on EITHER side (OR logic)
           const hasAccessAbove = y > 0 && (dungeon[y - 1][x] === TILE.FLOOR || dungeon[y - 1][x] === TILE.DOOR);
           const hasAccessBelow = y + 2 < height && (dungeon[y + 2][x] === TILE.FLOOR || dungeon[y + 2][x] === TILE.DOOR);
 
-          if (hasAccessAbove && hasAccessBelow) {  // AND logic to preserve outer walls
+          if (hasAccessAbove || hasAccessBelow) {  // OR logic - remove if either side has access
             // Remove the first wall
             dungeon[y][x] = TILE.FLOOR;
 
@@ -337,11 +337,11 @@ export function removeDoubleWalls(dungeon: TileType[][], roomMap: number[][], wi
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width - 1; x++) {
         if (dungeon[y][x] === TILE.WALL && dungeon[y][x + 1] === TILE.WALL) {
-          // Only remove if floors/doors on BOTH sides (AND logic)
+          // Remove if floors/doors on EITHER side (OR logic)
           const hasAccessLeft = x > 0 && (dungeon[y][x - 1] === TILE.FLOOR || dungeon[y][x - 1] === TILE.DOOR);
           const hasAccessRight = x + 2 < width && (dungeon[y][x + 2] === TILE.FLOOR || dungeon[y][x + 2] === TILE.DOOR);
 
-          if (hasAccessLeft && hasAccessRight) {  // AND logic to preserve outer walls
+          if (hasAccessLeft || hasAccessRight) {  // OR logic - remove if either side has access
             // Remove the first wall
             dungeon[y][x] = TILE.FLOOR;
 

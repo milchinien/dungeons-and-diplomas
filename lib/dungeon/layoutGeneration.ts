@@ -124,7 +124,7 @@ export function generateDungeonFromLayouts(
   }
 
   // Step 3: Remove double walls between connected rooms
-  removeDoubleWalls(dungeon, rooms);
+  removeDoubleWalls(dungeon, rooms, roomMap);
 
   // Step 3.5: Update roomMap after wall removal
   updateRoomMapAfterWallRemoval(dungeon, roomMap, rooms);
@@ -394,9 +394,9 @@ function getOppositeSide(side: 'north' | 'south' | 'east' | 'west'): 'north' | '
  * Remove ALL double walls by converting sequences of walls into single walls.
  * Multi-pass algorithm: repeatedly finds and removes double walls until none remain.
  * Same algorithm as in generation.ts to ensure consistency.
- * IMPORTANT: Only removes walls when there are floors/doors on BOTH sides (AND logic)
+ * IMPORTANT: Removes walls when there are floors/doors on EITHER side (OR logic)
  */
-function removeDoubleWalls(dungeon: TileType[][], rooms: Room[]): void {
+function removeDoubleWalls(dungeon: TileType[][], rooms: Room[], roomMap: number[][]): void {
   console.log('[layoutGeneration] Removing all double walls...');
 
   let totalRemoved = 0;
@@ -412,13 +412,21 @@ function removeDoubleWalls(dungeon: TileType[][], rooms: Room[]): void {
     for (let y = 0; y < DUNGEON_HEIGHT - 1; y++) {
       for (let x = 0; x < DUNGEON_WIDTH; x++) {
         if (dungeon[y][x] === TILE.WALL && dungeon[y + 1][x] === TILE.WALL) {
-          // Only remove if floors/doors on BOTH sides (AND logic)
+          // Remove if floors/doors on EITHER side (OR logic)
           const hasAccessAbove = y > 0 && (dungeon[y - 1][x] === TILE.FLOOR || dungeon[y - 1][x] === TILE.DOOR);
           const hasAccessBelow = y + 2 < DUNGEON_HEIGHT && (dungeon[y + 2][x] === TILE.FLOOR || dungeon[y + 2][x] === TILE.DOOR);
 
-          if (hasAccessAbove && hasAccessBelow) {
+          if (hasAccessAbove || hasAccessBelow) {
             // Remove the first wall
             dungeon[y][x] = TILE.FLOOR;
+
+            // Update roomMap: assign to adjacent room
+            if (hasAccessAbove && roomMap[y - 1][x] >= 0) {
+              roomMap[y][x] = roomMap[y - 1][x];
+            } else if (hasAccessBelow && roomMap[y + 2][x] >= 0) {
+              roomMap[y][x] = roomMap[y + 2][x];
+            }
+
             removedThisIteration++;
             totalRemoved++;
           }
@@ -430,13 +438,21 @@ function removeDoubleWalls(dungeon: TileType[][], rooms: Room[]): void {
     for (let y = 0; y < DUNGEON_HEIGHT; y++) {
       for (let x = 0; x < DUNGEON_WIDTH - 1; x++) {
         if (dungeon[y][x] === TILE.WALL && dungeon[y][x + 1] === TILE.WALL) {
-          // Only remove if floors/doors on BOTH sides (AND logic)
+          // Remove if floors/doors on EITHER side (OR logic)
           const hasAccessLeft = x > 0 && (dungeon[y][x - 1] === TILE.FLOOR || dungeon[y][x - 1] === TILE.DOOR);
           const hasAccessRight = x + 2 < DUNGEON_WIDTH && (dungeon[y][x + 2] === TILE.FLOOR || dungeon[y][x + 2] === TILE.DOOR);
 
-          if (hasAccessLeft && hasAccessRight) {
+          if (hasAccessLeft || hasAccessRight) {
             // Remove the first wall
             dungeon[y][x] = TILE.FLOOR;
+
+            // Update roomMap: assign to adjacent room
+            if (hasAccessLeft && roomMap[y][x - 1] >= 0) {
+              roomMap[y][x] = roomMap[y][x - 1];
+            } else if (hasAccessRight && roomMap[y][x + 2] >= 0) {
+              roomMap[y][x] = roomMap[y][x + 2];
+            }
+
             removedThisIteration++;
             totalRemoved++;
           }
