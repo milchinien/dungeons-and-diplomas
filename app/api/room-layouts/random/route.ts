@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getRandomRoomLayout } from '@/lib/db/roomLayouts';
 import type { LayoutFilterOptions } from '@/lib/roomlayouts/types';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/room-layouts/random
  * Gets a random room layout matching filters

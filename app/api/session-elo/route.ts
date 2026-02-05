@@ -3,6 +3,8 @@ import { getSessionEloScores } from '@/lib/db';
 import { withErrorHandler } from '@/lib/api/errorHandler';
 import { getSearchParams, getRequiredIntParam } from '@/lib/api/validation';
 
+export const dynamic = 'force-dynamic';
+
 export const GET = withErrorHandler(async (request: Request) => {
   const searchParams = getSearchParams(request);
 
