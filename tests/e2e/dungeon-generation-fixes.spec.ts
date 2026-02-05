@@ -131,12 +131,12 @@ test.describe('Dungeon Generation Fixes', () => {
           roomSize: { width: room.width, height: room.height }
         }));
 
-        const shopsWithoutInventory = shopDetails.filter(s => !s.hasInventory);
+        const shopsWithoutInventory = shopDetails.filter((s: any) => !s.hasInventory);
 
         return {
           totalRooms: rooms.length,
           shopCount: shopRooms.length,
-          shopsWithInventory: shopDetails.filter(s => s.hasInventory).length,
+          shopsWithInventory: shopDetails.filter((s: any) => s.hasInventory).length,
           shopsWithoutInventory: shopsWithoutInventory.length,
           shopDetails,
           problemShops: shopsWithoutInventory
@@ -514,12 +514,12 @@ test.describe('Dungeon Generation Fixes', () => {
     console.log('Quality check results:', qualityCheck);
 
     // Assert quality metrics
-    expect(qualityCheck.tileStats.floor).toBeGreaterThan(0);
-    expect(qualityCheck.tileStats.wall).toBeGreaterThan(0);
-    expect(qualityCheck.tileStats.door).toBeGreaterThan(0);
-    expect(qualityCheck.roomStats.allConnected).toBe(true);
+    expect(qualityCheck.tileStats?.floor).toBeGreaterThan(0);
+    expect(qualityCheck.tileStats?.wall).toBeGreaterThan(0);
+    expect(qualityCheck.tileStats?.door).toBeGreaterThan(0);
+    expect(qualityCheck.roomStats?.allConnected).toBe(true);
 
-    if (qualityCheck.shopStats.count > 0) {
+    if (qualityCheck.shopStats && qualityCheck.shopStats.count > 0) {
       expect(qualityCheck.shopStats.withInventory).toBe(qualityCheck.shopStats.count);
     }
   });

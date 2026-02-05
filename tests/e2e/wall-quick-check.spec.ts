@@ -100,7 +100,7 @@ test.describe('Quick Wall Check', () => {
     });
 
     // Log if there are issues
-    if (wallData.doubleWalls > 0 || wallData.missingWalls > 0) {
+    if ((wallData.doubleWalls ?? 0) > 0 || (wallData.missingWalls ?? 0) > 0) {
       console.log('⚠️  Wall issues detected!');
     } else {
       console.log('✅ No wall issues found');

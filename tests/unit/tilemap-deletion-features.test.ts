@@ -260,7 +260,7 @@ describe('Tilemap Editor Deletion Features', () => {
 
       const result = clearSlotVariants(testTheme, 'wall', 'horizontal');
 
-      expect(result.wall.horizontal.length).toBe(0);
+      expect(result.wall?.horizontal?.length).toBe(0);
     });
 
     it('should preserve variant counts in other slots', () => {
@@ -271,8 +271,8 @@ describe('Tilemap Editor Deletion Features', () => {
 
       const result = clearSlotVariants(testTheme, 'wall', 'horizontal');
 
-      expect(result.wall.horizontal.length).toBe(0);
-      expect(result.wall.vertical.length).toBe(2); // Should remain
+      expect(result.wall?.horizontal?.length).toBe(0);
+      expect(result.wall?.vertical?.length).toBe(2); // Should remain
     });
   });
 });

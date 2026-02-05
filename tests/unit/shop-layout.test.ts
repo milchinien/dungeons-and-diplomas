@@ -3,7 +3,7 @@
  * Tests the fixes for small room handling and item centering
  */
 
-import { describe, it, expect } from '@jest/globals';
+import { describe, it, expect } from 'vitest';
 import { calculateShopLayout } from '../../lib/shop/ShopLayout';
 import type { Room } from '../../lib/constants';
 import { TILE_SOURCE_SIZE } from '../../lib/spriteConfig';
@@ -20,7 +20,7 @@ describe('ShopLayout', () => {
         visible: true,
         neighbors: [],
         type: 'shop' as const,
-        shopInventory: null
+        state: 'explored'
       };
 
       const layout = calculateShopLayout(room);
@@ -51,7 +51,7 @@ describe('ShopLayout', () => {
         visible: true,
         neighbors: [],
         type: 'shop' as const,
-        shopInventory: null
+        state: 'explored'
       };
 
       const layout = calculateShopLayout(room);
@@ -72,7 +72,7 @@ describe('ShopLayout', () => {
         visible: true,
         neighbors: [],
         type: 'shop' as const,
-        shopInventory: null
+        state: 'explored'
       };
 
       const layout = calculateShopLayout(room);
@@ -108,7 +108,7 @@ describe('ShopLayout', () => {
         visible: true,
         neighbors: [],
         type: 'shop' as const,
-        shopInventory: null
+        state: 'explored'
       };
 
       const layout = calculateShopLayout(room);
@@ -136,7 +136,7 @@ describe('ShopLayout', () => {
         visible: true,
         neighbors: [],
         type: 'shop' as const,
-        shopInventory: null
+        state: 'explored'
       };
 
       const layout = calculateShopLayout(room);
@@ -155,7 +155,7 @@ describe('ShopLayout', () => {
         visible: true,
         neighbors: [],
         type: 'shop' as const,
-        shopInventory: null
+        state: 'explored'
       };
 
       const layout = calculateShopLayout(room);
@@ -199,7 +199,7 @@ describe('ShopLayout', () => {
         visible: true,
         neighbors: [],
         type: 'shop' as const,
-        shopInventory: null
+        state: 'explored'
       };
 
       const layout = calculateShopLayout(room);
@@ -236,7 +236,7 @@ describe('ShopLayout', () => {
           visible: true,
           neighbors: [],
           type: 'shop' as const,
-          shopInventory: null
+          state: 'explored'
         };
 
         const layout = calculateShopLayout(room);
@@ -266,7 +266,7 @@ describe('ShopLayout', () => {
         visible: true,
         neighbors: [],
         type: 'shop' as const,
-        shopInventory: null
+        state: 'explored'
       };
 
       const layout = calculateShopLayout(room);

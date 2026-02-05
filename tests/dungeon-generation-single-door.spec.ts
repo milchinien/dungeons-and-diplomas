@@ -91,6 +91,7 @@ test.describe('Dungeon Generation - Single Door System', () => {
     await page.goto('http://localhost:3002/api/room-layouts');
 
     const response = await page.textContent('body');
+    if (!response) throw new Error('Failed to fetch layouts');
     const layouts = JSON.parse(response);
 
     console.log(`✓ Loaded ${layouts.length} room layouts from API`);

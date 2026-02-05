@@ -171,10 +171,10 @@ describe('Dungeon Generation Fixes', () => {
 
     it('should accept rooms with valid size (3x3 to 10x10)', () => {
       const validRooms: Room[] = [
-        { id: 1, x: 0, y: 0, width: 3, height: 3, visible: false, neighbors: [], type: 'empty' },
-        { id: 2, x: 0, y: 0, width: 5, height: 5, visible: false, neighbors: [], type: 'empty' },
-        { id: 3, x: 0, y: 0, width: 7, height: 7, visible: false, neighbors: [], type: 'empty' },
-        { id: 4, x: 0, y: 0, width: 10, height: 10, visible: false, neighbors: [], type: 'empty' },
+        { id: 1, x: 0, y: 0, width: 3, height: 3, visible: false, neighbors: [], type: 'empty', state: 'unexplored' },
+        { id: 2, x: 0, y: 0, width: 5, height: 5, visible: false, neighbors: [], type: 'empty', state: 'unexplored' },
+        { id: 3, x: 0, y: 0, width: 7, height: 7, visible: false, neighbors: [], type: 'empty', state: 'unexplored' },
+        { id: 4, x: 0, y: 0, width: 10, height: 10, visible: false, neighbors: [], type: 'empty', state: 'unexplored' },
       ];
 
       for (const room of validRooms) {
@@ -184,9 +184,9 @@ describe('Dungeon Generation Fixes', () => {
 
     it('should reject rooms that are too small (< 3x3)', () => {
       const tooSmallRooms: Room[] = [
-        { id: 1, x: 0, y: 0, width: 2, height: 2, visible: false, neighbors: [], type: 'empty' },
-        { id: 2, x: 0, y: 0, width: 1, height: 5, visible: false, neighbors: [], type: 'empty' },
-        { id: 3, x: 0, y: 0, width: 5, height: 2, visible: false, neighbors: [], type: 'empty' },
+        { id: 1, x: 0, y: 0, width: 2, height: 2, visible: false, neighbors: [], type: 'empty', state: 'unexplored' },
+        { id: 2, x: 0, y: 0, width: 1, height: 5, visible: false, neighbors: [], type: 'empty', state: 'unexplored' },
+        { id: 3, x: 0, y: 0, width: 5, height: 2, visible: false, neighbors: [], type: 'empty', state: 'unexplored' },
       ];
 
       for (const room of tooSmallRooms) {
@@ -196,9 +196,9 @@ describe('Dungeon Generation Fixes', () => {
 
     it('should reject rooms that are too large (> 10x10)', () => {
       const tooLargeRooms: Room[] = [
-        { id: 1, x: 0, y: 0, width: 11, height: 11, visible: false, neighbors: [], type: 'empty' },
-        { id: 2, x: 0, y: 0, width: 15, height: 5, visible: false, neighbors: [], type: 'empty' },
-        { id: 3, x: 0, y: 0, width: 5, height: 12, visible: false, neighbors: [], type: 'empty' },
+        { id: 1, x: 0, y: 0, width: 11, height: 11, visible: false, neighbors: [], type: 'empty', state: 'unexplored' },
+        { id: 2, x: 0, y: 0, width: 15, height: 5, visible: false, neighbors: [], type: 'empty', state: 'unexplored' },
+        { id: 3, x: 0, y: 0, width: 5, height: 12, visible: false, neighbors: [], type: 'empty', state: 'unexplored' },
       ];
 
       for (const room of tooLargeRooms) {
@@ -209,27 +209,27 @@ describe('Dungeon Generation Fixes', () => {
     it('should handle edge cases (exactly at boundaries)', () => {
       const edgeCases: Array<{ room: Room, expected: boolean }> = [
         {
-          room: { id: 1, x: 0, y: 0, width: 3, height: 3, visible: false, neighbors: [], type: 'empty' },
+          room: { id: 1, x: 0, y: 0, width: 3, height: 3, visible: false, neighbors: [], type: 'empty', state: 'unexplored' },
           expected: true // Exactly MIN
         },
         {
-          room: { id: 2, x: 0, y: 0, width: 10, height: 10, visible: false, neighbors: [], type: 'empty' },
+          room: { id: 2, x: 0, y: 0, width: 10, height: 10, visible: false, neighbors: [], type: 'empty', state: 'unexplored' },
           expected: true // Exactly MAX
         },
         {
-          room: { id: 3, x: 0, y: 0, width: 2, height: 3, visible: false, neighbors: [], type: 'empty' },
+          room: { id: 3, x: 0, y: 0, width: 2, height: 3, visible: false, neighbors: [], type: 'empty', state: 'unexplored' },
           expected: false // Below MIN width
         },
         {
-          room: { id: 4, x: 0, y: 0, width: 3, height: 2, visible: false, neighbors: [], type: 'empty' },
+          room: { id: 4, x: 0, y: 0, width: 3, height: 2, visible: false, neighbors: [], type: 'empty', state: 'unexplored' },
           expected: false // Below MIN height
         },
         {
-          room: { id: 5, x: 0, y: 0, width: 11, height: 10, visible: false, neighbors: [], type: 'empty' },
+          room: { id: 5, x: 0, y: 0, width: 11, height: 10, visible: false, neighbors: [], type: 'empty', state: 'unexplored' },
           expected: false // Above MAX width
         },
         {
-          room: { id: 6, x: 0, y: 0, width: 10, height: 11, visible: false, neighbors: [], type: 'empty' },
+          room: { id: 6, x: 0, y: 0, width: 10, height: 11, visible: false, neighbors: [], type: 'empty', state: 'unexplored' },
           expected: false // Above MAX height
         },
       ];
@@ -243,11 +243,11 @@ describe('Dungeon Generation Fixes', () => {
   describe('Integration: Room Type Assignment', () => {
     it('should assign shop type only to rooms with valid size', () => {
       const rooms: Room[] = [
-        { id: 0, x: 0, y: 0, width: 5, height: 5, visible: true, neighbors: [], type: 'empty' }, // Start room
-        { id: 1, x: 0, y: 0, width: 2, height: 2, visible: false, neighbors: [], type: 'empty' }, // Too small
-        { id: 2, x: 0, y: 0, width: 7, height: 7, visible: false, neighbors: [], type: 'empty' }, // Valid
-        { id: 3, x: 0, y: 0, width: 15, height: 15, visible: false, neighbors: [], type: 'empty' }, // Too large
-        { id: 4, x: 0, y: 0, width: 5, height: 5, visible: false, neighbors: [], type: 'empty' }, // Valid
+        { id: 0, x: 0, y: 0, width: 5, height: 5, visible: true, neighbors: [], type: 'empty', state: 'explored' }, // Start room
+        { id: 1, x: 0, y: 0, width: 2, height: 2, visible: false, neighbors: [], type: 'empty', state: 'unexplored' }, // Too small
+        { id: 2, x: 0, y: 0, width: 7, height: 7, visible: false, neighbors: [], type: 'empty', state: 'unexplored' }, // Valid
+        { id: 3, x: 0, y: 0, width: 15, height: 15, visible: false, neighbors: [], type: 'empty', state: 'unexplored' }, // Too large
+        { id: 4, x: 0, y: 0, width: 5, height: 5, visible: false, neighbors: [], type: 'empty', state: 'unexplored' }, // Valid
       ];
 
       const SHOP_MIN_ROOM_SIZE = 3;

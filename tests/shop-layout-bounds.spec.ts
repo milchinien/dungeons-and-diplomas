@@ -5,9 +5,9 @@
  * within room boundaries, preventing the bug where items float in walls.
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page, type BrowserContext } from '@playwright/test';
 
-async function loginAndStart(page, context) {
+async function loginAndStart(page: Page, context: BrowserContext) {
   await context.addInitScript(() => {
     localStorage.setItem('userId', '998');
     localStorage.setItem('username', 'LayoutTester');

@@ -4,9 +4,9 @@
  * and take screenshots to verify items are positioned correctly.
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page, type BrowserContext } from '@playwright/test';
 
-async function loginAndStart(page, context) {
+async function loginAndStart(page: Page, context: BrowserContext) {
   await context.addInitScript(() => {
     localStorage.setItem('userId', '997');
     localStorage.setItem('username', 'VisualVerifier');

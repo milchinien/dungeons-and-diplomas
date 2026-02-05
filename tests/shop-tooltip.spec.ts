@@ -8,14 +8,14 @@
  * 3. Interaction behavior (E key press)
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page, type BrowserContext } from '@playwright/test';
 
 const SHOP_WAIT_TIMEOUT = 30000; // 30 seconds to find a shop
 
 /**
  * Helper: Login to the game
  */
-async function login(page, context) {
+async function login(page: Page, context: BrowserContext) {
   // Set localStorage to skip login modal
   await context.addInitScript(() => {
     localStorage.setItem('userId', '999');
@@ -40,7 +40,7 @@ async function login(page, context) {
 /**
  * Helper: Wait for game to be ready
  */
-async function waitForGameReady(page) {
+async function waitForGameReady(page: Page) {
   await page.waitForSelector('canvas', { timeout: 10000 });
   await page.waitForTimeout(2000);
 }
@@ -48,7 +48,7 @@ async function waitForGameReady(page) {
 /**
  * Helper: Get shop room coordinates via JavaScript injection
  */
-async function findShopRoom(page): Promise<{ x: number; y: number; width: number; height: number } | null> {
+async function findShopRoom(page: Page): Promise<{ x: number; y: number; width: number; height: number } | null> {
   return await page.evaluate(() => {
     // Access React state through window debugging
     const gameCanvas = document.querySelector('canvas');
@@ -57,8 +57,8 @@ async function findShopRoom(page): Promise<{ x: number; y: number; width: number
     // Try to find shop room data (this is a hack for testing)
     // In production, you'd expose this through a test API
     const shopRoomKey = Object.keys(window).find(key => key.includes('shopRoom'));
-    if (shopRoomKey && window[shopRoomKey]) {
-      return window[shopRoomKey];
+    if (shopRoomKey && (window as any)[shopRoomKey]) {
+      return (window as any)[shopRoomKey];
     }
 
     return null;
@@ -68,7 +68,7 @@ async function findShopRoom(page): Promise<{ x: number; y: number; width: number
 /**
  * Helper: Move player towards a position
  */
-async function movePlayerTowards(page, targetX: number, targetY: number, tileSize: number = 64) {
+async function movePlayerTowards(page: Page, targetX: number, targetY: number, tileSize: number = 64) {
   // Get player position
   const playerPos = await page.evaluate(() => {
     return {
