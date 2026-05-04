@@ -1,5 +1,7 @@
 # Phase 1 - Task 1: Basic Combat Scene
 
+> **Deprecated / archiviert (Stand 2026-05-04):** Diese Task beschreibt einen fruehen Phaser-basierten Basic-Combat-PoC. Der aktuelle Root-Code nutzt Custom Canvas Rendering und enthaelt bereits Quiz-Combat, Enemy-AI, Trashmobs, Items, XP und Highscores. Die Task wurde aus `03_InProgress` nach `04_Archive/Deprecated` verschoben, damit `03_InProgress` nur noch echte laufende Arbeit enthaelt.
+
 ## Description
 
 Implementiere den einfachsten spielbaren Combat-Flow mit einer hardcodierten Multiple-Choice-Aufgabe. Der Spieler kann eine Antwort wählen, erhält Feedback (richtig/falsch), und es gibt einen simplen Kampf-Mechanismus mit einem Gegner bis einer der beiden bei 0 HP ist.

@@ -1,132 +1,118 @@
-# Database Setup - Supabase
+# Database Setup
 
-## Übersicht
+**Stand:** 2026-05-04
 
-Dieses Projekt verwendet Supabase als Backend/Database. Die Datenbank-Migrationen und Seeds befinden sich in:
+## Ueberblick
 
-- **Migrations:** `supabase/migrations/` - SQL-Dateien für Schema-Änderungen
-- **Seeds:** `supabase/seed/` - SQL-Dateien für initiale Testdaten
+Die App nutzt einen Datenbank-Adapter-Layer.
 
-## Setup-Schritte
+- Ohne Supabase-Env-Variablen: SQLite lokal (`data/game.db`)
+- Mit Supabase-Env-Variablen: Supabase/PostgreSQL
+- Auf Vercel: Supabase ist Pflicht, weil `better-sqlite3` dort nicht verfuegbar ist
 
-### 1. Migration ausführen (Tabelle erstellen)
+Der Adapter wird in `lib/db/adapters/factory.ts` ausgewaehlt.
 
-1. Gehe zu deinem Supabase Dashboard: https://supabase.com/dashboard
-2. Wähle dein Projekt aus (`dungeons-diplomas`)
-3. Gehe zu **SQL Editor** (im linken Menü)
-4. Klicke auf **"New query"**
-5. Kopiere den Inhalt von `supabase/migrations/20241117000001_create_app_metadata.sql`
-6. Füge ihn ein und klicke **"Run"**
+## Lokales SQLite
 
-**Was passiert:**
-- Erstellt die Tabelle `app_metadata` für Versionsinformationen
-- Aktiviert Row Level Security (RLS)
-- Setzt Policies (jeder kann lesen, nur authenticated users können schreiben)
-- Erstellt einen Index für schnellere Abfragen
-- Fügt einen Trigger für `updated_at` hinzu
-
-### 2. Seed-Daten einfügen (initiale Daten)
-
-1. Im gleichen **SQL Editor**
-2. **"New query"** klicken
-3. Kopiere den Inhalt von `supabase/seed/initial_data.sql`
-4. Füge ihn ein und klicke **"Run"**
-
-**Was passiert:**
-- Fügt initiale Metadaten ein:
-  - `app_version`: "0.1.0"
-  - `db_schema_version`: "1"
-  - `game_mode`: "development"
-  - Feature Flags für Combat, Multiplayer, etc.
-
-### 3. Testen
-
-Nach dem Setup kannst du testen:
-
-#### Im Supabase Dashboard:
-1. Gehe zu **Table Editor** → `app_metadata`
-2. Du solltest 6 Zeilen sehen mit den Seed-Daten
-
-#### In der App:
 ```bash
-pnpm dev
+npm install
+npm run dev
 ```
 
-In der Browser Console sollte erscheinen:
-```
-✅ Supabase connection successful - App Version: 0.1.0
-```
+Wenn keine Supabase-Variablen gesetzt sind, wird SQLite automatisch verwendet. Die Datenbank wird beim ersten Zugriff angelegt und mit Seed-Fragen aus `lib/data/seed-questions.json` befuellt.
 
-## Tabellen-Schema
+### Reset
 
-### `app_metadata`
-
-Speichert statische App-Konfiguration und Versionsinformationen.
-
-| Spalte | Typ | Beschreibung |
-|--------|-----|--------------|
-| `id` | UUID | Primärschlüssel (auto-generiert) |
-| `key` | TEXT | Eindeutiger Key (z.B. "app_version") |
-| `value` | TEXT | Wert (z.B. "0.1.0") |
-| `description` | TEXT | Optionale Beschreibung |
-| `created_at` | TIMESTAMPTZ | Erstellungszeitpunkt |
-| `updated_at` | TIMESTAMPTZ | Letztes Update (auto-update via Trigger) |
-
-**Indizes:**
-- `idx_app_metadata_key` auf `key` für schnelle Lookups
-
-**RLS Policies:**
-- Public kann lesen (`SELECT`)
-- Authenticated Users können alles (`INSERT`, `UPDATE`, `DELETE`)
-
-## Versionsnummer aktualisieren
-
-Um die App-Version zu aktualisieren (z.B. nach einem Release):
-
-```sql
-UPDATE app_metadata
-SET value = '0.2.0'
-WHERE key = 'app_version';
+```bash
+rm data/game.db
+npm run dev
 ```
 
-Die `updated_at` Spalte wird automatisch aktualisiert durch den Trigger.
+## Supabase-Konfiguration
 
-## Development vs. Production
+### Benoetigte Variablen
 
-**Aktuell:** 1 Supabase Projekt (Development)
-
-**Best Practice für später:**
-- **Development:** Eigenes Supabase Projekt + `.env.local`
-- **Production:** Separates Supabase Projekt + Vercel Environment Variables
-
-**Vorteile:**
-- Keine Gefahr, Production-Daten zu überschreiben
-- Verschiedene Feature Flags für Dev/Prod
-- Saubere Trennung von Test- und echten Daten
-
-## Troubleshooting
-
-### Migration schlägt fehl: "relation already exists"
-Das ist OK! Die Tabelle existiert bereits. Du kannst die Migration überspringen.
-
-### Seed schlägt fehl: "duplicate key value"
-Kein Problem! Die Daten existieren bereits. Das `ON CONFLICT` Statement verhindert Duplikate.
-
-### Connection Test zeigt "table not found"
-Du hast die Migration noch nicht ausgeführt. Siehe Schritt 1 oben.
-
-## Weitere Migrationen hinzufügen
-
-Neue Migrationen sollten folgendes Format haben:
-
-**Dateiname:** `supabase/migrations/YYYYMMDDHHMMSS_description.sql`
-
-Beispiel:
-```
-supabase/migrations/20241118120000_add_user_profiles.sql
+```bash
+NEXT_PUBLIC_SUPABASE_URL=...
+SUPABASE_SECRET_KEY=...
 ```
 
-**Wichtig:**
-- Timestamp im Dateinamen für korrekte Reihenfolge
-- Descriptive Namen verwenden
-- Jede Migration sollte idempotent sein (`IF NOT EXISTS`, `ON CONFLICT`, etc.)
+Legacy wird weiterhin akzeptiert:
+
+```bash
+SUPABASE_SERVICE_ROLE_KEY=...
+```
+
+`SUPABASE_SECRET_KEY` oder `SUPABASE_SERVICE_ROLE_KEY` wird serverseitig fuer Backend-Operationen verwendet. Nicht in Client-Code einbauen.
+
+### Migrationen
+
+Die Migrationen liegen unter `supabase/migrations/`.
+
+Aktueller Satz:
+
+1. `20241117000001_create_app_metadata.sql`
+2. `20241225000001_create_users.sql`
+3. `20241225000002_create_questions.sql`
+4. `20241225000003_create_answer_log.sql`
+5. `20241225000004_create_xp_log.sql`
+6. `20241225000005_create_highscores.sql`
+7. `20241225000006_create_editor_levels.sql`
+8. `20241225000007_create_tiletheme_tables.sql`
+9. `20241225000008_seed_questions.sql`
+
+### Manuelles Setup im Supabase Dashboard
+
+1. Supabase Dashboard oeffnen.
+2. Projekt auswaehlen.
+3. SQL Editor oeffnen.
+4. Migrationen in Reihenfolge aus `supabase/migrations/` ausfuehren.
+5. Env-Variablen lokal oder in Vercel setzen.
+6. App starten und zentrale API-Routen testen.
+
+## Tabellen
+
+| Tabelle | Zweck |
+| --- | --- |
+| `users` | Username, XP, Login-Zeitpunkte |
+| `questions` | Fragenpool mit Antworten und Fach |
+| `answer_log` | Antwort-Historie fuer ELO/Stats |
+| `xp_log` | XP-Gewinne |
+| `highscores` | Run-Ergebnisse |
+| `editor_levels` | Gespeicherte Editor-Level |
+| Tiletheme-Tabellen | Tilesets, Tile-Themes und Dungeon-Themes |
+| `app_metadata` | Historische App-Metadaten aus frueher Setup-Phase |
+
+## Adapter-Verhalten
+
+```text
+NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SECRET_KEY vorhanden
+  -> SupabaseAdapter
+
+NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY vorhanden
+  -> SupabaseAdapter
+
+Keine Supabase-Konfiguration und nicht Vercel
+  -> SQLiteAdapter
+
+Vercel ohne Supabase-Konfiguration
+  -> Fehler
+```
+
+## Verifikations-Checkliste
+
+- `POST /api/auth/login` erstellt oder laedt User.
+- `GET /api/questions` liefert Seed-Fragen.
+- `POST /api/answers` schreibt Antwort-Logs.
+- `GET /api/session-elo` berechnet ELO-Ausgangswerte.
+- `POST /api/xp` erhoeht User-XP und schreibt `xp_log`.
+- `GET/POST /api/highscores` funktioniert.
+- `GET/POST /api/editor/levels` funktioniert.
+- `GET /api/theme/1` liefert Theme-Daten oder sinnvolle Fehler.
+- Tilemap-Editor-Routen lesen/schreiben Tilesets und Themes.
+
+## Bekannte Risiken
+
+- Supabase-Mode sollte nach laengerer Pause auf einem frischen Projekt erneut Ende-zu-Ende getestet werden.
+- Clientseitige Game-Events werden aktuell serverseitig nicht gegenvalidiert.
+- Row Level Security und Policies muessen vor Public Launch bewusst geprueft werden.

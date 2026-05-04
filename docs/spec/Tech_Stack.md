@@ -1,5 +1,7 @@
 # Technical Architecture & Stack
 
+> **Deprecated / historisch (Stand 2026-05-04):** Dieses Dokument beschreibt die urspruengliche MVP-Stack-Entscheidung vom 13.11.2025. Es bleibt als Entscheidungsprotokoll erhalten, ist aber nicht mehr die operative Architektur. Aktuell relevant sind [../ARCHITECTURE.md](../ARCHITECTURE.md), [../CURRENT_STATUS.md](../CURRENT_STATUS.md) und [../Tasks/01_Plans/Current_Roadmap.md](../Tasks/01_Plans/Current_Roadmap.md). Wichtige Abweichungen: Phaser wurde durch Custom Canvas Rendering ersetzt, npm wird verwendet, und der SQLite/Supabase-Adapter-Layer ist implementiert.
+
 ## Erstellt
 2025-11-13 - Tobias
 
