@@ -232,7 +232,7 @@ export function useCombat({
     };
 
     // Check if this is the first question in combat (for first strike bonus)
-    const isFirstQuestion = state.askedQuestionIds.length === 1; // Length is 1 because current question is already added
+    const isFirstQuestion = state.askedQuestionIds.size === 1; // Size is 1 because current question is already added
 
     // Apply equipment bonuses and combo bonus to combat calculations
     const result = CombatEngine.processAnswer(selectedIndex, question, state.playerElo, enemy.level, combinedBonuses, comboBonus, isFirstQuestion);
