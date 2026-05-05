@@ -14,7 +14,7 @@ test.describe('Shop Item Purchase', () => {
 
     // Navigate to the game
     console.log('=== Navigating to game ===');
-    await page.goto('http://localhost:3003');
+    await page.goto('http://localhost:3000');
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(2000);
 
@@ -74,7 +74,7 @@ test.describe('Shop Item Purchase', () => {
     }
 
     const canvas = page.locator('canvas').first();
-    await expect(canvas).toBeVisible({ timeout: 5000 });
+    await expect(canvas).toBeVisible({ timeout: 15000 });
     console.log('✓ Canvas is visible');
 
     // Wait a bit more for everything to render

@@ -100,7 +100,7 @@ export function useGameState({
 
   const generateNewDungeon = async () => {
     if (!dungeonManagerRef.current) return;
-    await dungeonManagerRef.current.generateNewDungeon(availableSubjects, userId);
+    await dungeonManagerRef.current.generateFromLayouts(availableSubjects, userId);
     // Reset HP to full (use maxHp which includes skill bonuses)
     const fullHp = playerRef.current.maxHp;
     playerRef.current.hp = fullHp;
@@ -400,6 +400,7 @@ export function useGameState({
       const dungeonManager = config.dungeonManagerFactory(playerRef.current);
       await dungeonManager.initialize(availableSubjects);
       dungeonManagerRef.current = dungeonManager;
+      (window as any).__dungeonManager = dungeonManager; // exposed for e2e testing
 
       if (!isMountedRef.current) {
         return;

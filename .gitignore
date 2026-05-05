@@ -46,3 +46,15 @@ data/*.db-journal
 # claude code temporary files
 tmpclaude-*-cwd
 Volume*.lnk
+
+# local debug/test artifacts in repo root
+/test-*.js
+/test-*.log
+/test-*.txt
+/_gen_test.js
+/build.log
+/dev-server.log
+/check-db.js
+/MANUAL_TEST_PLAN.md
+/TEST-RESULTS.md
+/WALL_FIX_INSTRUCTIONS.md

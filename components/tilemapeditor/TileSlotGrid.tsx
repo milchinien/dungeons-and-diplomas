@@ -13,6 +13,7 @@ interface TileSlotGridProps {
   draggedTile: DraggedTile | null;
   onDropTile: (category: SlotCategory, type: string, variant: TileVariant) => void;
   onEndDrag: () => void;
+  onClearSlot: (category: SlotCategory, type: string) => void;
   tilesets: ImportedTileset[];
 }
 
@@ -23,6 +24,7 @@ export function TileSlotGrid({
   draggedTile,
   onDropTile,
   onEndDrag,
+  onClearSlot,
   tilesets
 }: TileSlotGridProps) {
   const getVariants = useCallback((category: SlotCategory, type: string): TileVariant[] => {
@@ -81,6 +83,7 @@ export function TileSlotGrid({
             isSelected={selectedSlot?.category === 'floor' && selectedSlot?.type === 'default'}
             onSelect={() => onSelectSlot('floor', 'default')}
             onDrop={() => handleDrop('floor', 'default')}
+            onClear={() => onClearSlot('floor', 'default')}
             isDragOver={draggedTile !== null}
             tilesets={tilesets}
           />
@@ -103,6 +106,7 @@ export function TileSlotGrid({
               isSelected={selectedSlot?.category === 'wall' && selectedSlot?.type === wallType}
               onSelect={() => onSelectSlot('wall', wallType)}
               onDrop={() => handleDrop('wall', wallType)}
+              onClear={() => onClearSlot('wall', wallType)}
               isDragOver={draggedTile !== null}
               tilesets={tilesets}
             />
@@ -126,6 +130,7 @@ export function TileSlotGrid({
               isSelected={selectedSlot?.category === 'wall' && selectedSlot?.type === wallType}
               onSelect={() => onSelectSlot('wall', wallType)}
               onDrop={() => handleDrop('wall', wallType)}
+              onClear={() => onClearSlot('wall', wallType)}
               isDragOver={draggedTile !== null}
               tilesets={tilesets}
             />
@@ -149,6 +154,7 @@ export function TileSlotGrid({
               isSelected={selectedSlot?.category === 'door' && selectedSlot?.type === doorType}
               onSelect={() => onSelectSlot('door', doorType)}
               onDrop={() => handleDrop('door', doorType)}
+              onClear={() => onClearSlot('door', doorType)}
               isDragOver={draggedTile !== null}
               tilesets={tilesets}
             />

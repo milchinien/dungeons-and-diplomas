@@ -9,6 +9,7 @@ export const COLORS = {
   success: '#4CAF50',
   error: '#FF4444',
   warning: '#FFA500',
+  info: '#4a9eff',
 
   // Gold/accent colors
   gold: '#FFD700',

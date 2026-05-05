@@ -20,7 +20,7 @@ test.describe('Shop Purchase (Simple)', () => {
     });
 
     console.log('\n=== Starting Test ===');
-    await page.goto('http://localhost:3003');
+    await page.goto('http://localhost:3000');
 
     // Wait for page load
     console.log('Waiting for page to load...');

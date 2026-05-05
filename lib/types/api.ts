@@ -44,6 +44,7 @@ export interface LoginResponse {
   id: number;
   username: string;
   xp?: number;
+  gold?: number;
 }
 
 // ============================================================================
@@ -64,4 +65,21 @@ export interface AddXpResponse {
     username: string;
     xp: number;
   };
+}
+
+// ============================================================================
+// Gold Types
+// ============================================================================
+
+export interface GoldLogEntry {
+  user_id: number;
+  gold_amount: number;
+  reason: string;
+  enemy_level?: number;
+  item_sold?: string;
+}
+
+export interface AddGoldResponse {
+  success: boolean;
+  new_balance: number;
 }

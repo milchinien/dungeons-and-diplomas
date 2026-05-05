@@ -18,6 +18,8 @@ export interface TileThemeActions {
   addVariant: (category: SlotCategory, type: string, variant: TileVariant) => void;
   removeVariant: (category: SlotCategory, type: string, index: number) => void;
   updateVariantWeight: (category: SlotCategory, type: string, index: number, weight: number) => void;
+  clearAllVariants: () => void;
+  clearSlotVariants: (category: SlotCategory, type: string) => void;
   validate: () => void;
 }
 
@@ -187,6 +189,41 @@ export function useTileThemeState(): [TileThemeState, TileThemeActions] {
     setIsDirty(true);
   }, []);
 
+  // Clear all variants from all slots
+  const clearAllVariants = useCallback(() => {
+    setTheme(prev => {
+      if (!prev) return null;
+
+      return {
+        ...prev,
+        floor: { default: [] },
+        wall: {},
+        door: {}
+      };
+    });
+    setIsDirty(true);
+  }, []);
+
+  // Clear variants from a specific slot
+  const clearSlotVariants = useCallback((category: SlotCategory, type: string) => {
+    setTheme(prev => {
+      if (!prev) return null;
+
+      const updated = { ...prev };
+
+      if (category === 'floor') {
+        updated.floor = { ...updated.floor, default: [] };
+      } else if (category === 'wall') {
+        updated.wall = { ...updated.wall, [type as WallType]: [] };
+      } else if (category === 'door') {
+        updated.door = { ...updated.door, [type as DoorType]: [] };
+      }
+
+      return updated;
+    });
+    setIsDirty(true);
+  }, []);
+
   // Validate the current theme
   const validate = useCallback(() => {
     if (theme) {
@@ -217,6 +254,8 @@ export function useTileThemeState(): [TileThemeState, TileThemeActions] {
     addVariant,
     removeVariant,
     updateVariantWeight,
+    clearAllVariants,
+    clearSlotVariants,
     validate
   };
 

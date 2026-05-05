@@ -15,6 +15,7 @@ interface TileSlotProps {
   isSelected: boolean;
   onSelect: () => void;
   onDrop: () => void;
+  onClear: () => void;
   isDragOver: boolean;
   tilesets: ImportedTileset[];
 }
@@ -31,6 +32,7 @@ export function TileSlot({
   isSelected,
   onSelect,
   onDrop,
+  onClear,
   isDragOver,
   tilesets
 }: TileSlotProps) {
@@ -157,17 +159,32 @@ export function TileSlot({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      <div
-        className={`border-2 rounded ${borderColor} ${
-          isHovering && isDragOver ? 'shadow-lg shadow-green-500/50' : ''
-        }`}
-      >
-        <canvas
-          ref={canvasRef}
-          width={SLOT_SIZE}
-          height={SLOT_SIZE}
-          style={{ imageRendering: 'pixelated' }}
-        />
+      <div className="relative">
+        <div
+          className={`border-2 rounded ${borderColor} ${
+            isHovering && isDragOver ? 'shadow-lg shadow-green-500/50' : ''
+          }`}
+        >
+          <canvas
+            ref={canvasRef}
+            width={SLOT_SIZE}
+            height={SLOT_SIZE}
+            style={{ imageRendering: 'pixelated' }}
+          />
+        </div>
+        {/* Clear button - only show when slot has variants */}
+        {isFilled && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onClear();
+            }}
+            className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 hover:bg-red-700 text-white text-xs rounded-full flex items-center justify-center shadow-md transition-colors"
+            title="Slot leeren"
+          >
+            ×
+          </button>
+        )}
       </div>
       <span
         className={`text-xs mt-1 ${

@@ -17,7 +17,7 @@ import type {
 import type { UserStats, QuestionStats } from '../stats';
 import type { Highscore, HighscoreEntry } from '../highscores';
 import type { EditorLevel } from '../editorLevels';
-import type { AnswerLogEntry, XpLogEntry, SubjectEloScore } from '../../types/api';
+import type { AnswerLogEntry, XpLogEntry, SubjectEloScore, GoldLogEntry } from '../../types/api';
 import type { ImportedTileset, TileTheme, DungeonTheme } from '../../tiletheme/types';
 import type { UserSkill, SkillPoints } from '../../skills/types';
 import {
@@ -262,6 +262,37 @@ export class SQLiteAdapter implements DatabaseAdapter {
     this.db
       .prepare('UPDATE users SET xp = xp + ? WHERE id = ?')
       .run(entry.xp_amount, entry.user_id);
+  }
+
+  // ============================================================================
+  // Gold
+  // ============================================================================
+
+  async addGold(entry: GoldLogEntry): Promise<void> {
+    this.db
+      .prepare(
+        `INSERT INTO gold_log (user_id, gold_amount, reason, enemy_level, item_sold)
+         VALUES (?, ?, ?, ?, ?)`
+      )
+      .run(
+        entry.user_id,
+        entry.gold_amount,
+        entry.reason,
+        entry.enemy_level || null,
+        entry.item_sold || null
+      );
+
+    this.db
+      .prepare('UPDATE users SET gold = gold + ? WHERE id = ?')
+      .run(entry.gold_amount, entry.user_id);
+  }
+
+  async getUserGold(userId: number): Promise<number> {
+    const result = this.db
+      .prepare('SELECT gold FROM users WHERE id = ?')
+      .get(userId) as { gold: number } | undefined;
+
+    return result?.gold || 0;
   }
 
   // ============================================================================

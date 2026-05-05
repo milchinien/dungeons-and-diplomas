@@ -19,6 +19,7 @@ import {
   addWalls,
   assignShopRooms
 } from '../dungeon/generation';
+import { validateAllDoors } from '../dungeon/layoutGeneration';
 import { initializeDungeonRNG, generateRandomSeed, getDecorationRng, getStructureRng } from '../dungeon/DungeonRNG';
 import type { TileTheme, RenderMap } from '../tiletheme/types';
 import { generateRenderMap } from '../tiletheme/RenderMapGenerator';
@@ -82,7 +83,13 @@ export function generateDungeonStructure(params: DungeonGenerationParams): Dunge
   const rooms = generateRooms(dungeon, roomMap, config);
   connectRooms(dungeon, roomMap, rooms, config);
   calculateSpatialNeighbors(dungeon, roomMap, rooms, config);
-  addWalls(dungeon, config);
+  addWalls(dungeon, config, roomMap);
+
+  // Validate and fix doors (Bug #2 fix)
+  const doorErrors = validateAllDoors(dungeon, rooms);
+  if (doorErrors.length > 0) {
+    console.warn(`[BSP] Fixed ${doorErrors.length} invalid doors`);
+  }
 
   // Assign shop rooms (8% chance per eligible room, max 2 shops)
   const structureRng = getStructureRng();

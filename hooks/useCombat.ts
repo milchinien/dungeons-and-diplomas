@@ -5,6 +5,7 @@ import type { QuestionDatabase } from '@/lib/questions';
 import { COMBAT_FEEDBACK_DELAY, PLAYER_MAX_HP } from '@/lib/constants';
 import { selectQuestionFromPool } from '@/lib/combat/QuestionSelector';
 import { calculateEnemyXpReward } from '@/lib/scoring/LevelCalculator';
+import { calculateEnemyGoldReward } from '@/lib/scoring/GoldCalculator';
 import { CombatEngine, calculateHint } from '@/lib/combat/CombatEngine';
 import { combatReducer, initialCombatState, isInCombat } from '@/lib/combat/combatReducer';
 import { api } from '@/lib/api';
@@ -24,6 +25,7 @@ interface UseCombatProps {
   onPlayerHpUpdate: (hp: number) => void;
   onGameRestart: () => void;
   onXpGained?: (amount: number) => void;
+  onGoldGained?: (amount: number) => void;
   onItemDropped?: (item: DroppedItem) => void;
   /** Called when any enemy is defeated - used for session stats tracking */
   onEnemyDefeated?: () => void;
@@ -49,6 +51,7 @@ export function useCombat({
   onPlayerHpUpdate,
   onGameRestart,
   onXpGained,
+  onGoldGained,
   onItemDropped,
   onEnemyDefeated,
   onEnemyDefeatedFlawless,
@@ -113,6 +116,23 @@ export function useCombat({
           onXpGained(xpReward);
         }
 
+        // Reward gold
+        const goldReward = calculateEnemyGoldReward(enemy.level);
+        try {
+          await api.gold.addGold({
+            user_id: userId,
+            gold_amount: goldReward,
+            reason: 'enemy_defeated',
+            enemy_level: enemy.level
+          });
+
+          if (onGoldGained) {
+            onGoldGained(goldReward);
+          }
+        } catch (error) {
+          logHookError('useCombat', error, 'Failed to award gold');
+        }
+
         // Track enemy defeat for session stats
         if (onEnemyDefeated) {
           onEnemyDefeated();
@@ -159,7 +179,7 @@ export function useCombat({
     } else {
       dispatch({ type: 'END_COMBAT' });
     }
-  }, [state.enemy, state.playerElo, userId, onXpGained, onEnemyDefeated, onItemDropped, onEnemyDefeatedFlawless, onShrineEnemyDefeated, tileSize, stopTimer, playerRef, equipmentBonuses.xpBonus]);
+  }, [state.enemy, state.playerElo, userId, onXpGained, onGoldGained, onEnemyDefeated, onItemDropped, onEnemyDefeatedFlawless, onShrineEnemyDefeated, tileSize, stopTimer, playerRef, equipmentBonuses.xpBonus]);
 
   const askQuestion = useCallback(async () => {
     const enemy = state.enemy;
@@ -232,7 +252,7 @@ export function useCombat({
     };
 
     // Check if this is the first question in combat (for first strike bonus)
-    const isFirstQuestion = state.askedQuestionIds.length === 1; // Length is 1 because current question is already added
+    const isFirstQuestion = state.askedQuestionIds.size === 1; // Size is 1 because current question is already added
 
     // Apply equipment bonuses and combo bonus to combat calculations
     const result = CombatEngine.processAnswer(selectedIndex, question, state.playerElo, enemy.level, combinedBonuses, comboBonus, isFirstQuestion);

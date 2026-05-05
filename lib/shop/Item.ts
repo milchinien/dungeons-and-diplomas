@@ -31,6 +31,7 @@ export interface ItemDefinition {
   baseEffect: number;
   effectType: ItemEffectType;
   spriteKey: string;
+  baseCost: number;  // Base gold cost before rarity multiplier
 }
 
 export interface Item {
@@ -38,6 +39,7 @@ export interface Item {
   definition: ItemDefinition;
   rarity: Rarity;
   effectValue: number;  // baseEffect * rarityMultiplier
+  finalCost: number;    // baseCost * rarityMultiplier
 }
 
 export const ITEM_DEFINITIONS: ItemDefinition[] = [
@@ -47,7 +49,8 @@ export const ITEM_DEFINITIONS: ItemDefinition[] = [
     description: 'Erhöht den Schaden bei korrekten Antworten',
     baseEffect: 5,
     effectType: ItemEffectType.DAMAGE_FLAT,
-    spriteKey: 'item_sword'
+    spriteKey: 'item_sword',
+    baseCost: 60
   },
   {
     type: ItemType.CHESTPLATE,
@@ -55,7 +58,8 @@ export const ITEM_DEFINITIONS: ItemDefinition[] = [
     description: 'Reduziert eingehenden Schaden',
     baseEffect: 10,
     effectType: ItemEffectType.DAMAGE_REDUCTION,
-    spriteKey: 'item_chestplate'
+    spriteKey: 'item_chestplate',
+    baseCost: 50
   },
   {
     type: ItemType.HELMET,
@@ -63,7 +67,8 @@ export const ITEM_DEFINITIONS: ItemDefinition[] = [
     description: 'Erhöht die maximalen HP',
     baseEffect: 10,
     effectType: ItemEffectType.HP_FLAT,
-    spriteKey: 'item_helmet'
+    spriteKey: 'item_helmet',
+    baseCost: 40
   },
   {
     type: ItemType.SHIELD,
@@ -71,7 +76,8 @@ export const ITEM_DEFINITIONS: ItemDefinition[] = [
     description: 'Chance, Schaden komplett zu blocken',
     baseEffect: 10,
     effectType: ItemEffectType.BLOCK_CHANCE,
-    spriteKey: 'item_shield'
+    spriteKey: 'item_shield',
+    baseCost: 70
   },
   {
     type: ItemType.BOOTS,
@@ -79,7 +85,8 @@ export const ITEM_DEFINITIONS: ItemDefinition[] = [
     description: 'Erhöht die Bewegungsgeschwindigkeit',
     baseEffect: 10,
     effectType: ItemEffectType.SPEED,
-    spriteKey: 'item_boots'
+    spriteKey: 'item_boots',
+    baseCost: 45
   },
   {
     type: ItemType.AMULET,
@@ -87,7 +94,8 @@ export const ITEM_DEFINITIONS: ItemDefinition[] = [
     description: 'Verbessert alle Stats leicht',
     baseEffect: 5,
     effectType: ItemEffectType.ALL_STATS,
-    spriteKey: 'item_amulet'
+    spriteKey: 'item_amulet',
+    baseCost: 80
   }
 ];
 
@@ -116,12 +124,14 @@ export function createItem(type: ItemType, rarity: Rarity): Item | null {
 
   const multiplier = getRarityMultiplier(rarity);
   const effectValue = Math.round(definition.baseEffect * multiplier);
+  const finalCost = Math.round(definition.baseCost * multiplier);
 
   return {
     id: generateItemId(),
     definition,
     rarity,
-    effectValue
+    effectValue,
+    finalCost
   };
 }
 

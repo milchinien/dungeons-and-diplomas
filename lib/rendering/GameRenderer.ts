@@ -260,15 +260,15 @@ export class GameRenderer {
 
   /**
    * Render all visible shop rooms
+   * Note: Shops render in world coordinates, camera transform already applied
    */
   private renderShops(
     ctx: CanvasRenderingContext2D,
-    rooms: Room[],
-    camera: { x: number; y: number }
+    rooms: Room[]
   ): void {
     for (const room of rooms) {
       if (room.type === 'shop' && room.visible && room.shopInventory) {
-        renderShopRoom(ctx, room, this.gameTime, camera, this.shopAssets);
+        renderShopRoom(ctx, room, this.gameTime, this.shopAssets);
       }
     }
   }
@@ -530,7 +530,7 @@ export class GameRenderer {
     );
 
     this.renderShrines(ctx, shrines, rooms, tileSize, playerRoomIds);
-    this.renderShops(ctx, rooms, { x: camX, y: camY });
+    this.renderShops(ctx, rooms);
 
     // Update interaction target for shop tooltips
     this.updateInteractionTarget(player, rooms, tileSize);

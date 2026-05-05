@@ -14,6 +14,7 @@ export const POST = withErrorHandler(async (request: Request) => {
   return NextResponse.json({
     id: user.id,
     username: user.username,
-    xp: user.xp
+    xp: user.xp,
+    gold: user.gold
   });
 }, 'login');

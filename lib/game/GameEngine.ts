@@ -453,6 +453,16 @@ export class GameEngine {
 
         doorStates.set(doorKey, !isOpen);
 
+        // Propagate toggle to any adjacent connected door (layout-based door pairs)
+        const adjOffsets = [{ dx: 0, dy: -1 }, { dx: 0, dy: 1 }, { dx: -1, dy: 0 }, { dx: 1, dy: 0 }];
+        for (const off of adjOffsets) {
+          const nx = adjacentDoor.x + off.dx;
+          const ny = adjacentDoor.y + off.dy;
+          if (nx >= 0 && nx < DUNGEON_WIDTH && ny >= 0 && ny < DUNGEON_HEIGHT && dungeon[ny][nx] === TILE.DOOR) {
+            doorStates.set(`${nx},${ny}`, !isOpen);
+          }
+        }
+
         // If we just CLOSED the door, push entities away
         if (isOpen) { // was open, now closed
           // Push player if on the door tile

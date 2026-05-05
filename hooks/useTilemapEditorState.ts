@@ -57,6 +57,8 @@ export interface TilemapEditorActions {
   addVariant: (category: SlotCategory, type: string, variant: TileVariant) => void;
   removeVariant: (category: SlotCategory, type: string, index: number) => void;
   updateVariantWeight: (category: SlotCategory, type: string, index: number, weight: number) => void;
+  clearAllVariants: () => void;
+  clearSlotVariants: (category: SlotCategory, type: string) => void;
 
   // Validation
   validate: () => void;
@@ -100,6 +102,8 @@ export function useTilemapEditorState(): [TilemapEditorState, TilemapEditorActio
     addVariant: themeActions.addVariant,
     removeVariant: themeActions.removeVariant,
     updateVariantWeight: themeActions.updateVariantWeight,
+    clearAllVariants: themeActions.clearAllVariants,
+    clearSlotVariants: themeActions.clearSlotVariants,
     validate: themeActions.validate,
 
     // Tileset actions

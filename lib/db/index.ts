@@ -27,6 +27,9 @@ export { loginUser, getUserById, type User } from './users';
 // XP
 export { addXp, type XpLogEntry } from './xp';
 
+// Gold
+export { addGold, getUserGold, type GoldLogEntry } from './gold';
+
 // Answers
 export { logAnswer, type AnswerLogEntry } from './answers';
 

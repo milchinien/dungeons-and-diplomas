@@ -78,10 +78,7 @@ export const REQUIRED_WALL_TYPES: WallType[] = [
 // Optional (fallback to others if not filled)
 export const OPTIONAL_WALL_TYPES: WallType[] = [
   WALL_TYPE.ISOLATED,
-  WALL_TYPE.END_LEFT,
-  WALL_TYPE.END_RIGHT,
-  WALL_TYPE.END_TOP,
-  WALL_TYPE.END_BOTTOM,
+  // END pieces removed - they use fallback logic automatically
 ];
 
 // ============================================

@@ -50,16 +50,18 @@ export function detectWallType(
     if (hasLeft && hasTop) return WALL_TYPE.CORNER_BR;
 
     // Linear (opposite sides)
-    if (hasLeft && hasRight) return WALL_TYPE.HORIZONTAL;
-    if (hasTop && hasBottom) return WALL_TYPE.VERTICAL;
+    // INTUITIVE: HORIZONTAL = left-right walls, VERTICAL = top-bottom walls
+    if (hasLeft && hasRight) return WALL_TYPE.HORIZONTAL;    // Wall runs left-right → HORIZONTAL
+    if (hasTop && hasBottom) return WALL_TYPE.VERTICAL;      // Wall runs top-bottom → VERTICAL
   }
 
   // 1 neighbor = end piece
+  // BUG FIX: Swapped to match vertical/horizontal swap above
   if (count === 1) {
-    if (hasRight) return WALL_TYPE.END_LEFT;
-    if (hasLeft) return WALL_TYPE.END_RIGHT;
-    if (hasBottom) return WALL_TYPE.END_TOP;
-    if (hasTop) return WALL_TYPE.END_BOTTOM;
+    if (hasRight) return WALL_TYPE.END_TOP;     // Swapped from END_LEFT
+    if (hasLeft) return WALL_TYPE.END_BOTTOM;   // Swapped from END_RIGHT
+    if (hasBottom) return WALL_TYPE.END_LEFT;   // Swapped from END_TOP
+    if (hasTop) return WALL_TYPE.END_RIGHT;     // Swapped from END_BOTTOM
   }
 
   // 0 neighbors = isolated
@@ -68,18 +70,23 @@ export function detectWallType(
 
 /**
  * Lookup map for fallbacks when optional types are not filled
+ * INTUITIVE: horizontal = ↔, vertical = ↕
  */
 export const WALL_TYPE_FALLBACKS: { [key in WallType]?: WallType } = {
   [WALL_TYPE.ISOLATED]: WALL_TYPE.HORIZONTAL,
-  [WALL_TYPE.END_LEFT]: WALL_TYPE.HORIZONTAL,
-  [WALL_TYPE.END_RIGHT]: WALL_TYPE.HORIZONTAL,
-  [WALL_TYPE.END_TOP]: WALL_TYPE.VERTICAL,
-  [WALL_TYPE.END_BOTTOM]: WALL_TYPE.VERTICAL,
+  [WALL_TYPE.END_LEFT]: WALL_TYPE.HORIZONTAL,      // Left-right end → HORIZONTAL
+  [WALL_TYPE.END_RIGHT]: WALL_TYPE.HORIZONTAL,     // Left-right end → HORIZONTAL
+  [WALL_TYPE.END_TOP]: WALL_TYPE.VERTICAL,         // Top-bottom end → VERTICAL
+  [WALL_TYPE.END_BOTTOM]: WALL_TYPE.VERTICAL,      // Top-bottom end → VERTICAL
 };
 
 /**
  * Detect door type based on orientation
  * isOpen: In game, door becomes "open" when player passes through
+ *
+ * FIXED: Now checks all 4 neighbors for floor/door tiles
+ * - Vertical door: Has floor/door above AND below (connects rooms vertically)
+ * - Horizontal door: Has floor/door left AND right (connects rooms horizontally)
  */
 export function detectDoorType(
   dungeon: TileType[][],
@@ -87,17 +94,29 @@ export function detectDoorType(
   y: number,
   isOpen: boolean = false
 ): DoorType {
-  // Check horizontal vs vertical orientation
-  const hasWallLeft = x > 0 && dungeon[y][x - 1] === TILE.WALL;
-  const hasWallRight = x < dungeon[0].length - 1 && dungeon[y][x + 1] === TILE.WALL;
+  const width = dungeon[0]?.length || 0;
+  const height = dungeon.length;
 
-  // Door is vertical if walls are on left/right
-  const isVertical = hasWallLeft || hasWallRight;
+  // Check all 4 neighbors for floor/door tiles
+  const hasFloorOrDoorAbove = y > 0 && (dungeon[y - 1][x] === TILE.FLOOR || dungeon[y - 1][x] === TILE.DOOR);
+  const hasFloorOrDoorBelow = y < height - 1 && (dungeon[y + 1][x] === TILE.FLOOR || dungeon[y + 1][x] === TILE.DOOR);
+  const hasFloorOrDoorLeft = x > 0 && (dungeon[y][x - 1] === TILE.FLOOR || dungeon[y][x - 1] === TILE.DOOR);
+  const hasFloorOrDoorRight = x < width - 1 && (dungeon[y][x + 1] === TILE.FLOOR || dungeon[y][x + 1] === TILE.DOOR);
 
-  if (isVertical) {
+  // Vertical door: Has floor/door above AND below (connects rooms vertically)
+  const isVertical = hasFloorOrDoorAbove && hasFloorOrDoorBelow;
+
+  // Horizontal door: Has floor/door left AND right (connects rooms horizontally)
+  const isHorizontal = hasFloorOrDoorLeft && hasFloorOrDoorRight;
+
+  // If both or neither, default to vertical
+  if (isVertical && !isHorizontal) {
     return isOpen ? DOOR_TYPE.VERTICAL_OPEN : DOOR_TYPE.VERTICAL_CLOSED;
-  } else {
+  } else if (isHorizontal && !isVertical) {
     return isOpen ? DOOR_TYPE.HORIZONTAL_OPEN : DOOR_TYPE.HORIZONTAL_CLOSED;
+  } else {
+    // Ambiguous or corner case - default to vertical
+    return isOpen ? DOOR_TYPE.VERTICAL_OPEN : DOOR_TYPE.VERTICAL_CLOSED;
   }
 }
 

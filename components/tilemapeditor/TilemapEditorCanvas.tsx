@@ -113,6 +113,7 @@ export function TilemapEditorCanvas() {
         onNew={handleNewTheme}
         onSave={handleSaveTheme}
         onLoad={handleLoadTheme}
+        onClearAll={actions.clearAllVariants}
         themes={themes}
         isDirty={state.isDirty}
         validationResult={state.validationResult}
@@ -158,6 +159,7 @@ export function TilemapEditorCanvas() {
               draggedTile={state.draggedTile}
               onDropTile={actions.addVariant}
               onEndDrag={actions.endDrag}
+              onClearSlot={actions.clearSlotVariants}
               tilesets={state.tilesets}
             />
           </div>

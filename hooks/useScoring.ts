@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { loadAllEloScores } from '@/lib/scoring/EloService';
 import { logHookError } from '@/lib/hooks';
 
@@ -14,7 +14,7 @@ export function useScoring(userId: number | null) {
   const [sessionScores, setSessionScores] = useState<SubjectScore[]>([]);
   const sessionStartEloRef = useRef<{ [key: string]: number }>({});
 
-  const loadSessionElos = async (id: number) => {
+  const loadSessionElos = useCallback(async (id: number) => {
     try {
       const eloScores = await loadAllEloScores(id);
       const startElos: { [key: string]: number } = {};
@@ -36,9 +36,9 @@ export function useScoring(userId: number | null) {
     } catch (error) {
       logHookError('useScoring', error, 'Failed to load session ELO');
     }
-  };
+  }, []);
 
-  const updateSessionScores = async (subjectKey: string) => {
+  const updateSessionScores = useCallback(async (subjectKey: string) => {
     if (!userId) return;
 
     try {
@@ -61,7 +61,7 @@ export function useScoring(userId: number | null) {
     } catch (error) {
       logHookError('useScoring', error, 'Failed to update session scores');
     }
-  };
+  }, [userId]);
 
   return {
     sessionScores,

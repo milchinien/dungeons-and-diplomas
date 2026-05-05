@@ -7,6 +7,7 @@ import { COLORS } from '@/lib/ui/colors';
 interface PauseMenuProps {
   onResume: () => void;
   onOptions: () => void;
+  onStats: () => void;
   onRestart: () => void;
   onMainMenu: () => void;
 }
@@ -48,7 +49,7 @@ function MenuButton({ label, onClick, color = COLORS.gold, hoverColor }: MenuBut
   );
 }
 
-export default function PauseMenu({ onResume, onOptions, onRestart, onMainMenu }: PauseMenuProps) {
+export default function PauseMenu({ onResume, onOptions, onStats, onRestart, onMainMenu }: PauseMenuProps) {
   return (
     <GameOverlay
       backgroundColor="rgba(0, 0, 0, 0.85)"
@@ -86,6 +87,7 @@ export default function PauseMenu({ onResume, onOptions, onRestart, onMainMenu }
       >
         <MenuButton label="Weiterspielen" onClick={onResume} />
         <MenuButton label="Optionen" onClick={onOptions} />
+        <MenuButton label="Statistiken" onClick={onStats} color={COLORS.info} hoverColor="#66B2FF" />
         <MenuButton
           label="Neustart"
           onClick={onRestart}
