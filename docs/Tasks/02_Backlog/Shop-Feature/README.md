@@ -152,7 +152,25 @@ Alle ──> SHOP-17 (Polish)
 | SHOP-13 | ✅ Fertig | Michi | 2026-01-13 |
 | SHOP-14 | ✅ Fertig | Claude | 2026-01-13 |
 | SHOP-15 | ✅ Fertig | Claude | 2026-01-13 |
-| SHOP-16 | ⬜ Offen | - | - |
-| SHOP-17 | ⬜ Offen | - | - |
+| SHOP-16 | ✅ Fertig | Claude | 2026-01-27 |
+| SHOP-17 | ✅ Fertig | Claude | 2026-01-27 |
 
 **Legende:** ⬜ Offen | 🔄 In Arbeit | ✅ Fertig
+
+---
+
+## Zusammenfassung
+
+**Alle 17 Shop-Tasks sind abgeschlossen!** 🎉
+
+Das Shop-System ist vollständig implementiert und getestet:
+- ✅ Rarity/Item/Perk-System
+- ✅ Shop-Räume mit Layout und Kollision
+- ✅ Shop-Türen mit Lock-Mechanik
+- ✅ Rendering mit Glow-Effekten
+- ✅ Tooltips und Kauf-System
+- ✅ Kampf-Effekte Integration
+- ✅ UI-Integration (TopLeftPanel, TopRightPanel, ShopItemsDisplay)
+- ✅ Minimap-Integration (Cyan-Farbe für Shops)
+- ✅ Gold-System
+- ✅ Dokumentation (CLAUDE.md aktualisiert)

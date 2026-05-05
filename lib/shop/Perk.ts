@@ -24,6 +24,7 @@ export interface PerkDefinition {
   description: string;
   baseEffect: number;
   iconKey: string;
+  baseCost: number;  // Base gold cost before rarity multiplier
 }
 
 export interface Perk {
@@ -31,6 +32,7 @@ export interface Perk {
   definition: PerkDefinition;
   rarity: Rarity;
   effectValue: number;  // baseEffect * rarityMultiplier
+  finalCost: number;    // baseCost * rarityMultiplier
 }
 
 export const PERK_DEFINITIONS: PerkDefinition[] = [
@@ -39,63 +41,72 @@ export const PERK_DEFINITIONS: PerkDefinition[] = [
     name: '+HP',
     description: 'Erhöht die maximalen HP um einen festen Wert',
     baseEffect: 5,
-    iconKey: 'perk_hp_flat'
+    iconKey: 'perk_hp_flat',
+    baseCost: 30
   },
   {
     type: PerkType.HP_PERCENT,
     name: '+HP%',
     description: 'Erhöht die maximalen HP prozentual',
     baseEffect: 5,
-    iconKey: 'perk_hp_percent'
+    iconKey: 'perk_hp_percent',
+    baseCost: 40
   },
   {
     type: PerkType.DAMAGE_FLAT,
     name: '+Schaden',
     description: 'Erhöht den Basis-Schaden',
     baseEffect: 3,
-    iconKey: 'perk_damage_flat'
+    iconKey: 'perk_damage_flat',
+    baseCost: 50
   },
   {
     type: PerkType.DAMAGE_PERCENT,
     name: '+Schaden%',
     description: 'Erhöht den Schaden prozentual',
     baseEffect: 5,
-    iconKey: 'perk_damage_percent'
+    iconKey: 'perk_damage_percent',
+    baseCost: 60
   },
   {
     type: PerkType.REGENERATION,
     name: 'Regeneration',
     description: 'Regeneriert HP über Zeit',
     baseEffect: 1,  // HP per 5 seconds
-    iconKey: 'perk_regeneration'
+    iconKey: 'perk_regeneration',
+    baseCost: 70
   },
   {
     type: PerkType.CRITICAL,
     name: 'Kritisch',
     description: 'Chance auf doppelten Schaden',
     baseEffect: 10,  // Percent
-    iconKey: 'perk_critical'
+    iconKey: 'perk_critical',
+    baseCost: 80
   },
   {
     type: PerkType.TIME_BONUS,
     name: 'Zeitbonus',
     description: 'Mehr Zeit bei Quiz-Fragen',
     baseEffect: 2,  // Seconds
-    iconKey: 'perk_time_bonus'
+    iconKey: 'perk_time_bonus',
+    baseCost: 55
   },
   {
     type: PerkType.EXTRA_LIFE,
     name: 'Extra Leben',
     description: 'Einmal bei 0 HP wiederbeleben',
     baseEffect: 1,  // Number of lives
-    iconKey: 'perk_extra_life'
+    iconKey: 'perk_extra_life',
+    baseCost: 100
   },
   {
     type: PerkType.ELO_BOOST,
     name: 'ELO-Boost',
     description: 'Verbessert alle Fach-ELOs',
     baseEffect: 1,
-    iconKey: 'perk_elo_boost'
+    iconKey: 'perk_elo_boost',
+    baseCost: 90
   }
 ];
 
@@ -132,11 +143,14 @@ export function createPerk(type: PerkType, rarity: Rarity): Perk | null {
     effectValue = Math.round(definition.baseEffect * multiplier);
   }
 
+  const finalCost = Math.round(definition.baseCost * multiplier);
+
   return {
     id: generatePerkId(),
     definition,
     rarity,
-    effectValue
+    effectValue,
+    finalCost
   };
 }
 

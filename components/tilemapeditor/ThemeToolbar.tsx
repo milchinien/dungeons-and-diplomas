@@ -10,6 +10,7 @@ interface ThemeToolbarProps {
   onNew: () => void;
   onSave: () => void;
   onLoad: (id: number) => void;
+  onClearAll: () => void;
   themes: TileTheme[];
   isDirty: boolean;
   validationResult: ValidationResult | null;
@@ -22,6 +23,7 @@ export function ThemeToolbar({
   onNew,
   onSave,
   onLoad,
+  onClearAll,
   themes,
   isDirty,
   validationResult,
@@ -85,6 +87,16 @@ export function ThemeToolbar({
             </div>
           )}
         </div>
+
+        {/* Clear All */}
+        <button
+          onClick={onClearAll}
+          disabled={isLoading}
+          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded disabled:bg-gray-500 disabled:cursor-not-allowed"
+          title="Alle Tiles entfernen"
+        >
+          Alles löschen
+        </button>
 
         {/* Save */}
         <button

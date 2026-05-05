@@ -10,6 +10,7 @@ import * as elo from './elo';
 import * as questions from './questions';
 import * as answers from './answers';
 import * as xp from './xp';
+import * as gold from './gold';
 import * as auth from './auth';
 import * as theme from './theme';
 import * as stats from './stats';
@@ -20,6 +21,7 @@ export const api = {
   questions,
   answers,
   xp,
+  gold,
   auth,
   theme,
   stats,
@@ -30,6 +32,7 @@ export const api = {
 export type { SubjectEloScore } from './elo';
 export type { AnswerLogEntry, LogAnswerResponse } from './answers';
 export type { XpLogEntry, AddXpResponse } from './xp';
+export type { GoldLogEntry, AddGoldResponse } from './gold';
 export type { LoginRequest, LoginResponse } from './auth';
 export type { ThemeResponse } from './theme';
 export type { StatsData, SubjectStats, QuestionStats } from './stats';

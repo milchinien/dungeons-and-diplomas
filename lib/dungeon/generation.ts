@@ -232,12 +232,47 @@ export function connectRooms(dungeon: TileType[][], roomMap: number[][], rooms: 
   }
 }
 
-export function addWalls(dungeon: TileType[][], config?: Partial<DungeonConfig>) {
+export function addWalls(dungeon: TileType[][], config?: Partial<DungeonConfig>, roomMap?: number[][]) {
   const width = config?.width ?? dungeon[0]?.length ?? DUNGEON_WIDTH;
   const height = config?.height ?? dungeon.length ?? DUNGEON_HEIGHT;
 
-  // Walls are already created by the room generation algorithm
-  // This function now only adds outer boundary walls if needed
+  console.log('[DungeonGen] addWalls: Starting wall generation');
+  let wallsAdded = 0;
+
+  // Add walls around all floor and door tiles
+  // This ensures every room has proper outer walls
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      // If this is a floor or door, check all 8 neighbors
+      if (dungeon[y][x] === TILE.FLOOR || dungeon[y][x] === TILE.DOOR) {
+        // Check all 8 neighbors
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            if (dx === 0 && dy === 0) continue; // Skip center
+
+            const ny = y + dy;
+            const nx = x + dx;
+
+            // Skip out of bounds
+            if (ny < 0 || ny >= height || nx < 0 || nx >= width) continue;
+
+            // If neighbor is empty, make it a wall
+            if (dungeon[ny][nx] === TILE.EMPTY) {
+              dungeon[ny][nx] = TILE.WALL;
+              if (roomMap) {
+                roomMap[ny][nx] = -1; // -1 for walls
+              }
+              wallsAdded++;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  console.log(`[DungeonGen] addWalls: Added ${wallsAdded} walls around floor/door tiles`);
+
+  // Add outer boundary walls
   for (let x = 0; x < width; x++) {
     if (dungeon[0][x] === TILE.EMPTY) dungeon[0][x] = TILE.WALL;
     if (dungeon[height - 1][x] === TILE.EMPTY) dungeon[height - 1][x] = TILE.WALL;
@@ -246,6 +281,86 @@ export function addWalls(dungeon: TileType[][], config?: Partial<DungeonConfig>)
     if (dungeon[y][0] === TILE.EMPTY) dungeon[y][0] = TILE.WALL;
     if (dungeon[y][width - 1] === TILE.EMPTY) dungeon[y][width - 1] = TILE.WALL;
   }
+
+  console.log('[DungeonGen] addWalls: Added boundary walls');
+
+  // Remove double walls between rooms
+  if (roomMap) {
+    removeDoubleWalls(dungeon, roomMap, width, height);
+  }
+
+  console.log('[DungeonGen] addWalls: Complete');
+}
+
+/**
+ * Remove ALL double walls by converting sequences of walls into single walls.
+ * Multi-pass algorithm: repeatedly finds and removes double walls until none remain.
+ * IMPORTANT: Only removes walls when there are floors/doors on BOTH sides (AND logic)
+ */
+export function removeDoubleWalls(dungeon: TileType[][], roomMap: number[][], width: number, height: number) {
+  console.log('[DungeonGen] removeDoubleWalls called');
+
+  let totalRemoved = 0;
+  let iteration = 0;
+  let removedThisIteration = 0;
+
+  // Keep looping until no more double walls are found
+  do {
+    removedThisIteration = 0;
+    iteration++;
+
+    // Find and remove horizontal double walls (vertical stacks)
+    for (let y = 0; y < height - 1; y++) {
+      for (let x = 0; x < width; x++) {
+        if (dungeon[y][x] === TILE.WALL && dungeon[y + 1][x] === TILE.WALL) {
+          // Remove if floors/doors on EITHER side (OR logic)
+          const hasAccessAbove = y > 0 && (dungeon[y - 1][x] === TILE.FLOOR || dungeon[y - 1][x] === TILE.DOOR);
+          const hasAccessBelow = y + 2 < height && (dungeon[y + 2][x] === TILE.FLOOR || dungeon[y + 2][x] === TILE.DOOR);
+
+          if (hasAccessAbove || hasAccessBelow) {  // OR logic - remove if either side has access
+            // Remove the first wall
+            dungeon[y][x] = TILE.FLOOR;
+
+            // Assign to adjacent room
+            if (roomMap[y - 1][x] >= 0) {
+              roomMap[y][x] = roomMap[y - 1][x];
+            }
+
+            removedThisIteration++;
+            totalRemoved++;
+          }
+        }
+      }
+    }
+
+    // Find and remove vertical double walls (horizontal pairs)
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width - 1; x++) {
+        if (dungeon[y][x] === TILE.WALL && dungeon[y][x + 1] === TILE.WALL) {
+          // Remove if floors/doors on EITHER side (OR logic)
+          const hasAccessLeft = x > 0 && (dungeon[y][x - 1] === TILE.FLOOR || dungeon[y][x - 1] === TILE.DOOR);
+          const hasAccessRight = x + 2 < width && (dungeon[y][x + 2] === TILE.FLOOR || dungeon[y][x + 2] === TILE.DOOR);
+
+          if (hasAccessLeft || hasAccessRight) {  // OR logic - remove if either side has access
+            // Remove the first wall
+            dungeon[y][x] = TILE.FLOOR;
+
+            // Assign to adjacent room
+            if (roomMap[y][x - 1] >= 0) {
+              roomMap[y][x] = roomMap[y][x - 1];
+            }
+
+            removedThisIteration++;
+            totalRemoved++;
+          }
+        }
+      }
+    }
+
+    console.log(`[DungeonGen] Iteration ${iteration}: Removed ${removedThisIteration} double walls`);
+  } while (removedThisIteration > 0 && iteration < 10); // Max 10 iterations to prevent infinite loops
+
+  console.log(`[DungeonGen] Total removed: ${totalRemoved} double walls in ${iteration} iteration(s)`);
 }
 
 
@@ -306,7 +421,7 @@ export function assignShopRooms(
   for (let i = 0; i < guaranteedCount; i++) {
     const roomIndex = eligibleRooms[i];
     rooms[roomIndex].type = 'shop';
-    rooms[roomIndex].shopInventory = generateShopInventory(rooms[roomIndex].id, randomFn);
+    rooms[roomIndex].shopInventory = generateShopInventory(rooms[roomIndex].id, randomFn, rooms[roomIndex].width);
     rooms[roomIndex].shopDoorOpen = false;
     shopCount++;
   }
@@ -316,7 +431,7 @@ export function assignShopRooms(
     if (randomFn() < SHOP_SPAWN_CHANCE) {
       const roomIndex = eligibleRooms[i];
       rooms[roomIndex].type = 'shop';
-      rooms[roomIndex].shopInventory = generateShopInventory(rooms[roomIndex].id, randomFn);
+      rooms[roomIndex].shopInventory = generateShopInventory(rooms[roomIndex].id, randomFn, rooms[roomIndex].width);
       rooms[roomIndex].shopDoorOpen = false;
       shopCount++;
     }

@@ -5,10 +5,13 @@ import type { QuestionDatabase } from '@/lib/questions';
 import { PLAYER_MAX_HP, DIRECTION, INITIAL_PLAYER_BUFFS } from '@/lib/constants';
 import type { Player } from '@/lib/enemy';
 import type { Shrine } from '@/lib/constants';
+import MainMenu from './MainMenu';
 import LoginModal from './LoginModal';
 import SkillDashboard from './SkillDashboard';
-import CharacterPanel from './CharacterPanel';
 import CombatModal from './CombatModal';
+import { TopLeftPanel } from './hud/TopLeftPanel';
+import { BottomCenterBar } from './hud/BottomCenterBar';
+import { TopRightPanel } from './hud/TopRightPanel';
 import VictoryOverlay from './VictoryOverlay';
 import DefeatOverlay from './DefeatOverlay';
 import DamageFlash from './DamageFlash';
@@ -80,6 +83,9 @@ export default function GameCanvas() {
 
   // Game state
   const [gameStarted, setGameStarted] = useState(false);
+  const [showMainMenu, setShowMainMenu] = useState(false); // Don't show main menu until after login
+  const [showLoginForPlay, setShowLoginForPlay] = useState(false);
+  const [loginAction, setLoginAction] = useState<'play' | 'progress' | null>(null);
 
   // Damage flash trigger (incremented each time player takes trashmob damage)
   const [damageFlashTrigger, setDamageFlashTrigger] = useState(0);
@@ -99,6 +105,9 @@ export default function GameCanvas() {
 
   // Scoring
   const { sessionScores, loadSessionElos, updateSessionScores } = useScoring(userId);
+
+  // Gold tracking
+  const [currentGold, setCurrentGold] = useState(0);
 
   // Track combat state for combo timer slowdown (synced via useEffect below)
   const [isInCombatForCombo, setIsInCombatForCombo] = useState(false);
@@ -126,19 +135,7 @@ export default function GameCanvas() {
     loadData();
   }, []);
 
-  // Load session ELOs when user logs in (XP is handled by useAuth)
-  useEffect(() => {
-    if (userId) {
-      loadSessionElos(userId);
-    }
-  }, [userId]);
-
-  // Start game automatically when user is logged in
-  useEffect(() => {
-    if (userId && !showLogin && !gameStarted) {
-      setGameStarted(true);
-    }
-  }, [userId, showLogin, gameStarted]);
+  // No auto-start - user must click "Spielen" in MainMenu
 
   // Background music state
   const musicTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -284,6 +281,21 @@ export default function GameCanvas() {
       console.error('Failed to award XP:', error);
     }
   };
+
+  // Handle gold gained from combat/other sources
+  const handleGoldGained = useCallback((amount: number) => {
+    setCurrentGold(prev => {
+      const newGold = prev + amount;
+      console.log(`[GameCanvas] Gold gained: +${amount}. New balance: ${newGold}`);
+      return newGold;
+    });
+  }, []);
+
+  // Handle gold changes (from shop purchases or other sources)
+  const handleGoldChange = useCallback((newGold: number) => {
+    setCurrentGold(newGold);
+    // Note: Only log on significant changes to avoid spam
+  }, []);
 
   // Track enemy defeats for session stats
   const handleEnemyDefeated = useCallback(() => {
@@ -466,6 +478,7 @@ export default function GameCanvas() {
       gameState.generateNewDungeon();
     },
     onXpGained: handleXpGained,
+    onGoldGained: handleGoldGained,
     onItemDropped: handleItemDropped,
     onEnemyDefeated: handleEnemyDefeated,
     onEnemyDefeatedFlawless: combo.incrementCombo,
@@ -508,7 +521,20 @@ export default function GameCanvas() {
     onTrashmobDamage: handleTrashmobDamage,
     playerRef
   });
-// Handle shrine enemy defeated - tracks progress toward shrine completion
+
+  // Expose dungeon data for E2E testing
+  // Use a small delay to ensure dungeon generation is complete
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (typeof window !== 'undefined' && gameState.dungeonManagerRef.current?.dungeon) {
+        (window as any).dungeonTestData = gameState.dungeonManagerRef.current.getDungeonData();
+        console.log('[GameCanvas] Exposed dungeon test data');
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [gameState.dungeonManagerRef.current?.dungeon, gameStarted]);
+
+  // Handle shrine enemy defeated - tracks progress toward shrine completion
   const handleShrineEnemyDefeated = useCallback((enemyId: number, shrineId: number) => {
     const manager = gameState.dungeonManagerRef.current;
     if (!manager) return;
@@ -627,8 +653,19 @@ export default function GameCanvas() {
     onHpChange: (increase) => {
       playerRef.current.hp = Math.min(playerRef.current.hp + increase, playerRef.current.maxHp);
       setPlayerHp(playerRef.current.hp);
-    }
+    },
+    userId,
+    onGoldChange: handleGoldChange
   });
+
+  // Load session ELOs and gold when user logs in (XP is handled by useAuth)
+  useEffect(() => {
+    if (userId) {
+      loadSessionElos(userId);
+      shopPurchase.loadGold();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]); // Only trigger when userId changes, not when functions change
 
   // Cheat system hook
   const cheatSystem = useCheatSystem({
@@ -656,9 +693,11 @@ export default function GameCanvas() {
   useEffect(() => {
     const interval = setInterval(() => {
       shrineHook.updateProximity();
+      shopPurchase.updateProximity();
     }, 100);
     return () => clearInterval(interval);
-  }, [shrineHook.updateProximity, shopPurchase.updateProximity]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps - interval runs independently
 
   // Handle canvas click for shrine interaction
   const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -678,6 +717,11 @@ export default function GameCanvas() {
   const handleCloseSkills = () => {
     gameState.gamePausedRef.current = false;
     setShowSkillDashboard(false);
+
+    // If not in game, return to main menu
+    if (!gameStarted) {
+      setShowMainMenu(true);
+    }
   };
 
   const handleOpenInventory = () => {
@@ -726,7 +770,8 @@ export default function GameCanvas() {
     setShowPauseMenu(false);
     gameState.gamePausedRef.current = false;
     setGameStarted(false);
-    handleLogout();
+    setShowMainMenu(true);
+    // Don't logout - keep user logged in when returning to main menu
   };
 
   const handlePauseMenuOptions = () => {
@@ -734,9 +779,63 @@ export default function GameCanvas() {
     setShowOptionsMenu(true);
   };
 
+  const handlePauseMenuStats = () => {
+    setShowPauseMenu(false);
+    setShowSkillDashboard(true);
+  };
+
   const handleOptionsBack = () => {
     setShowOptionsMenu(false);
-    setShowPauseMenu(true);
+    // If in game, go back to pause menu
+    if (gameStarted) {
+      setShowPauseMenu(true);
+    } else {
+      // If not in game, go back to main menu
+      setShowMainMenu(true);
+    }
+  };
+
+  // Main menu handlers
+  const handleMainMenuPlay = () => {
+    if (userId) {
+      // User is logged in, start game directly
+      setShowMainMenu(false);
+      setGameStarted(true);
+    } else {
+      // User not logged in, show login modal
+      setLoginAction('play');
+      setShowLoginForPlay(true);
+    }
+  };
+
+  const handleMainMenuProgress = () => {
+    if (userId) {
+      // Show skill dashboard without starting game
+      setShowSkillDashboard(true);
+    } else {
+      // Need to login to see progress
+      setLoginAction('progress');
+      setShowLoginForPlay(true);
+    }
+  };
+
+  const handleMainMenuSettings = () => {
+    // Hide main menu and show options menu
+    setShowMainMenu(false);
+    setShowOptionsMenu(true);
+  };
+
+  const handleMainMenuProfileSelect = () => {
+    // Hide main menu and logout to show login modal
+    setShowMainMenu(false);
+    handleLogout();
+    // showLogin will be set to true in handleLogout
+  };
+
+  const handleSecretUnlocked = () => {
+    // Navigate to editor page
+    console.log('[GameCanvas] Secret unlocked! Navigating to editor...');
+    window.location.href = '/editor';
   };
 
   // Handle game restart - resets combo, buffs, session stats, and generates new dungeon
@@ -821,25 +920,35 @@ export default function GameCanvas() {
       }
 
       // ESC key handling
-      if (e.key === 'Escape' && !showLogin) {
+      if (e.key === 'Escape' && !showLogin && !showLoginForPlay) {
         // Close modals in priority order
         if (cheatSystem.showCheatModal) {
           cheatSystem.closeCheatModal();
           gameState.gamePausedRef.current = false;
         } else if (showOptionsMenu) {
-          // Go back to pause menu from options
-          handleOptionsBack();
+          // Go back to main menu or pause menu from options
+          setShowOptionsMenu(false);
+          if (gameStarted) {
+            setShowPauseMenu(true);
+          }
+          // If not in game, just close options menu (returns to main menu)
         } else if (showInventory) {
           handleCloseInventory();
         } else if (showSkillTree) {
           handleCloseSkillTree();
         } else if (showSkillDashboard) {
+          // Close skill dashboard
           handleCloseSkills();
+          // If in game, go back to pause menu
+          if (gameStarted) {
+            setShowPauseMenu(true);
+          }
+          // If not in game, handleCloseSkills will return to main menu
         } else if (showPauseMenu) {
           // Close pause menu
           handleClosePauseMenu();
-        } else if (!combat.inCombat && !showBuffSelection) {
-          // Open pause menu (only when not in combat or buff selection)
+        } else if (!combat.inCombat && !showBuffSelection && gameStarted) {
+          // Open pause menu (only when in game, not in combat or buff selection)
           handleOpenPauseMenu();
         }
       }
@@ -852,9 +961,25 @@ export default function GameCanvas() {
   const handleLoginWithElo = async (id: number, name: string, xp?: number) => {
     await handleLogin(id, name, xp);
     await loadSessionElos(id);
-    // Load user skills
     await loadUserSkills(id);
-    // Game starts automatically via useEffect when userId is set
+    await shopPurchase.loadGold();
+
+    // Close login modal
+    setShowLoginForPlay(false);
+
+    // Execute the action that triggered login
+    if (loginAction === 'play') {
+      setShowMainMenu(false);
+      setGameStarted(true);
+    } else if (loginAction === 'progress') {
+      setShowSkillDashboard(true);
+    } else {
+      // Initial login - show main menu
+      setShowMainMenu(true);
+    }
+
+    // Reset login action
+    setLoginAction(null);
   };
 
   // Load user skills from API
@@ -892,76 +1017,78 @@ export default function GameCanvas() {
         }
       `}</style>
 
-      {showLogin && <LoginModal onLogin={handleLoginWithElo} />}
+      {/* Main Menu - shown when not in game and not showing login */}
+      {showMainMenu && !showLoginForPlay && !showOptionsMenu && (
+        <MainMenu
+          onPlay={handleMainMenuPlay}
+          onProgress={handleMainMenuProgress}
+          onSettings={handleMainMenuSettings}
+          onProfileSelect={handleMainMenuProfileSelect}
+          onSecretUnlocked={handleSecretUnlocked}
+          username={username}
+        />
+      )}
 
-      {!questionDatabase && !showLogin && gameStarted && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          backgroundColor: '#000000',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          color: 'white',
-          fontSize: '24px',
-          zIndex: 9999
-        }}>
-          Loading questions...
-        </div>
+      {/* Login Modal - shown for initial login or when switching profiles */}
+      {(showLogin || showLoginForPlay) && <LoginModal onLogin={handleLoginWithElo} />}
+
+      {/* Options Menu - shown from main menu or pause menu */}
+      {showOptionsMenu && (
+        <OptionsMenu
+          settings={audioSettings.settings}
+          onMasterVolumeChange={audioSettings.setMasterVolume}
+          onMusicVolumeChange={audioSettings.setMusicVolume}
+          onSfxVolumeChange={audioSettings.setSfxVolume}
+          onBack={handleOptionsBack}
+        />
+      )}
+
+      {/* Skill Dashboard - shown from main menu or in-game */}
+      {showSkillDashboard && userId && (
+        <SkillDashboard userId={userId} onClose={handleCloseSkills} />
       )}
 
       <div style={{ position: 'relative', width: '100vw', height: '100vh', backgroundColor: '#000000' }}>
+        {/* Top Left - Character Info with HP */}
         {username && gameStarted && (
-          <CharacterPanel
+          <TopLeftPanel
             username={username}
-            scores={sessionScores}
             level={levelInfo.level}
-            currentXp={levelInfo.currentXp}
-            xpForCurrentLevel={levelInfo.xpForCurrentLevel}
-            xpForNextLevel={levelInfo.xpForNextLevel}
             currentHp={playerHp}
             maxHp={playerRef.current.maxHp}
-            currentShield={playerShield}
-            maxShield={maxShield}
-            onLogout={handleLogout}
-            onRestart={handleRestart}
-            onSkills={handleOpenSkillTree}
-            skillPointsAvailable={skillPointsAvailable}
             equippedItems={shopPurchase.shopData.equippedItems}
             activePerks={shopPurchase.shopData.activePerks}
           />
         )}
 
+        {/* Bottom Center - XP and ELO Bar */}
         {gameStarted && (
-          <>
-            <canvas
-              ref={gameState.canvasRef}
-              onClick={handleCanvasClick}
-              style={{
-                display: 'block',
-                imageRendering: 'pixelated'
-              } as React.CSSProperties}
-            />
+          <BottomCenterBar
+            level={levelInfo.level}
+            currentXp={levelInfo.currentXp}
+            xpForCurrentLevel={levelInfo.xpForCurrentLevel}
+            xpForNextLevel={levelInfo.xpForNextLevel}
+            scores={sessionScores}
+          />
+        )}
 
-            <canvas
-              ref={gameState.minimapRef}
-              width={200}
-              height={200}
-              style={{
-                position: 'absolute',
-                top: '10px',
-                right: '10px',
-                border: `3px solid ${COLORS.success}`,
-                borderRadius: '4px',
-                backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                zIndex: 100,
-                imageRendering: 'pixelated'
-              } as React.CSSProperties}
-            />
-          </>
+        {/* Top Right - Gold and Minimap */}
+        {gameStarted && (
+          <TopRightPanel
+            gold={currentGold}
+            minimapRef={gameState.minimapRef}
+          />
+        )}
+
+        {gameStarted && (
+          <canvas
+            ref={gameState.canvasRef}
+            onClick={handleCanvasClick}
+            style={{
+              display: 'block',
+              imageRendering: 'pixelated'
+            } as React.CSSProperties}
+          />
         )}
 
         {/* Shrine Interaction Hint */}
@@ -1005,10 +1132,6 @@ export default function GameCanvas() {
             darkTheme={gameState.dungeonManagerRef.current?.darkTheme}
             tileSize={gameState.dungeonManagerRef.current?.tileSize}
           />
-        )}
-
-        {showSkillDashboard && userId && (
-          <SkillDashboard userId={userId} onClose={handleCloseSkills} />
         )}
 
         {/* Inventory Modal */}
@@ -1104,12 +1227,13 @@ export default function GameCanvas() {
         {/* Shop Confirm Modal */}
         {shopPurchase.showPurchaseModal && shopPurchase.purchaseTarget && (
           <ShopConfirmModal
-            item={shopPurchase.purchaseTarget.type === 'item' 
+            item={shopPurchase.purchaseTarget.type === 'item'
               ? shopPurchase.currentShopRoom?.shopInventory?.items[shopPurchase.purchaseTarget.index] ?? undefined
               : undefined}
-            perk={shopPurchase.purchaseTarget.type === 'perk' 
+            perk={shopPurchase.purchaseTarget.type === 'perk'
               ? shopPurchase.currentShopRoom?.shopInventory?.perks[shopPurchase.purchaseTarget.index] ?? undefined
               : undefined}
+            currentGold={currentGold}
             onConfirm={shopPurchase.handlePurchaseConfirm}
             onCancel={shopPurchase.handlePurchaseCancel}
           />
@@ -1120,19 +1244,9 @@ export default function GameCanvas() {
           <PauseMenu
             onResume={handleClosePauseMenu}
             onOptions={handlePauseMenuOptions}
+            onStats={handlePauseMenuStats}
             onRestart={handlePauseMenuRestart}
             onMainMenu={handlePauseMenuMainMenu}
-          />
-        )}
-
-        {/* Options Menu */}
-        {showOptionsMenu && (
-          <OptionsMenu
-            settings={audioSettings.settings}
-            onMasterVolumeChange={audioSettings.setMasterVolume}
-            onMusicVolumeChange={audioSettings.setMusicVolume}
-            onSfxVolumeChange={audioSettings.setSfxVolume}
-            onBack={handleOptionsBack}
           />
         )}
 

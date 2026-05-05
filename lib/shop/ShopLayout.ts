@@ -6,7 +6,6 @@
 
 import type { Room } from '../constants';
 import { TILE_SOURCE_SIZE } from '../spriteConfig';
-import { SHOP_ITEMS_COUNT, SHOP_PERKS_COUNT } from '../constants';
 
 export interface Position {
   x: number;
@@ -34,63 +33,117 @@ export interface ShopLayout {
 const layoutCache = new Map<number, ShopLayout>();
 
 /**
- * Calculates the layout of a shop room based on its size.
+ * Calculates the layout of a shop room based on its size and inventory.
  * All positions are relative to the room origin.
+ * New layout: Everything at the very top wall - sign and counters, items floating ABOVE counters.
+ * Ensures all elements stay within room boundaries.
+ *
+ * For small rooms (width < 7), uses a single counter with all items/perks.
+ * For larger rooms, uses two counters (left for items, right for perks).
  */
 export function calculateShopLayout(room: Room): ShopLayout {
+  // Get actual item/perk counts from inventory
+  const shopItemsCount = room.shopInventory?.items.length ?? 0;
+  const shopPerksCount = room.shopInventory?.perks.length ?? 0;
   const roomCenterX = room.x + Math.floor(room.width / 2);
-  const roomCenterY = room.y + Math.floor(room.height / 2);
 
-  // Sign: Upper third, centered
+  // Sign: Very top of room, right against the wall
   const signPosition: Position = {
     x: roomCenterX,
-    y: room.y + 1  // 1 tile from top edge
+    y: room.y + 1  // 1 tile from top edge (right at the wall)
   };
 
-  // Counter positions (2 tiles wide, 1 tile high)
-  const counterY = roomCenterY + 1;  // Slightly below center
+  // Counter positions at the very top wall, just below sign
+  const counterY = room.y + 2;  // Directly below the sign
   const counterWidth = 2;
-  const gap = 2;  // Gap between counters
 
-  // Left counter (for items)
-  const leftCounterStartX = roomCenterX - gap / 2 - counterWidth;
+  // Check if room is wide enough for two counters
+  // Minimum required: 2 walls + 2 counters (4 tiles) + gap (1 tile) = 7 tiles
+  const minWidthForTwoCounters = 7;
+  const useSingleCounter = room.width < minWidthForTwoCounters;
+
   const leftCounterTiles: Position[] = [];
-  for (let i = 0; i < counterWidth; i++) {
-    leftCounterTiles.push({
-      x: leftCounterStartX + i,
-      y: counterY
-    });
-  }
-
-  // Right counter (for perks)
-  const rightCounterStartX = roomCenterX + Math.ceil(gap / 2);
   const rightCounterTiles: Position[] = [];
-  for (let i = 0; i < counterWidth; i++) {
-    rightCounterTiles.push({
-      x: rightCounterStartX + i,
-      y: counterY
-    });
-  }
-
-  // Item positions (above left counter, spaced evenly)
   const itemPositions: Position[] = [];
-  const itemY = counterY - 1;  // Above the counter
-  const itemSpacing = SHOP_ITEMS_COUNT <= 2 ? 0.8 : 0.7; // More spacing for 2 items
-  for (let i = 0; i < SHOP_ITEMS_COUNT; i++) {
-    itemPositions.push({
-      x: (leftCounterStartX + 0.3 + i * itemSpacing) * TILE_SOURCE_SIZE + TILE_SOURCE_SIZE / 2,
-      y: itemY * TILE_SOURCE_SIZE
-    });
-  }
-
-  // Perk positions (above right counter, spaced evenly)
   const perkPositions: Position[] = [];
-  const perkSpacing = SHOP_PERKS_COUNT <= 2 ? 0.8 : 0.7; // More spacing for 2 perks
-  for (let i = 0; i < SHOP_PERKS_COUNT; i++) {
-    perkPositions.push({
-      x: (rightCounterStartX + 0.3 + i * perkSpacing) * TILE_SOURCE_SIZE + TILE_SOURCE_SIZE / 2,
-      y: itemY * TILE_SOURCE_SIZE
-    });
+  const itemY = counterY - 0.5;  // ABOVE the counter (floating)
+
+  if (useSingleCounter) {
+    // SMALL ROOM: Single counter in the center with all items/perks
+    const singleCounterStartX = roomCenterX - Math.floor(counterWidth / 2);
+
+    // Single counter tiles
+    for (let i = 0; i < counterWidth; i++) {
+      leftCounterTiles.push({
+        x: singleCounterStartX + i,
+        y: counterY
+      });
+    }
+
+    // All items/perks on one counter, evenly distributed
+    const totalItems = shopItemsCount + shopPerksCount;
+    const spacing = totalItems > 0 ? counterWidth / (totalItems + 1) : 0.5; // Evenly distribute across counter width
+
+    // Items first
+    for (let i = 0; i < shopItemsCount; i++) {
+      itemPositions.push({
+        x: (singleCounterStartX + spacing * (i + 1)) * TILE_SOURCE_SIZE,
+        y: itemY * TILE_SOURCE_SIZE
+      });
+    }
+
+    // Perks next
+    for (let i = 0; i < shopPerksCount; i++) {
+      perkPositions.push({
+        x: (singleCounterStartX + spacing * (shopItemsCount + i + 1)) * TILE_SOURCE_SIZE,
+        y: itemY * TILE_SOURCE_SIZE
+      });
+    }
+  } else {
+    // LARGE ROOM: Two counters (left for items, right for perks)
+    const maxGap = Math.max(1, Math.min(3, room.width - 2 * counterWidth - 2));
+    const gap = maxGap;
+
+    // Left counter (for items) - to the left of the sign
+    let leftCounterStartX = roomCenterX - Math.ceil(gap / 2) - counterWidth;
+    leftCounterStartX = Math.max(room.x + 1, leftCounterStartX); // At least 1 tile from left wall
+
+    for (let i = 0; i < counterWidth; i++) {
+      leftCounterTiles.push({
+        x: leftCounterStartX + i,
+        y: counterY
+      });
+    }
+
+    // Right counter (for perks) - to the right of the sign
+    let rightCounterStartX = roomCenterX + Math.ceil(gap / 2);
+    rightCounterStartX = Math.min(room.x + room.width - counterWidth - 1, rightCounterStartX); // At least 1 tile from right wall
+
+    for (let i = 0; i < counterWidth; i++) {
+      rightCounterTiles.push({
+        x: rightCounterStartX + i,
+        y: counterY
+      });
+    }
+
+    // Item positions ABOVE the left counter (floating over it)
+    // Center items on the counter: for 2 items on 2-tile counter, place at 0.5 and 1.5
+    const itemSpacing = shopItemsCount > 0 ? counterWidth / (shopItemsCount + 1) : 0.5;
+    for (let i = 0; i < shopItemsCount; i++) {
+      itemPositions.push({
+        x: (leftCounterStartX + itemSpacing * (i + 1)) * TILE_SOURCE_SIZE,
+        y: itemY * TILE_SOURCE_SIZE
+      });
+    }
+
+    // Perk positions ABOVE the right counter (floating over it)
+    const perkSpacing = shopPerksCount > 0 ? counterWidth / (shopPerksCount + 1) : 0.5;
+    for (let i = 0; i < shopPerksCount; i++) {
+      perkPositions.push({
+        x: (rightCounterStartX + perkSpacing * (i + 1)) * TILE_SOURCE_SIZE,
+        y: itemY * TILE_SOURCE_SIZE
+      });
+    }
   }
 
   return {

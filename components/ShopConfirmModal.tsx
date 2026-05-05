@@ -14,6 +14,7 @@ import { RARITY_CONFIG } from '@/lib/shop/Rarity';
 interface ShopConfirmModalProps {
   item?: Item;
   perk?: Perk;
+  currentGold: number;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -21,6 +22,7 @@ interface ShopConfirmModalProps {
 export default function ShopConfirmModal({
   item,
   perk,
+  currentGold,
   onConfirm,
   onCancel
 }: ShopConfirmModalProps) {
@@ -31,6 +33,8 @@ export default function ShopConfirmModal({
   const name = isItem ? item!.definition.name : perk!.definition.name;
   const description = isItem ? item!.definition.description : perk!.definition.description;
   const effectText = isItem ? getItemEffectDescription(item!) : getPerkEffectDescription(perk!);
+  const cost = target.finalCost;
+  const canAfford = currentGold >= cost;
   const rarity = target.rarity;
   const config = RARITY_CONFIG[rarity];
 
@@ -112,7 +116,7 @@ export default function ShopConfirmModal({
           borderRadius: '8px',
           padding: '15px',
           textAlign: 'center',
-          marginBottom: '25px',
+          marginBottom: '15px',
         }}>
           <span style={{
             color: config.color,
@@ -121,6 +125,49 @@ export default function ShopConfirmModal({
           }}>
             {effectText}
           </span>
+        </div>
+
+        {/* Cost */}
+        <div style={{
+          backgroundColor: 'rgba(255, 215, 0, 0.1)',
+          border: '1px solid rgba(255, 215, 0, 0.3)',
+          borderRadius: '8px',
+          padding: '12px',
+          marginBottom: '25px',
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '5px',
+          }}>
+            <span style={{ fontSize: '20px' }}>🪙</span>
+            <span style={{
+              color: '#FFD700',
+              fontSize: '24px',
+              fontWeight: 'bold',
+              textShadow: '0 0 8px rgba(255, 215, 0, 0.8)',
+            }}>
+              {cost}
+            </span>
+            <span style={{
+              color: '#ccc',
+              fontSize: '14px',
+            }}>
+              Gold
+            </span>
+          </div>
+          <div style={{
+            textAlign: 'center',
+            fontSize: '12px',
+            color: canAfford ? '#6c6' : '#c66',
+          }}>
+            {canAfford
+              ? `Du hast ${currentGold} Gold`
+              : `Nicht genug Gold! (${currentGold}/${cost})`
+            }
+          </div>
         </div>
 
         {/* Buttons */}
@@ -152,21 +199,25 @@ export default function ShopConfirmModal({
           </button>
           <button
             onClick={onConfirm}
+            disabled={!canAfford}
             style={{
               flex: 1,
               padding: '12px 20px',
-              backgroundColor: config.color,
+              backgroundColor: canAfford ? config.color : '#555',
               border: 'none',
               borderRadius: '8px',
-              color: '#000',
+              color: canAfford ? '#000' : '#999',
               fontSize: '16px',
               fontWeight: 'bold',
-              cursor: 'pointer',
+              cursor: canAfford ? 'pointer' : 'not-allowed',
               transition: 'all 0.2s ease',
+              opacity: canAfford ? 1 : 0.6,
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.02)';
-              e.currentTarget.style.boxShadow = `0 0 15px ${config.color}`;
+              if (canAfford) {
+                e.currentTarget.style.transform = 'scale(1.02)';
+                e.currentTarget.style.boxShadow = `0 0 15px ${config.color}`;
+              }
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'scale(1)';

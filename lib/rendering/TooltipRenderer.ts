@@ -42,6 +42,7 @@ export function createPerkTooltip(perk: Perk): TooltipData {
 
 /**
  * Renders a tooltip at a position on the canvas.
+ * Design matches screenshot: prominent rarity, clear sections, gold effect text.
  */
 export function renderTooltip(
   ctx: CanvasRenderingContext2D,
@@ -51,21 +52,37 @@ export function renderTooltip(
 ): void {
   ctx.save();
 
-  const padding = 10;
-  const width = 200;
-  const height = 100;
+  const padding = 14;
+  const width = 260;
+  const titleHeight = 26;
+  const rarityHeight = 20;
+  const descHeight = 22;
+  const effectHeight = 24;
+  const instructionHeight = 18;
+  const height = padding * 3 + titleHeight + rarityHeight + descHeight + effectHeight + instructionHeight;
 
-  // Position adjustment (above the item, centered)
-  let tooltipX = screenX - width / 2;
-  let tooltipY = screenY - height - 40;
+  // Position adjustment (to the right and above the item)
+  let tooltipX = screenX + 50;
+  let tooltipY = screenY - height / 2;
 
   // Keep tooltip on screen
   const canvasWidth = ctx.canvas.width;
   const canvasHeight = ctx.canvas.height;
 
+  if (tooltipX + width > canvasWidth - 10) {
+    tooltipX = screenX - width - 50; // Place to the left instead
+  }
+  if (tooltipY < 10) tooltipY = 10;
+  if (tooltipY + height > canvasHeight - 10) {
+    tooltipY = canvasHeight - height - 10;
+  }
   if (tooltipX < 10) tooltipX = 10;
-  if (tooltipX + width > canvasWidth - 10) tooltipX = canvasWidth - width - 10;
-  if (tooltipY < 10) tooltipY = screenY + 40; // Show below if no room above
+
+  // Shadow for depth
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+  ctx.beginPath();
+  ctx.roundRect(tooltipX + 5, tooltipY + 5, width, height, 8);
+  ctx.fill();
 
   // Background with slight transparency
   ctx.fillStyle = 'rgba(20, 20, 30, 0.95)';
@@ -73,40 +90,59 @@ export function renderTooltip(
   ctx.roundRect(tooltipX, tooltipY, width, height, 8);
   ctx.fill();
 
-  // Border in rarity color
-  ctx.strokeStyle = RARITY_CONFIG[tooltip.rarity].color;
-  ctx.lineWidth = 2;
+  // Border in rarity color (thicker for prominence)
+  const rarityColor = RARITY_CONFIG[tooltip.rarity].color;
+  ctx.strokeStyle = rarityColor;
+  ctx.lineWidth = 3;
   ctx.stroke();
 
-  // Title (in rarity color)
-  ctx.fillStyle = RARITY_CONFIG[tooltip.rarity].color;
-  ctx.font = 'bold 14px Arial';
-  ctx.textAlign = 'center';
-  ctx.fillText(tooltip.title, tooltipX + width / 2, tooltipY + padding + 14);
+  // Inner glow effect
+  ctx.strokeStyle = rarityColor + '40'; // 25% opacity
+  ctx.lineWidth = 6;
+  ctx.beginPath();
+  ctx.roundRect(tooltipX + 3, tooltipY + 3, width - 6, height - 6, 6);
+  ctx.stroke();
 
-  // Rarity label
-  ctx.fillStyle = RARITY_CONFIG[tooltip.rarity].color;
-  ctx.font = '10px Arial';
-  ctx.fillText(
-    RARITY_CONFIG[tooltip.rarity].name,
-    tooltipX + width / 2,
-    tooltipY + padding + 28
-  );
+  // Title section background
+  ctx.fillStyle = rarityColor + '20'; // 12.5% opacity
+  ctx.fillRect(tooltipX + 3, tooltipY + 3, width - 6, titleHeight + rarityHeight + padding);
 
-  // Description
-  ctx.fillStyle = '#CCCCCC';
-  ctx.font = '11px Arial';
-  ctx.fillText(tooltip.description, tooltipX + width / 2, tooltipY + padding + 48);
+  // Current Y position for text
+  let currentY = tooltipY + padding + 16;
 
-  // Effect (highlighted)
+  // Title (white, bold, left-aligned)
   ctx.fillStyle = '#FFFFFF';
-  ctx.font = 'bold 13px Arial';
-  ctx.fillText(tooltip.effectText, tooltipX + width / 2, tooltipY + padding + 68);
+  ctx.font = 'bold 18px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(tooltip.title, tooltipX + padding, currentY);
+  currentY += titleHeight;
 
-  // Interaction hint
-  ctx.fillStyle = '#888888';
-  ctx.font = '10px Arial';
-  ctx.fillText('[E] Kaufen', tooltipX + width / 2, tooltipY + height - 8);
+  // Rarity label (rarity color, bold, centered)
+  ctx.fillStyle = rarityColor;
+  ctx.font = 'bold 14px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(RARITY_CONFIG[tooltip.rarity].name, tooltipX + width / 2, currentY);
+  currentY += rarityHeight + padding;
+
+  // Description (gray, smaller, left-aligned)
+  ctx.fillStyle = '#CCCCCC';
+  ctx.font = '13px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillText(tooltip.description, tooltipX + padding, currentY);
+  currentY += descHeight;
+
+  // Effect (gold/yellow, bold, left-aligned)
+  ctx.fillStyle = '#FFD700'; // Gold color for effect
+  ctx.font = 'bold 16px sans-serif';
+  ctx.fillText(tooltip.effectText, tooltipX + padding, currentY);
+  currentY += effectHeight;
+
+  // Interaction hint (light gray, italic, left-aligned)
+  ctx.fillStyle = '#AAAAAA';
+  ctx.font = 'italic 12px sans-serif';
+  ctx.fillText('(E) Kaufen', tooltipX + padding, currentY);
 
   ctx.restore();
 }

@@ -54,6 +54,8 @@ dungeons-and-diplomas/
 ├── app/
 │   ├── layout.tsx                      # Root layout with metadata
 │   ├── page.tsx                        # Main page (renders GameCanvas)
+│   ├── room-editor/                    # Room Layout Editor
+│   │   └── page.tsx                    # Room layout editor page
 │   └── api/                            # API Routes
 │       ├── questions/route.ts          # GET all questions grouped by subject
 │       ├── questions-with-elo/route.ts # GET questions with ELO for subject/user
@@ -61,6 +63,10 @@ dungeons-and-diplomas/
 │       ├── stats/route.ts              # GET user statistics
 │       ├── subjects/route.ts           # GET all distinct subjects
 │       ├── session-elo/route.ts        # GET session ELO scores per subject
+│       ├── room-layouts/               # Room layout CRUD endpoints
+│       │   ├── route.ts                # GET (list/filter) and POST (create)
+│       │   ├── [id]/route.ts           # GET/PUT/DELETE by ID
+│       │   └── random/route.ts         # GET random layout with filters
 │       └── auth/
 │           ├── login/route.ts           # POST login/register user
 │           └── logout/route.ts          # POST logout
@@ -69,7 +75,12 @@ dungeons-and-diplomas/
 │   ├── CombatModal.tsx                  # Combat UI overlay
 │   ├── CharacterPanel.tsx               # Top-left user panel with ELO display
 │   ├── LoginModal.tsx                  # Login/registration modal
-│   └── SkillDashboard.tsx               # Full-screen statistics dashboard
+│   ├── SkillDashboard.tsx               # Full-screen statistics dashboard
+│   └── roomeditor/                      # Room Layout Editor components
+│       ├── RoomLayoutEditor.tsx         # Main editor orchestrator
+│       ├── LayoutManager.tsx            # Layout browser and CRUD controls
+│       ├── LayoutCanvas.tsx             # Tile-based drawing canvas
+│       └── LayoutSettings.tsx           # Metadata form and tool selection
 ├── hooks/
 │   ├── useAuth.ts                       # Authentication state management
 │   ├── useScoring.ts                    # Session ELO tracking
@@ -87,7 +98,8 @@ dungeons-and-diplomas/
 │   ├── dungeon/
 │   │   ├── BSPNode.ts                   # Binary Space Partitioning tree
 │   │   ├── UnionFind.ts                 # Union-Find for connectivity
-│   │   └── generation.ts                # Dungeon generation functions
+│   │   ├── generation.ts                # Dungeon generation functions
+│   │   └── layoutGeneration.ts          # Layout-based dungeon generation
 │   ├── game/
 │   │   ├── GameEngine.ts                # Core game loop logic
 │   │   └── DungeonManager.ts            # Dungeon state management
@@ -100,8 +112,13 @@ dungeons-and-diplomas/
 │   ├── rendering/
 │   │   ├── GameRenderer.ts              # Main canvas rendering
 │   │   └── MinimapRenderer.ts           # Minimap rendering
+│   ├── roomlayouts/                     # Room Layout System
+│   │   ├── types.ts                     # TypeScript interfaces
+│   │   ├── validation.ts                # Layout validation (flood-fill, etc.)
+│   │   └── LayoutPool.ts                # Singleton layout manager
 │   └── data/
-│       └── seed-questions.json          # Question seed data (30 questions)
+│       ├── seed-questions.json          # Question seed data (30 questions)
+│       └── seed-room-layouts.json       # Room layout seed data (18 layouts)
 ├── data/
 │   └── game.db                          # SQLite database
 └── public/
@@ -194,16 +211,42 @@ CREATE TABLE answer_log (
 )
 ```
 
+**room_layouts**
+```sql
+CREATE TABLE room_layouts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  width INTEGER NOT NULL CHECK (width >= 5 AND width <= 15),
+  height INTEGER NOT NULL CHECK (height >= 5 AND height <= 15),
+  tile_grid TEXT NOT NULL,                -- JSON 2D array of TileType
+  door_positions TEXT NOT NULL,           -- JSON object: {north, south, east, west}
+  room_type TEXT DEFAULT 'any' CHECK (room_type IN ('empty', 'treasure', 'combat', 'shop', 'any')),
+  difficulty INTEGER DEFAULT 5 CHECK (difficulty >= 1 AND difficulty <= 10),
+  tags TEXT DEFAULT '[]',                 -- JSON array of strings
+  created_by INTEGER,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (created_by) REFERENCES users(id)
+)
+```
+
 ### Key Database Functions (lib/db/)
 
 **Core Operations:**
 - `getDatabase()`: Singleton database connection
-- `initializeDatabase()`: Creates tables and seeds 30 questions (10 per subject)
+- `initializeDatabase()`: Creates tables and seeds 30 questions (10 per subject) and 18 room layouts
 - `loginUser(username)`: Login or create user, updates last_login
 - `getAllQuestions()`: Returns all questions grouped by subject
 - `getQuestionsWithEloBySubject(subject, userId)`: Returns questions with calculated ELO
 - `getSessionEloScores(userId)`: Returns average ELO per subject
 - `logAnswer(entry)`: Records answer with timing and correctness
+
+**Room Layout Operations (lib/db/roomLayouts.ts):**
+- `createRoomLayout(layout)`: Create new layout with validation
+- `getRoomLayoutById(id)`: Get specific layout
+- `getRoomLayouts(filters?)`: Get all layouts with optional filtering
+- `updateRoomLayout(id, layout)`: Update existing layout
+- `deleteRoomLayout(id)`: Delete layout
+- `getRandomRoomLayout(filters?)`: Get random layout matching filters
 
 **ELO Calculation:**
 ```typescript
@@ -776,13 +819,31 @@ Two different ELO calculation methods exist:
 
 **Implementation**: lib/shop/, hooks/useShopPurchase.ts, components/ShopConfirmModal.tsx
 
+**Status**: ✅ **Fully Implemented** (SHOP-01 through SHOP-17 complete)
+
 **Overview:**
-The shop system allows players to purchase items and perks from special shop rooms in the dungeon. Shops spawn during dungeon generation and offer random items/perks with varying rarities.
+The shop system allows players to purchase items and perks from special shop rooms in the dungeon. Shops spawn during dungeon generation and offer random items/perks with varying rarities. Each shop has a unique layout with counters, floating merchandise, and locked doors that open after clearing adjacent rooms.
 
 **Room Generation:**
-- Shop rooms are assigned during dungeon generation (10% chance per room)
-- Each shop room gets a ShopInventory with 2-3 items and 1-2 perks
-- Items and perks have random rarities: Common (60%), Uncommon (25%), Rare (10%), Epic (4%), Legendary (1%)
+- Shop rooms spawn with 8% probability (max 2 per dungeon)
+- Minimum room size: 6x6 tiles
+- Never spawns as starting room
+- Each shop gets a unique inventory with 3 items and 3 perks
+- Items and perks have random rarities with weighted distribution
+
+**Rarity System** (lib/shop/Rarity.ts):
+```typescript
+enum Rarity { COMMON, UNCOMMON, RARE, EPIC, LEGENDARY }
+
+// Spawn Weights:
+// Common: 50 (60%), Uncommon: 25 (30%), Rare: 15 (18%), Epic: 8 (10%), Legendary: 2 (2%)
+
+// Effect Multipliers:
+// Common: 1.0x, Uncommon: 1.5x, Rare: 2.0x, Epic: 3.0x, Legendary: 5.0x
+
+// Visual Colors:
+// Common: Gray, Uncommon: Green, Rare: Blue, Epic: Purple, Legendary: Gold
+```
 
 **Item System** (lib/shop/Item.ts):
 ```typescript
@@ -793,8 +854,13 @@ interface Item {
   effectValue: number;  // baseEffect * rarityMultiplier
 }
 
-// Item Types: sword, chestplate, helmet, shield, boots, amulet
-// Effect Types: damage_flat, damage_reduction, hp_flat, block_chance, speed, all_stats
+// 6 Item Types:
+// - Sword: +5 damage (flat)
+// - Chestplate: -10% damage taken (reduction)
+// - Helmet: +10 HP (flat)
+// - Shield: 10% block chance
+// - Boots: +10% speed
+// - Amulet: +5% all stats
 ```
 
 **Perk System** (lib/shop/Perk.ts):
@@ -806,71 +872,368 @@ interface Perk {
   effectValue: number;  // baseEffect * rarityMultiplier
 }
 
-// Perk Types: hp_flat, hp_percent, damage_flat, damage_percent, 
-//             regeneration, critical, time_bonus, extra_life, elo_boost
+// 9 Perk Types:
+// - HP_FLAT: +5 HP
+// - HP_PERCENT: +5% HP
+// - DAMAGE_FLAT: +3 damage
+// - DAMAGE_PERCENT: +5% damage
+// - REGENERATION: 1 HP/5s
+// - CRITICAL: 10% crit chance (2x damage)
+// - TIME_BONUS: +2s quiz time
+// - EXTRA_LIFE: 1 revive at 50% HP
+// - ELO_BOOST: +1 to all subject ELOs
 ```
 
-**Rarity System** (lib/shop/Rarity.ts):
-- Common: 1.0x multiplier, gray color
-- Uncommon: 1.5x multiplier, green color
-- Rare: 2.0x multiplier, blue color
-- Epic: 3.0x multiplier, purple color
-- Legendary: 5.0x multiplier, gold color
+**Shop Layout** (lib/shop/ShopLayout.ts):
+- Centered sign at top of room
+- Left and right counters (2-3 tiles each)
+- 3 items floating above counters (left side)
+- 3 perks floating above counters (right side)
+- Floating animation: Sine wave, ±5 pixels, 2 cycles/second
+- Legendary items pulse with glow effect
 
-**Shop Interaction:**
-- Player enters shop room → items/perks are rendered on canvas
-- Player presses E near item/perk → ShopConfirmModal appears
-- Player confirms → item/perk is purchased and applied to player stats
+**Shop Door Mechanics** (lib/shop/ShopDoor.ts):
+- Doors are locked by default
+- Automatically unlock when all enemies in adjacent rooms are defeated
+- Visual indicator: Locked door sprite vs. open door
+- Player cannot enter while locked
+- Hint text displayed when approaching locked door
 
-**useShopPurchase Hook** (hooks/useShopPurchase.ts):
-- Manages shop state (current room, purchase target, modal visibility)
-- Handles E key for purchase interaction
-- Applies purchased items/perks to PlayerShopData
-- Updates player stats (HP, damage, etc.)
+**Purchase System:**
+1. **Detection**: Player within 1 tile of item/perk → proximity detected
+2. **Interaction**: Press E key → ShopConfirmModal opens
+3. **Confirmation**: Modal shows item/perk details, rarity, and effects
+4. **Purchase**: Confirm → item/perk added to player, removed from shop inventory
+5. **Application**: Effects immediately applied to player stats
 
-**PlayerShopData:**
+**Gold Currency System:**
+- Players earn gold by defeating enemies
+- Gold displayed in TopRightPanel with animated shimmer effect
+- Required for purchasing items/perks (future implementation)
+- Persistent across dungeon runs
+
+**Player Stats Integration:**
 ```typescript
 interface PlayerShopData {
-  equippedItems: Item[];
-  activePerks: Perk[];
-  bonusStats: BonusStats;
+  equippedItems: Item[];        // Max 6 (one per slot)
+  activePerks: Perk[];          // No limit
+  bonusStats: BonusStats;       // Calculated from items + perks
 }
-```
 
-**BonusStats:**
-```typescript
 interface BonusStats {
-  damageFlat: number;
-  damagePercent: number;
-  damageReduction: number;
-  maxHpBonus: number;
-  blockChance: number;
-  speedMultiplier: number;
-  regeneration: number;
-  criticalChance: number;
-  timeBonus: number;
-  extraLives: number;
-  eloBonus: number;
+  damageFlat: number;           // Added to base damage
+  damagePercent: number;        // Multiplier on total damage
+  damageReduction: number;      // % damage reduction (cap: 50%)
+  maxHpBonus: number;           // Added to max HP
+  blockChance: number;          // % chance to block attack (cap: 75%)
+  speedMultiplier: number;      // Multiplier on movement speed
+  regeneration: number;         // HP regen per 5 seconds
+  criticalChance: number;       // % chance for 2x damage (cap: 50%)
+  timeBonus: number;            // Extra seconds on quiz timer
+  extraLives: number;           // Revives remaining (cap: 3)
+  eloBonus: number;             // Bonus to all subject ELOs
 }
 ```
 
-**UI Integration:**
-- CharacterPanel shows purchased items/perks with rarity-colored borders
-- Minimap shows shop rooms in cyan with "$" symbol
-- ShopRenderer renders items/perks in shop rooms on main canvas
-- TooltipRenderer shows item/perk details on hover
+**Combat Integration:**
+- Damage calculation includes damageFlat and damagePercent
+- Block chance checked before taking damage
+- Critical hits roll on player attacks
+- Extra lives trigger on player death
+- Time bonus added to combat timer
+- Regeneration ticks every 5 seconds during exploration
+
+**Enemy AI Integration:**
+- Enemies cannot enter shop rooms
+- Aggro ends if player enters shop
+- Enemies cannot spawn in shop rooms
+- Shop doors track adjacent room clear status
+
+**UI Components:**
+- **TopLeftPanel**: Compact HUD with HP, level, username, and equipped items/perks
+- **TopRightPanel**: Gold counter and minimap
+- **ShopItemsDisplay**: Shows equipped items (square icons) and perks (round icons)
+- **ShopConfirmModal**: Purchase confirmation with item/perk details and rarity border
+- **CharacterPanel**: Full player stats with shop equipment section
+- **Minimap**: Shop rooms displayed in cyan (#00CED1) for easy identification
+
+**Rendering:**
+- **ShopRenderer**: Draws counters, sign, floating items/perks with rarity glows
+- **TooltipRenderer**: Shows item/perk details on hover
+- **MinimapRenderer**: Color-codes shop rooms (cyan)
+- Glow effects scale with rarity intensity
+- Legendary items have pulsing animation (1 cycle/second)
 
 **Key Files:**
-- `lib/shop/Item.ts` - Item definitions and types
-- `lib/shop/Perk.ts` - Perk definitions and types
-- `lib/shop/Rarity.ts` - Rarity system
+- `lib/shop/Rarity.ts` - Rarity system with weights and multipliers
+- `lib/shop/Item.ts` - Item definitions and types (6 types)
+- `lib/shop/Perk.ts` - Perk definitions and types (9 types)
 - `lib/shop/ShopInventory.ts` - Shop inventory generation
-- `lib/shop/ShopInteraction.ts` - Proximity detection
-- `lib/shop/ShopPurchase.ts` - Purchase execution
-- `hooks/useShopPurchase.ts` - React hook for shop state
+- `lib/shop/ShopLayout.ts` - Counter and item position calculation
+- `lib/shop/ShopDoor.ts` - Door lock/unlock mechanics
+- `lib/shop/ShopInteraction.ts` - Proximity detection for purchases
+- `lib/shop/ShopPurchase.ts` - Purchase execution logic
+- `hooks/useShopPurchase.ts` - React hook for shop state management
 - `components/ShopConfirmModal.tsx` - Purchase confirmation UI
-- `components/character/ShopItemsDisplay.tsx` - CharacterPanel display
-- `lib/rendering/ShopRenderer.ts` - Canvas rendering for shop items
+- `components/character/ShopItemsDisplay.tsx` - Equipment display in CharacterPanel
+- `components/hud/TopLeftPanel.tsx` - Compact HUD with equipment
+- `components/hud/TopRightPanel.tsx` - Gold counter and minimap
+- `lib/rendering/ShopRenderer.ts` - Canvas rendering for shop rooms
+- `lib/rendering/TooltipRenderer.ts` - Hover tooltip rendering
+
+**Constants:**
+```typescript
+// In lib/constants.ts
+SHOP_SPAWN_CHANCE: 0.08           // 8% spawn rate
+SHOP_MIN_ROOM_SIZE: 6             // Minimum 6x6 tiles
+SHOP_MAX_PER_DUNGEON: 2           // Max 2 shops per run
+SHOP_ITEMS_COUNT: 3               // 3 items per shop
+SHOP_PERKS_COUNT: 3               // 3 perks per shop
+FLOATING_ITEM_AMPLITUDE: 0.3      // Float animation amplitude
+FLOATING_ITEM_SPEED: 2            // Float cycles per second
+```
+
+**Balancing Notes:**
+- Rarity distribution ensures common items are frequent, legendaries are rare
+- Effect multipliers make rarity meaningful (5x for legendary)
+- Caps on powerful stats (75% block, 50% crit, 3 extra lives) prevent overpowered builds
+- Shop spawn rate (8%) and max shops (2) balance progression pacing
+- All values are configurable for future tuning
+
+**Testing Coverage:**
+- Unit tests for rarity rolling, item/perk generation
+- Integration tests for shop spawning, layout calculation
+- Playwright tests for shop interaction, purchase flow, tooltip display
+- Visual regression tests for shop rendering, minimap colors
+- Edge case tests: empty shop, multiple shops, shop at dungeon edge
+
+
+### 11. Room Layout System
+
+**Implementation**: lib/roomlayouts/, lib/dungeon/layoutGeneration.ts, components/roomeditor/, app/room-editor/
+
+**Status**: ✅ **Fully Implemented** (Phases 1-5 complete)
+
+**Overview:**
+The Room Layout System provides pre-generated room templates as an alternative to BSP-based procedural generation. Rooms are stored in the database, can be created via a visual editor, and are connected via door-matching algorithm. Includes 18 starter layouts automatically seeded on database initialization.
+
+**Purpose:**
+- **Design Control**: Hand-crafted rooms with specific layouts, obstacles, and aesthetics
+- **Gameplay Variety**: Mix of corridor types, standard rooms, large halls, and special shapes
+- **Editor Support**: Visual tool for creating and editing room layouts
+- **Database-Driven**: All layouts stored in SQLite, easy to add/modify without code changes
+
+**Core Components:**
+
+**1. Database Schema (room_layouts table):**
+```typescript
+interface RoomLayout {
+  id: number;
+  name: string;
+  width: number;           // 5-15 tiles
+  height: number;          // 5-15 tiles
+  tileGrid: TileType[][];  // 2D array: FLOOR=1, WALL=2, DOOR=3
+  doorPositions: {         // Boolean flags for each edge
+    north: boolean;
+    south: boolean;
+    east: boolean;
+    west: boolean;
+  };
+  roomType: 'empty' | 'treasure' | 'combat' | 'shop' | 'any';
+  difficulty: number;      // 1-10
+  tags: string[];
+  createdBy: number | null;
+  createdAt: Date;
+}
+```
+
+**2. Validation System (lib/roomlayouts/validation.ts):**
+- **Size Constraints**: 5-15 tiles width/height
+- **Flood-Fill Algorithm**: Ensures all floor tiles are reachable via BFS traversal
+- **Door Placement**: Doors must be on edges (y=0, y=height-1, x=0, x=width-1)
+- **Floor Requirement**: At least one floor tile must exist
+- **Door Validation**: Door positions must match actual door tiles in tileGrid
+
+**3. Layout Pool Manager (lib/roomlayouts/LayoutPool.ts):**
+```typescript
+class LayoutPool {
+  getRandomLayout(filters?: LayoutFilterOptions): RoomLayout | null;
+  getLayoutWithDoor(side: 'north' | 'south' | 'east' | 'west'): RoomLayout | null;
+  getLayouts(filters?: LayoutFilterOptions): RoomLayout[];
+  reload(): void;
+}
+
+// Singleton pattern for efficient access
+const pool = getLayoutPool();
+```
+
+**Filters:**
+- `roomType`: Filter by room type
+- `minWidth/maxWidth`, `minHeight/maxHeight`: Size constraints
+- `difficulty`: Exact difficulty match
+- `doorSide`: Must have door on specified side
+- `tags`: Match specific tags
+
+**4. Dungeon Generation Algorithm (lib/dungeon/layoutGeneration.ts):**
+
+**Process:**
+1. **Initial Placement**: First room placed in dungeon center
+2. **Door Expansion**: Pick random open door, find opposite side (north↔south, east↔west)
+3. **Layout Matching**: Query LayoutPool for layouts with matching door on opposite side
+4. **Position Calculation**: Align new room's door with existing door position
+5. **Collision Detection**: Check if new room fits without overlapping existing tiles
+6. **Placement**: Copy tiles to dungeon grid, mark room in roomMap, add neighbors
+7. **Repeat**: Continue until target room count reached or no valid placements remain
+8. **Room Type Assignment**: Assign types with probabilistic distribution
+
+**Door Matching Logic:**
+```typescript
+// Example: Existing room has south door at (50, 40)
+// New room needs north door to connect
+// Calculate position so new room's north door aligns at (50, 40)
+
+function calculateNewRoomPosition(
+  door: { x: number, y: number, side: string },
+  newLayout: RoomLayout,
+  doorSide: 'north' | 'south' | 'east' | 'west'
+): { x: number, y: number } {
+  // Find door tile in new layout on specified side
+  // Calculate offset to align doors perfectly
+  // Return top-left position for new room
+}
+```
+
+**5. API Endpoints:**
+
+**GET /api/room-layouts**
+- List all layouts with optional filtering
+- Query params: roomType, minWidth, maxWidth, minHeight, maxHeight, difficulty, doorSide
+- Returns: `RoomLayout[]`
+
+**GET /api/room-layouts/:id**
+- Get specific layout by ID
+- Returns: `RoomLayout`
+
+**POST /api/room-layouts**
+- Create new layout
+- Body: `RoomLayoutInput`
+- Validates before saving
+- Returns: Created `RoomLayout`
+
+**PUT /api/room-layouts/:id**
+- Update existing layout
+- Body: `RoomLayoutInput`
+- Validates before updating
+- Returns: Updated `RoomLayout`
+
+**DELETE /api/room-layouts/:id**
+- Delete layout
+- Returns: Success message
+
+**GET /api/room-layouts/random**
+- Get random layout matching filters
+- Query params: Same as GET /api/room-layouts
+- Returns: Single `RoomLayout`
+
+**6. Visual Editor (app/room-editor/):**
+
+**Components:**
+- **RoomLayoutEditor**: Main orchestrator, manages state
+- **LayoutManager**: Left panel with layout browser, filters, CRUD buttons
+- **LayoutCanvas**: Center canvas with tile-based drawing (32px per tile)
+- **LayoutSettings**: Right panel with metadata form, drawing tools
+
+**Drawing Tools:**
+- **Pen**: Draw floor or wall tiles (selectable)
+- **Eraser**: Set tiles to empty
+- **Fill**: Flood-fill tool for large areas
+- **Door**: Place doors on edges only
+
+**Features:**
+- Real-time preview with hover highlighting
+- Grid resizing (5-15 tiles, preserves existing tiles)
+- SVG thumbnails in layout browser
+- Filter by type, size, difficulty
+- Validation on save (shows errors if invalid)
+- Create, Edit, Delete operations
+- Tags system for categorization
+
+**Accessible at:** `/room-editor`
+
+**7. Starter Layouts (lib/data/seed-room-layouts.json):**
+
+**18 Layouts Included:**
+- **5 Corridors**: Small (5x5), Long (12x5), Vertical (5x12), Crossing (7x7 with 4 doors), T-Junction (8x8)
+- **6 Standard Rooms**: Basic 8x8, Rectangular (10x6), Pillar Room (9x9 with obstacles), Small Chamber (6x6), Medium (7x8), Large (10x10)
+- **3 Large Halls**: 12x12 Hall, 15x10 Throne Room, 14x14 Arena
+- **4 Special Rooms**: L-Shape (10x10 non-rectangular), Labyrinth (11x11 with maze), Cross (9x9 cross shape), Round (11x11 circular)
+
+**Automatic Seeding:**
+- Layouts automatically seeded on database initialization
+- Only seeds if `room_layouts` table is empty
+- Logs success: `✓ Seeded 18 room layouts`
+
+**8. Integration with DungeonManager:**
+
+```typescript
+// DungeonManager.ts
+async generateFromLayouts(
+  availableSubjects: string[],
+  userId: number | null = null,
+  targetRoomCount: number = 20,
+  seed?: number
+) {
+  const structure = generateDungeonFromLayouts(targetRoomCount, seed);
+  this.dungeon = structure.dungeon;
+  this.rooms = structure.rooms;
+  this.roomMap = structure.roomMap;
+  // Spawn entities as usual...
+}
+```
+
+**Usage:**
+```typescript
+// Option 1: BSP-based generation (existing)
+await dungeonManager.generateNewDungeon(availableSubjects);
+
+// Option 2: Layout-based generation (new)
+await dungeonManager.generateFromLayouts(availableSubjects, userId, 20);
+```
+
+**Key Files:**
+- `lib/roomlayouts/types.ts` - TypeScript interfaces
+- `lib/roomlayouts/validation.ts` - Flood-fill validation
+- `lib/roomlayouts/LayoutPool.ts` - Singleton layout manager
+- `lib/db/roomLayouts.ts` - CRUD operations
+- `lib/dungeon/layoutGeneration.ts` - Door-matching algorithm
+- `lib/data/seed-room-layouts.json` - Starter layout data
+- `app/room-editor/page.tsx` - Editor route
+- `components/roomeditor/RoomLayoutEditor.tsx` - Main editor component
+- `components/roomeditor/LayoutManager.tsx` - Layout browser
+- `components/roomeditor/LayoutCanvas.tsx` - Drawing canvas
+- `components/roomeditor/LayoutSettings.tsx` - Metadata form
+
+**Trade-offs:**
+
+**Advantages:**
+- Hand-crafted rooms with intentional design
+- Visual editor for non-programmers
+- Database-driven (no code changes to add layouts)
+- Reusable room templates
+- Controlled pacing and difficulty
+
+**Disadvantages:**
+- Less procedural variety than pure BSP
+- Requires manual layout creation
+- More database storage
+- Door alignment can limit connectivity
+
+**Future Enhancements:**
+- Auto-generation of variant layouts
+- Room rotation/mirroring for more variety
+- Theme-specific layout collections
+- Procedural decoration within layouts
+- Layout import/export (JSON)
 
 
 ## Future Enhancements (Planned)

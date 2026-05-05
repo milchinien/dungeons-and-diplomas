@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { api } from '@/lib/api';
 import { type StorageService, defaultStorage } from '@/lib/storage';
 import { logHookError } from '@/lib/hooks';
@@ -14,19 +14,16 @@ export function useAuth(options: UseAuthOptions = {}) {
   const [userId, setUserId] = useState<number | null>(null);
   const [username, setUsername] = useState<string | null>(null);
   const [userXp, setUserXp] = useState<number>(0);
+  const [userGold, setUserGold] = useState<number>(0);
+  // Show login modal on app start - user must login first before accessing main menu
+  // Storage is only used to remember the username for convenience
   const [showLogin, setShowLogin] = useState(true);
 
-  // Always show login on mount - user must enter username each time
-  // Storage is only used to remember the username for convenience
-  useEffect(() => {
-    // Keep showLogin true - user must always log in
-    setShowLogin(true);
-  }, []);
-
-  const handleLogin = async (id: number, name: string, xp?: number) => {
+  const handleLogin = async (id: number, name: string, xp?: number, gold?: number) => {
     setUserId(id);
     setUsername(name);
     setUserXp(xp || 0);
+    setUserGold(gold || 0);
     setShowLogin(false);
   };
 
@@ -37,6 +34,8 @@ export function useAuth(options: UseAuthOptions = {}) {
     setUserId(null);
     setUsername(null);
     setUserXp(0);
+    setUserGold(0);
+    // Show login modal after logout
     setShowLogin(true);
   };
 
@@ -45,6 +44,8 @@ export function useAuth(options: UseAuthOptions = {}) {
     username,
     userXp,
     setUserXp,
+    userGold,
+    setUserGold,
     showLogin,
     handleLogin,
     handleLogout

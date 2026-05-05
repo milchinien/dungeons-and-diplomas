@@ -162,9 +162,43 @@ export default function EditorCanvas({ availableSubjects }: EditorCanvasProps) {
     link.click();
   };
 
+  const handleBackToGame = () => {
+    window.location.href = '/';
+  };
+
   return (
     <>
       <div style={{ position: 'relative', width: '100vw', height: '100vh', backgroundColor: '#1a1a1a', overflow: 'hidden' }}>
+        {/* Back to Game Button */}
+        <button
+          onClick={handleBackToGame}
+          style={{
+            position: 'absolute',
+            top: '20px',
+            left: '20px',
+            padding: '10px 20px',
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            border: '2px solid #4CAF50',
+            borderRadius: '8px',
+            color: 'white',
+            fontFamily: 'Rajdhani, monospace',
+            fontSize: '16px',
+            cursor: 'pointer',
+            zIndex: 1001,
+            transition: 'all 0.2s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#4CAF50';
+            e.currentTarget.style.color = '#000';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+            e.currentTarget.style.color = 'white';
+          }}
+        >
+          ← Zurück zum Spiel
+        </button>
+
         {/* Seed Input Panel */}
         <SeedInputPanel
           structureSeed={editorState.structureSeed}

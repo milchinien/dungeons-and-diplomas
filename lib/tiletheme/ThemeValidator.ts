@@ -143,29 +143,29 @@ export function getSlotLabel(category: string, type: string): string {
     // Floor
     'floor.default': 'Floor',
 
-    // Walls
-    'wall.horizontal': 'Horizontal Wall',
-    'wall.vertical': 'Vertical Wall',
-    'wall.corner_tl': 'Top-Left Corner',
-    'wall.corner_tr': 'Top-Right Corner',
-    'wall.corner_bl': 'Bottom-Left Corner',
-    'wall.corner_br': 'Bottom-Right Corner',
-    'wall.t_up': 'T-Piece Up',
-    'wall.t_down': 'T-Piece Down',
-    'wall.t_left': 'T-Piece Left',
-    'wall.t_right': 'T-Piece Right',
-    'wall.cross': 'Cross',
-    'wall.isolated': 'Isolated (opt.)',
-    'wall.end_left': 'End Left (opt.)',
-    'wall.end_right': 'End Right (opt.)',
-    'wall.end_top': 'End Top (opt.)',
-    'wall.end_bottom': 'End Bottom (opt.)',
+    // Walls (INTUITIVE: horizontal = left-right ↔, vertical = top-bottom ↕)
+    'wall.horizontal': 'Wall ↔ (left-right)',
+    'wall.vertical': 'Wall ↕ (top-bottom)',
+    'wall.corner_tl': 'Corner ╔ (top-left)',
+    'wall.corner_tr': 'Corner ╗ (top-right)',
+    'wall.corner_bl': 'Corner ╚ (bottom-left)',
+    'wall.corner_br': 'Corner ╝ (bottom-right)',
+    'wall.t_up': 'T-Piece ╩ (up)',
+    'wall.t_down': 'T-Piece ╦ (down)',
+    'wall.t_left': 'T-Piece ╣ (left)',
+    'wall.t_right': 'T-Piece ╠ (right)',
+    'wall.cross': 'Cross ╬',
+    'wall.isolated': 'Isolated ▢ (opt.)',
+    'wall.end_left': 'End ← (opt.)',
+    'wall.end_right': 'End → (opt.)',
+    'wall.end_top': 'End ↑ (opt.)',
+    'wall.end_bottom': 'End ↓ (opt.)',
 
-    // Doors
-    'door.horizontal_closed': 'H-Door Closed',
-    'door.horizontal_open': 'H-Door Open',
-    'door.vertical_closed': 'V-Door Closed',
-    'door.vertical_open': 'V-Door Open',
+    // Doors (horizontal = left-right, vertical = top-bottom)
+    'door.horizontal_closed': 'Door ↔ Closed',
+    'door.horizontal_open': 'Door ↔ Open',
+    'door.vertical_closed': 'Door ↕ Closed',
+    'door.vertical_open': 'Door ↕ Open',
   };
 
   return labels[`${category}.${type}`] || `${category}.${type}`;
@@ -176,9 +176,9 @@ export function getSlotLabel(category: string, type: string): string {
  */
 export function getSlotSymbol(category: string, type: string): string {
   const symbols: { [key: string]: string } = {
-    // Walls
-    'wall.horizontal': '═══',
-    'wall.vertical': '║',
+    // Walls (INTUITIVE: horizontal = ↔, vertical = ↕)
+    'wall.horizontal': '═══',      // Left-right tile
+    'wall.vertical': '║',          // Top-bottom tile
     'wall.corner_tl': '╔',
     'wall.corner_tr': '╗',
     'wall.corner_bl': '╚',
@@ -189,15 +189,15 @@ export function getSlotSymbol(category: string, type: string): string {
     'wall.t_right': '╠',
     'wall.cross': '╬',
     'wall.isolated': '▢',
-    'wall.end_left': '═',
-    'wall.end_right': '═',
-    'wall.end_top': '║',
-    'wall.end_bottom': '║',
+    'wall.end_left': '═',        // Left end (horizontal line)
+    'wall.end_right': '═',       // Right end (horizontal line)
+    'wall.end_top': '║',         // Top end (vertical line)
+    'wall.end_bottom': '║',      // Bottom end (vertical line)
 
-    // Doors
-    'door.horizontal_closed': '┋┋┋',
+    // Doors (horizontal = ↔, vertical = ↕)
+    'door.horizontal_closed': '───',  // Left-right door
     'door.horizontal_open': '░░░',
-    'door.vertical_closed': '───',
+    'door.vertical_closed': '┋┋┋',    // Top-bottom door
     'door.vertical_open': '░░░',
 
     // Floor
