@@ -1,142 +1,117 @@
 # Dungeons & Diplomas
 
-Educational browser-based dungeon crawler with procedural dungeon generation, real-time combat, and quiz-based enemy encounters.
+Educational browser-based dungeon crawler with procedural dungeon generation, real-time combat, quiz-based enemy encounters, XP, items, highscore tracking, and editor tooling.
+
+## Aktueller Stand
+
+Das Projekt ist eine Next.js-App mit eigenem Canvas-Renderer. Phaser gehoerte zur fruehen Planung/Spike-Phase, ist aber nicht mehr die aktuelle Game-Engine.
+
+Die Datenbank laeuft ueber einen Adapter-Layer:
+
+- **Lokal:** SQLite mit `better-sqlite3`
+- **Production/Vercel:** Supabase, sobald `NEXT_PUBLIC_SUPABASE_URL` plus `SUPABASE_SECRET_KEY` oder `SUPABASE_SERVICE_ROLE_KEY` gesetzt sind
+
+Weitere Orientierung:
+
+- [docs/README.md](docs/README.md) - Dokumentationsindex
+- [docs/CURRENT_STATUS.md](docs/CURRENT_STATUS.md) - aktueller Projektstatus
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) - Architekturuebersicht
+- [docs/Tasks/01_Plans/Current_Roadmap.md](docs/Tasks/01_Plans/Current_Roadmap.md) - aktuelle Roadmap
 
 ## Tech Stack
 
-- **Frontend:** Next.js 14 (App Router) + TypeScript + React
+- **Frontend:** Next.js 14 App Router, React 18, TypeScript
+- **Rendering:** HTML Canvas mit eigener Game-/Rendering-Schicht
 - **Styling:** Tailwind CSS 4
-- **Database:** SQLite (better-sqlite3) - **lokal**
-- **Game Engine:** Canvas API (custom rendering)
+- **Database:** SQLite lokal, Supabase/PostgreSQL fuer Deployment
 - **Package Manager:** npm
-
-### Wichtiger Hinweis: Datenbankabstraktion
-
-Die Anwendung nutzt aktuell **SQLite** für lokale Entwicklung. Da SQLite auf Vercel nicht verfügbar ist, muss vor dem Production-Deployment ein **Datenbankabstraktionslayer** implementiert werden, der:
-- **Lokal:** SQLite verwendet
-- **Production (Vercel):** Supabase (PostgreSQL) verwendet
-
-Dies ist eine zukünftige Aufgabe und nicht Teil der aktuellen Migration.
 
 ## Projekt Setup
 
 ### Voraussetzungen
 
-- Node.js 18+ installiert
-- npm installiert (kommt mit Node.js)
+- Node.js 18+
+- npm
 
-### Lokales Development Setup
+### Lokales Development
 
-1. **Repository klonen** (falls noch nicht geschehen):
-   ```bash
-   git clone <repository-url>
-   cd dungeons-and-diplomas
-   ```
+```bash
+npm install
+npm run dev
+```
 
-2. **Dependencies installieren**:
-   ```bash
-   npm install
-   ```
+Die App laeuft standardmaessig unter `http://localhost:3000`.
 
-3. **Development Server starten**:
-   ```bash
-   npm run dev
-   ```
+Ohne Supabase-Env-Variablen nutzt die App automatisch SQLite und legt `data/game.db` beim ersten Start an.
 
-   Browser öffnet automatisch `http://localhost:3000`
+### Checks
 
-4. **TypeScript Type-Checking** (optional):
-   ```bash
-   npm run type-check
-   ```
+```bash
+npm run type-check
+npm run build
+```
+
+`npm run lint` ist im `package.json` vorhanden. Falls Next.js die Lint-Integration in deiner lokalen Version anders behandelt, zuerst Build und Type-Check als harte Checks verwenden.
+
+## Supabase / Vercel
+
+Fuer Supabase-Modus muessen gesetzt sein:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=...
+SUPABASE_SECRET_KEY=...
+```
+
+Alternativ wird legacy `SUPABASE_SERVICE_ROLE_KEY` akzeptiert.
+
+Auf Vercel ohne Supabase-Konfiguration bricht die App bewusst ab, weil SQLite dort nicht verfuegbar ist.
+
+Migrationen liegen unter `supabase/migrations/`.
 
 ## Projektstruktur
 
-```
+```text
 dungeons-and-diplomas/
-├── app/                    # Next.js App Router
-│   ├── layout.tsx         # Root Layout
-│   ├── page.tsx            # Hauptseite (lädt GameCanvas)
-│   ├── globals.css         # Global Styles
-│   └── api/                # API Routes
-│       ├── questions/      # Fragen-Endpunkte
-│       ├── answers/        # Antwort-Logging
-│       ├── stats/          # Statistiken
-│       └── auth/           # Authentifizierung
-├── components/             # React Components
-│   ├── GameCanvas.tsx      # Haupt-Game-Component
-│   ├── CombatModal.tsx     # Kampf-UI
-│   ├── CharacterPanel.tsx  # Spieler-Panel
-│   └── ...
-├── hooks/                  # React Hooks
-│   ├── useAuth.ts          # Authentifizierung
-│   ├── useGameState.ts     # Game State Management
-│   ├── useCombat.ts        # Kampf-Logik
-│   └── ...
-├── lib/                     # Utilities & Game Logic
-│   ├── constants.ts         # Spiel-Konstanten und Typen
-│   ├── db/                  # Datenbank-Operationen
-│   ├── dungeon/             # Dungeon-Generierung (BSP)
-│   ├── combat/              # Kampf-System
-│   ├── scoring/             # ELO-System
-│   └── ...
-├── data/                    # SQLite Datenbank
-│   └── game.db              # Lokale Datenbank
-├── public/                  # Static Assets
-│   └── Assets/              # Game Assets (Sprites, Tilesets)
-├── docs/                    # Projekt-Dokumentation
-├── supabase/                # Supabase Migrations (für zukünftige Nutzung)
-└── spikes/                  # Experimentelle Prototypen
-```
-
-## Available Scripts
-
-```bash
-# Development Server starten
-npm run dev
-
-# Production Build erstellen
-npm run build
-
-# Production Build lokal testen
-npm run start
-
-# Linting
-npm run lint
-
-# Type-Checking (ohne Build)
-npm run type-check
+├── app/                    # Next.js App Router und API Routes
+├── components/             # React UI und Game Overlays
+├── hooks/                  # Auth, Game Loop, Combat, Audio, Shrine, Scoring
+├── lib/                    # Game Logic, DB, Rendering, Combat, Dungeon, Items
+├── data/                   # Lokale SQLite-Datenbank
+├── public/Assets/          # Sprites, Tilesets, Sounds
+├── docs/                   # Projekt-Dokumentation
+├── supabase/               # Supabase Migrationen und Seeds
+└── spikes/                 # Historische Prototypen
 ```
 
 ## Spielfunktionen
 
-- ✅ Prozedurale Dungeon-Generierung (BSP-Algorithmus)
-- ✅ Spieler mit Animation (14 Animationstypen)
-- ✅ Enemy AI (Idle, Wandering, Following)
-- ✅ Quiz-basiertes Kampfsystem mit ELO-basierter Schwierigkeit
-- ✅ Fog of War
-- ✅ Minimap
-- ✅ Raumtypen (Empty, Treasure, Combat)
-- ✅ HP-System
-- ✅ Statistiken-Dashboard
-- ✅ Session-basierte Fortschrittsverfolgung
+- Prozedurale BSP-Dungeons mit Seeds
+- Realtime Movement mit WASD/Pfeiltasten
+- Canvas-Rendering mit Tiletheme-System
+- Fog of War, Minimap, Tueren und Raumzustaende
+- Quiz-Combat mit Timer und ELO-basierter Fragenauswahl
+- Trashmobs mit Melee-Angriff per Maus
+- Shrines mit Buff-Auswahl und Shrine-Gegnern
+- XP, Level-Anzeige, Combo-System und Highscores
+- Items, Loot-Drops, Inventar und Equipment-Boni
+- Level-Editor und Tilemap-/Theme-Editor
+- Audio-Einstellungen, Schrittgeraeusche und Musik-Clips
 
 ## Steuerung
 
-- **WASD** oder **Pfeiltasten**: Spieler bewegen
-- **D**: Statistiken-Dashboard öffnen/schließen
-- **ESC**: Modals schließen
+- **WASD** oder **Pfeiltasten:** Bewegen
+- **Linke Maustaste:** Melee-Angriff / Interaktion je nach Kontext
+- **I:** Inventar
+- **D:** Skill-Dashboard
+- **ESC:** Pause/Modals
 
-## Datenbank
+## Datenbank lokal
 
-Die Anwendung nutzt SQLite für lokale Entwicklung. Die Datenbank wird automatisch beim ersten Start erstellt und mit 30 Seed-Fragen (10 pro Fach: Mathematik, Chemie, Physik) befüllt.
+Die lokale SQLite-Datenbank wird automatisch erstellt und mit Seed-Fragen befuellt.
 
-**Datenbank-Location:** `data/game.db`
-
-**Datenbank zurücksetzen:**
 ```bash
 rm data/game.db
-# Datenbank wird beim nächsten App-Start neu erstellt
+npm run dev
 ```
 
 ## Team
@@ -145,57 +120,27 @@ rm data/game.db
 - **Michi** ([@milchinien](https://github.com/milchinien)) - Junior Dev / Rapid Prototyping
 - **Tim** ([@Timiwagg](https://github.com/Timiwagg)) - Junior Dev / Rapid Prototyping
 
-## Wichtige Hinweise
+## Workflow
 
-### Branch Protection
-
-Der `main` Branch ist protected. Immer auf Feature Branches arbeiten:
+Der `main` Branch ist protected. Immer auf Feature-Branches arbeiten.
 
 ```bash
-# Neuen Feature Branch erstellen
-git checkout -b feature/my-new-feature
-
-# Änderungen committen
+git switch -c feature/my-feature
 git add .
-git commit -m "feat: implemented something cool"
-
-# Zu GitHub pushen
-git push origin feature/my-new-feature
-
-# Dann Pull Request auf GitHub erstellen
+git commit -m "feat: add my feature"
+git push origin feature/my-feature
 ```
 
-### Code Style
+Projektsprache:
 
-- **Projektsprache:** Markdown/Docs auf Deutsch, Code/Kommentare auf Englisch
-- **TypeScript Strict Mode:** Aktiviert
-- **Prettier:** Auto-formatting on save (empfohlen in VSCode)
+- Markdown, Planung und History: Deutsch
+- Code, Typen, Kommentare und Commit-Messages: Englisch
 
-## Troubleshooting
+## Naechste Schritte
 
-### `npm run dev` startet nicht
+Siehe [aktuelle Roadmap](docs/Tasks/01_Plans/Current_Roadmap.md). Kurzfassung:
 
-```bash
-# Node Modules löschen und neu installieren
-rm -rf node_modules
-npm install
-```
-
-### Datenbank-Fehler
-
-- Stelle sicher, dass `data/` Verzeichnis existiert
-- Prüfe, ob `data/game.db` beschreibbar ist
-- Bei Problemen: Datenbank löschen und neu erstellen lassen
-
-## Nächste Schritte
-
-1. ✅ Lokale Entwicklung funktioniert
-2. ⏳ Datenbankabstraktionslayer implementieren (SQLite lokal, Supabase in Production)
-3. ⏳ Vercel Deployment vorbereiten
-4. ⏳ Weitere Features entwickeln
-
-## Weitere Dokumentation
-
-- [CLAUDE.md](CLAUDE.md) - Detaillierte technische Dokumentation
-- [Agents.md](Agents.md) - Agent-spezifische Anweisungen
-- [docs/](docs/) - Projekt-Dokumentation und Pläne
+1. Frisches lokales Setup und Supabase-Modus verifizieren.
+2. Testbasis fuer Kernlogik etablieren.
+3. Refactoring-Plan fortsetzen.
+4. `Delayed Room Spawn` als naechstes Gameplay-Feature entscheiden.

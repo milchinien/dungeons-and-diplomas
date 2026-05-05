@@ -1,5 +1,7 @@
 # Refactoring-Plan 2025-11-23
 
+> **Aktualisiert am 2026-05-04:** Dieser Plan bleibt relevant, ist aber teilweise historisch. Sprint 1 wurde abgeschlossen. Die offenen Refactorings muessen vor Umsetzung jeweils gegen den aktuellen Root-Code geprueft werden, weil seit dem Plan weitere Systeme hinzugekommen sind: Trashmobs, Shrines, Items, XP, Highscores, Editor-APIs, Tiletheme-Editor und Supabase-Adapter. Operative Einordnung siehe [../01_Plans/Current_Roadmap.md](../01_Plans/Current_Roadmap.md).
+
 ## Zusammenfassung
 
 Die Codebase ist gut modularisiert mit klarer Schichtentrennung (Components → Hooks → lib/). Hauptprobleme sind 4 God-Files (>300 Zeilen), 2 God-Hooks (>200 Zeilen), und mehrere Testbarkeits-Probleme durch globale Singletons und direkte fetch()-Aufrufe. Die größten Quick Wins liegen im Aufteilen der DungeonView-Komponente und des useCombat-Hooks.
