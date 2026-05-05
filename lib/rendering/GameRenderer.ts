@@ -88,7 +88,7 @@ export class GameRenderer {
   }
 
   /**
-   * Render all enemies visible in player's rooms
+   * Render all enemies visible in player's rooms or through open doors
    */
   private renderEnemies(
     ctx: CanvasRenderingContext2D,
@@ -96,10 +96,69 @@ export class GameRenderer {
     rooms: Room[],
     tileSize: number,
     player: Player,
-    playerRoomIds: Set<number>
+    playerRoomIds: Set<number>,
+    roomMap: number[][],
+    dungeon: TileType[][],
+    doorStates: Map<string, boolean>
   ): void {
     for (const enemy of enemies) {
-      enemy.draw(ctx, rooms, tileSize, player, playerRoomIds);
+      // Calculate current tile position
+      const enemyTileX = Math.floor((enemy.x + tileSize / 2) / tileSize);
+      const enemyTileY = Math.floor((enemy.y + tileSize / 2) / tileSize);
+
+      // Check bounds
+      if (enemyTileY < 0 || enemyTileY >= roomMap.length ||
+          enemyTileX < 0 || enemyTileX >= roomMap[0]?.length) {
+        continue;
+      }
+
+      const currentTileRoomId = roomMap[enemyTileY][enemyTileX];
+
+      // Special case: enemy is standing on an open door tile
+      if (currentTileRoomId === -2) {
+        const doorKey = `${enemyTileX},${enemyTileY}`;
+        const isDoorOpen = doorStates.get(doorKey) ?? false;
+
+        if (isDoorOpen) {
+          const isVisible = VisibilityCalculator.isEntityOnDoorVisible(
+            enemy.x,
+            enemy.y,
+            enemyTileX,
+            enemyTileY,
+            player.x,
+            player.y,
+            playerRoomIds,
+            tileSize,
+            roomMap,
+            rooms,
+            dungeon,
+            doorStates
+          );
+
+          if (isVisible) {
+            enemy.draw(ctx, rooms, tileSize, player, playerRoomIds, true);
+          }
+        }
+        continue;
+      }
+
+      // Check if enemy is visible through an open door
+      const isVisibleThroughDoor = !playerRoomIds.has(enemy.roomId) &&
+        VisibilityCalculator.isEnemyVisibleThroughDoor(
+          enemy.x,
+          enemy.y,
+          enemy.roomId,
+          player.x,
+          player.y,
+          playerRoomIds,
+          tileSize,
+          roomMap,
+          rooms,
+          dungeon,
+          doorStates
+        );
+
+      enemy.draw(ctx, rooms, tileSize, player, playerRoomIds, isVisibleThroughDoor);
     }
   }
 
@@ -107,7 +166,7 @@ export class GameRenderer {
   private trashmobRenderDebugCounter = 0;
 
   /**
-   * Render all trashmobs visible in player's rooms
+   * Render all trashmobs visible in player's rooms or through open doors
    */
   private renderTrashmobs(
     ctx: CanvasRenderingContext2D,
@@ -115,7 +174,10 @@ export class GameRenderer {
     rooms: Room[],
     tileSize: number,
     playerRoomIds: Set<number>,
-    roomMap: number[][]
+    roomMap: number[][],
+    player: Player,
+    dungeon: TileType[][],
+    doorStates: Map<string, boolean>
   ): void {
     // Debug log every 120 frames
     this.trashmobRenderDebugCounter++;
@@ -140,13 +202,57 @@ export class GameRenderer {
 
       const currentRoomId = roomMap[trashmobTileY][trashmobTileX];
 
-      // Only render if trashmob is in a visible room
-      const room = currentRoomId >= 0 ? rooms[currentRoomId] : null;
-      if (!room || !room.visible) continue;
+      // Special case: trashmob is standing on an open door tile
+      if (currentRoomId === -2) {
+        const doorKey = `${trashmobTileX},${trashmobTileY}`;
+        const isDoorOpen = doorStates.get(doorKey) ?? false;
 
-      // Additional check: only render if player is in the same room or an adjacent room
-      // This prevents seeing trashmobs through walls in distant but previously visited rooms
-      if (!playerRoomIds.has(currentRoomId)) continue;
+        if (isDoorOpen) {
+          // Check if player is near this door
+          const isVisible = VisibilityCalculator.isEntityOnDoorVisible(
+            trashmob.x,
+            trashmob.y,
+            trashmobTileX,
+            trashmobTileY,
+            player.x,
+            player.y,
+            playerRoomIds,
+            tileSize,
+            roomMap,
+            rooms,
+            dungeon,
+            doorStates
+          );
+
+          if (isVisible) {
+            trashmob.draw(ctx, tileSize);
+          }
+        }
+        continue;
+      }
+
+      const room = currentRoomId >= 0 ? rooms[currentRoomId] : null;
+      if (!room) continue;
+
+      // Check visibility conditions:
+      // 1. Player is in the same room (directly visible)
+      // 2. OR trashmob is visible through an open door (with LOS and distance check)
+      const isInPlayerRoom = playerRoomIds.has(currentRoomId);
+      const isVisibleThroughDoor = !isInPlayerRoom && VisibilityCalculator.isEnemyVisibleThroughDoor(
+        trashmob.x,
+        trashmob.y,
+        currentRoomId,
+        player.x,
+        player.y,
+        playerRoomIds,
+        tileSize,
+        roomMap,
+        rooms,
+        dungeon,
+        doorStates
+      );
+
+      if (!isInPlayerRoom && !isVisibleThroughDoor) continue;
 
       trashmob.draw(ctx, tileSize);
     }
@@ -238,6 +344,91 @@ export class GameRenderer {
     tileSize: number
   ): void {
     playerSprite?.draw(ctx, player.x, player.y, tileSize, tileSize);
+    this.renderPlayerHealthBar(ctx, player, tileSize);
+  }
+
+  /**
+   * Render HP and Shield bar above the player
+   */
+  private renderPlayerHealthBar(
+    ctx: CanvasRenderingContext2D,
+    player: Player,
+    tileSize: number
+  ): void {
+    const barWidth = tileSize * 1.0;
+    const barHeight = 8;
+    const barX = player.x + (tileSize - barWidth) / 2;
+    let barY = player.y - 12; // Above the player sprite
+
+    const hpPercent = Math.max(0, Math.min(1, player.hp / player.maxHp));
+    const hasShield = player.buffs?.hasShield && player.buffs.maxShield > 0;
+    const currentShield = hasShield ? Math.floor(player.buffs!.currentShield) : 0;
+    const maxShield = hasShield ? player.buffs!.maxShield : 0;
+    const shieldPercent = hasShield
+      ? Math.max(0, Math.min(1, currentShield / maxShield))
+      : 0;
+
+    ctx.save();
+
+    // Move bars up if we have shield
+    if (hasShield) {
+      barY -= barHeight + 4;
+    }
+
+    // Shield bar (if player has shield) - drawn first (above HP)
+    if (hasShield) {
+      const shieldBarY = barY;
+      // Background
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+      ctx.fillRect(barX - 1, shieldBarY - 1, barWidth + 2, barHeight + 2);
+      // Bar background
+      ctx.fillStyle = '#222';
+      ctx.fillRect(barX, shieldBarY, barWidth, barHeight);
+      // Shield fill
+      ctx.fillStyle = '#4a9eff';
+      ctx.fillRect(barX, shieldBarY, barWidth * shieldPercent, barHeight);
+      // Border
+      ctx.strokeStyle = '#666';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(barX, shieldBarY, barWidth, barHeight);
+      // Shield text
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 8px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = '#000';
+      ctx.shadowBlur = 2;
+      ctx.fillText(`${currentShield}/${maxShield}`, barX + barWidth / 2, shieldBarY + barHeight / 2);
+      ctx.shadowBlur = 0;
+    }
+
+    // HP bar
+    const hpBarY = hasShield ? barY + barHeight + 2 : barY;
+    // Background
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.fillRect(barX - 1, hpBarY - 1, barWidth + 2, barHeight + 2);
+    // Bar background
+    ctx.fillStyle = '#222';
+    ctx.fillRect(barX, hpBarY, barWidth, barHeight);
+    // HP fill
+    const hpColor = hpPercent > 0.5 ? '#00dd00' : hpPercent > 0.25 ? '#ddaa00' : '#dd0000';
+    ctx.fillStyle = hpColor;
+    ctx.fillRect(barX, hpBarY, barWidth * hpPercent, barHeight);
+    // Border
+    ctx.strokeStyle = '#666';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(barX, hpBarY, barWidth, barHeight);
+    // HP text
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 8px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = '#000';
+    ctx.shadowBlur = 2;
+    ctx.fillText(`${Math.floor(player.hp)}/${player.maxHp}`, barX + barWidth / 2, hpBarY + barHeight / 2);
+    ctx.shadowBlur = 0;
+
+    ctx.restore();
   }
 
   /**
@@ -323,9 +514,7 @@ export class GameRenderer {
       roomMap,
       dungeonWidth,
       dungeonHeight,
-      true,  // includeAdjacentThroughDoors - show trashmobs through open doors
-      doorStates,
-      rooms
+      false  // Only show enemies in player's current room
     );
     const { tx: playerTileX, ty: playerTileY } = getEntityTilePosition(player, tileSize);
 
@@ -337,7 +526,7 @@ export class GameRenderer {
     this.tileRenderer.renderFogOfWar(
       ctx, dungeon, roomMap, rooms, playerRoomIds, tileSize,
       startCol, endCol, startRow, endRow, dungeonWidth, dungeonHeight,
-      playerTileX, playerTileY
+      playerTileX, playerTileY, doorStates
     );
 
     this.renderShrines(ctx, shrines, rooms, tileSize, playerRoomIds);
@@ -346,10 +535,10 @@ export class GameRenderer {
     // Update interaction target for shop tooltips
     this.updateInteractionTarget(player, rooms, tileSize);
 
-    this.renderEnemies(ctx, enemies, rooms, tileSize, player, playerRoomIds);
+    this.renderEnemies(ctx, enemies, rooms, tileSize, player, playerRoomIds, roomMap, dungeon, doorStates);
 
     // Render trashmobs
-    this.renderTrashmobs(ctx, trashmobs, rooms, tileSize, playerRoomIds, roomMap);
+    this.renderTrashmobs(ctx, trashmobs, rooms, tileSize, playerRoomIds, roomMap, player, dungeon, doorStates);
 
     // Render fireballs
     for (const fireball of fireballs) {

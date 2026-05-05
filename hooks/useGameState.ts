@@ -21,6 +21,7 @@ interface UseGameStateProps {
   /** Whether the game has started (canvas is mounted) */
   gameStarted: boolean;
   onPlayerHpUpdate: (hp: number) => void;
+  onPlayerShieldUpdate?: (current: number, max: number) => void;
   onXpGained?: (amount: number) => void;
   onTreasureCollected?: (screenX: number, screenY: number, xpAmount: number) => void;
   /** Callback when an item is dropped (from treasures) */
@@ -45,6 +46,7 @@ export function useGameState({
   userId,
   gameStarted,
   onPlayerHpUpdate,
+  onPlayerShieldUpdate,
   onXpGained,
   onTreasureCollected,
   onItemDropped,
@@ -99,8 +101,10 @@ export function useGameState({
   const generateNewDungeon = async () => {
     if (!dungeonManagerRef.current) return;
     await dungeonManagerRef.current.generateNewDungeon(availableSubjects, userId);
-    playerRef.current.hp = PLAYER_MAX_HP;
-    onPlayerHpUpdate(PLAYER_MAX_HP);
+    // Reset HP to full (use maxHp which includes skill bonuses)
+    const fullHp = playerRef.current.maxHp;
+    playerRef.current.hp = fullHp;
+    onPlayerHpUpdate(fullHp);
   };
 
   // Combat state - use external refs/callbacks if provided, otherwise create local fallbacks
@@ -260,7 +264,8 @@ export function useGameState({
       playerRef.current,
       manager.tileSize,
       manager.dungeon,
-      handleContactDamage
+      handleContactDamage,
+      manager.doorStates
     );
 
     // Update room exploration state (handles unexplored → exploring → explored)
@@ -281,6 +286,14 @@ export function useGameState({
     // Update buff regeneration (shield + HP)
     updateShieldRegen(playerRef.current, dt);
     updateHpRegen(playerRef.current, dt);
+
+    // Sync shield state to UI
+    if (onPlayerShieldUpdate && playerRef.current.buffs) {
+      onPlayerShieldUpdate(
+        playerRef.current.buffs.currentShield,
+        playerRef.current.buffs.maxShield
+      );
+    }
 
     // Spawn dust particles when player is moving
     if (playerRef.current.isMoving && !inCombatRef.current) {

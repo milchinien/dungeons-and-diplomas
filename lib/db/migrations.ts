@@ -82,3 +82,80 @@ export function migrateQuestionsIfNeeded(database: Database.Database) {
     console.log(`Migrated ${oldQuestions.length} questions to new schema`);
   }
 }
+
+/**
+ * Helper to calculate level from XP
+ */
+function getLevelFromXp(xp: number): number {
+  if (xp < 500) return 1;
+  return Math.floor(xp / 500) + 1;
+}
+
+/**
+ * Helper to calculate skill points from level
+ */
+function calculateSkillPointsFromLevel(level: number): number {
+  if (level < 2) return 0;
+  const basePoints = level - 1;
+  const bonusPoints = Math.floor((level - 1) / 5);
+  return basePoints + bonusPoints;
+}
+
+/**
+ * Migrate skills system if needed
+ *
+ * Initializes skill_points for existing users who don't have an entry yet.
+ * Also fixes skill points for users who have XP but incorrect skill points.
+ */
+export function migrateSkillsIfNeeded(database: Database.Database) {
+  // Check if skill_points table exists
+  const tables = database.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='skill_points'").all();
+
+  if (tables.length === 0) {
+    // Table doesn't exist yet, will be created by init.ts
+    return;
+  }
+
+  // Initialize skill_points for users who don't have an entry
+  database.exec(`
+    INSERT OR IGNORE INTO skill_points (user_id, total_points, spent_points, available_points)
+    SELECT id, 0, 0, 0 FROM users
+  `);
+
+  // Fix skill points for users with XP but incorrect skill points
+  // Conditions to fix:
+  // 1. total_points = 0 but user has XP >= 500 (should have points)
+  // 2. spent_points > total_points (inconsistent data)
+  const usersNeedingFix = database.prepare(`
+    SELECT u.id, u.xp, sp.spent_points, sp.total_points
+    FROM users u
+    JOIN skill_points sp ON u.id = sp.user_id
+    WHERE (u.xp >= 500 AND sp.total_points = 0)
+       OR (sp.spent_points > sp.total_points)
+  `).all() as Array<{ id: number; xp: number; spent_points: number; total_points: number }>;
+
+  if (usersNeedingFix.length > 0) {
+    console.log(`Fixing skill points for ${usersNeedingFix.length} users...`);
+
+    const updateStmt = database.prepare(`
+      UPDATE skill_points
+      SET total_points = ?, available_points = ?
+      WHERE user_id = ?
+    `);
+
+    const fix = database.transaction(() => {
+      for (const user of usersNeedingFix) {
+        const level = getLevelFromXp(user.xp);
+        const totalPoints = calculateSkillPointsFromLevel(level);
+        // Ensure total_points is at least spent_points
+        const finalTotalPoints = Math.max(totalPoints, user.spent_points);
+        const availablePoints = Math.max(0, finalTotalPoints - user.spent_points);
+
+        updateStmt.run(finalTotalPoints, availablePoints, user.id);
+        console.log(`  ✓ User ${user.id}: Level ${level}, XP ${user.xp} → ${finalTotalPoints} total points (${availablePoints} available, ${user.spent_points} spent)`);
+      }
+    });
+
+    fix();
+  }
+}

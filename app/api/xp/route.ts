@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
-import { addXp, getUserById, type XpLogEntry } from '@/lib/db';
+import { addXp, getUserById, getAdapter, type XpLogEntry } from '@/lib/db';
 import { withErrorHandler } from '@/lib/api/errorHandler';
+import { getLevelFromXp } from '@/lib/scoring/LevelCalculator';
+import { calculateSkillPointsFromLevel } from '@/lib/skills/SkillCalculator';
 
 export const POST = withErrorHandler(async (request: Request) => {
   const body = await request.json();
@@ -20,13 +22,56 @@ export const POST = withErrorHandler(async (request: Request) => {
     enemy_level
   };
 
+  // Get user's XP before and after
+  const userBefore = await getUserById(user_id);
+  if (!userBefore) {
+    return NextResponse.json(
+      { error: 'User not found' },
+      { status: 404 }
+    );
+  }
+
+  const xpBefore = userBefore.xp;
+  const levelBefore = getLevelFromXp(xpBefore);
+
   await addXp(entry);
 
-  // Return updated user data
-  const user = await getUserById(user_id);
+  // Get updated user data
+  const userAfter = await getUserById(user_id);
+  if (!userAfter) {
+    return NextResponse.json(
+      { error: 'User not found after XP gain' },
+      { status: 500 }
+    );
+  }
+
+  const xpAfter = userAfter.xp;
+  const levelAfter = getLevelFromXp(xpAfter);
+
+  // Check if player leveled up
+  let leveledUp = false;
+  let newSkillPoints = 0;
+
+  if (levelAfter > levelBefore) {
+    leveledUp = true;
+
+    // Calculate skill points based on new level
+    const totalSkillPoints = calculateSkillPointsFromLevel(levelAfter);
+
+    // Update skill_points table
+    const db = await getAdapter();
+    await db.updateSkillPoints(user_id, totalSkillPoints);
+
+    // Get updated skill points
+    const skillPoints = await db.getUserSkillPoints(user_id);
+    newSkillPoints = skillPoints.availablePoints;
+  }
 
   return NextResponse.json({
     success: true,
-    user
+    user: userAfter,
+    leveledUp,
+    newLevel: levelAfter,
+    skillPointsAvailable: newSkillPoints,
   });
 }, 'add XP');

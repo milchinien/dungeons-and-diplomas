@@ -12,7 +12,7 @@ import { loadSubjectElo, findSubjectElo, DEFAULT_ELO } from '@/lib/scoring/EloSe
 import { useTimer } from './useTimer';
 import { type Clock, defaultClock } from '@/lib/time';
 import { logHookError } from '@/lib/hooks';
-import { generateEnemyLoot, generateBossLoot, isBoss, type DroppedItem, type EquipmentBonuses, DEFAULT_BONUSES } from '@/lib/items';
+import { generateEnemyLoot, generateBossLoot, isBoss, type DroppedItem, type EquipmentBonuses, type CombinedBonuses, DEFAULT_BONUSES } from '@/lib/items';
 import { applyDamageToPlayer, getTimeBonus, getDamageBoost, getDamageReduction } from '@/lib/buff';
 import { getEffectsManager } from '@/lib/effects';
 
@@ -33,8 +33,8 @@ interface UseCombatProps {
   onComboBreak?: () => void;
   /** Called when a shrine enemy is defeated - used for shrine completion tracking */
   onShrineEnemyDefeated?: (enemyId: number, shrineId: number) => void;
-  /** Equipment bonuses from currently equipped items */
-  equipmentBonuses?: EquipmentBonuses;
+  /** Equipment bonuses from currently equipped items (can include skill bonuses via CombinedBonuses) */
+  equipmentBonuses?: EquipmentBonuses | CombinedBonuses;
   /** Bonus damage from combo system */
   comboBonus?: number;
   tileSize?: number;
@@ -66,6 +66,9 @@ export function useCombat({
 
   // Ref to track if current combat is flawless (no wrong answers)
   const flawlessCombatRef = useRef(true);
+
+  // Ref to prevent multiple answer submissions (double-click protection)
+  const isProcessingAnswerRef = useRef(false);
 
   // Keep inCombatRef in sync with reducer state
   useEffect(() => {
@@ -188,6 +191,9 @@ export function useCombat({
       // Calculate hint based on hint chance from equipment
       const hintedAnswerIndex = calculateHint(question, equipmentBonuses.hintChance);
 
+      // Reset answer processing flag for new question
+      isProcessingAnswerRef.current = false;
+
       dispatch({
         type: 'ASK_QUESTION',
         question,
@@ -204,11 +210,15 @@ export function useCombat({
   }, [state.enemy, state.askedQuestionIds, questionDatabase, userId, playerRef, clock, startTimer, endCombat, equipmentBonuses.timeBonus, equipmentBonuses.hintChance]);
 
   const answerQuestion = useCallback(async (selectedIndex: number) => {
-    stopTimer();
-
     const question = state.question;
     const enemy = state.enemy;
     if (!question || !enemy) return;
+
+    // Prevent multiple clicks using ref (synchronous check)
+    if (isProcessingAnswerRef.current) return;
+    isProcessingAnswerRef.current = true;
+
+    stopTimer();
 
     const answerTimeMs = clock.now() - state.questionStartTime;
     const isTimeout = selectedIndex === -1;
@@ -221,8 +231,11 @@ export function useCombat({
       timeBonus: equipmentBonuses.timeBonus + getTimeBonus(playerRef.current),
     };
 
+    // Check if this is the first question in combat (for first strike bonus)
+    const isFirstQuestion = state.askedQuestionIds.length === 1; // Length is 1 because current question is already added
+
     // Apply equipment bonuses and combo bonus to combat calculations
-    const result = CombatEngine.processAnswer(selectedIndex, question, state.playerElo, enemy.level, combinedBonuses, comboBonus);
+    const result = CombatEngine.processAnswer(selectedIndex, question, state.playerElo, enemy.level, combinedBonuses, comboBonus, isFirstQuestion);
 
     // Track flawless status - wrong answer or timeout breaks the combo
     if (!result.isCorrect) {
@@ -285,7 +298,7 @@ export function useCombat({
     } else {
       setTimeout(() => askQuestion(), COMBAT_FEEDBACK_DELAY);
     }
-  }, [state.question, state.enemy, state.questionStartTime, state.subject, state.playerElo, userId, clock, stopTimer, loadPlayerElo, onUpdateSessionScores, onPlayerHpUpdate, playerRef, endCombat, askQuestion, equipmentBonuses, onComboBreak]);
+  }, [state.question, state.enemy, state.questionStartTime, state.subject, state.playerElo, state.askedQuestionIds.size, userId, clock, stopTimer, loadPlayerElo, onUpdateSessionScores, onPlayerHpUpdate, playerRef, endCombat, askQuestion, equipmentBonuses, onComboBreak]);
 
   // Update timeout ref when answerQuestion changes
   useEffect(() => {
@@ -330,6 +343,9 @@ export function useCombat({
 
         // Calculate hint based on hint chance from equipment
         const hintedAnswerIndex = calculateHint(question, equipmentBonuses.hintChance);
+
+        // Reset answer processing flag for new question
+        isProcessingAnswerRef.current = false;
 
         dispatch({
           type: 'ASK_QUESTION',

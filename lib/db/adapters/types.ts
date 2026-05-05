@@ -18,6 +18,7 @@ import type { Highscore, HighscoreEntry } from '../highscores';
 import type { EditorLevel } from '../editorLevels';
 import type { AnswerLogEntry, XpLogEntry, SubjectEloScore } from '../../types/api';
 import type { ImportedTileset, TileTheme, DungeonTheme } from '../../tiletheme/types';
+import type { UserSkill, SkillPoints } from '../../skills/types';
 
 /**
  * Database adapter type
@@ -240,4 +241,33 @@ export interface DatabaseAdapter {
    * Delete a dungeon theme by ID
    */
   deleteDungeonTheme(id: number): Promise<void>;
+
+  // ============================================================================
+  // Skills
+  // ============================================================================
+
+  /**
+   * Get user's skill allocations
+   */
+  getUserSkills(userId: number): Promise<UserSkill[]>;
+
+  /**
+   * Get user's skill points (total, spent, available)
+   */
+  getUserSkillPoints(userId: number): Promise<SkillPoints>;
+
+  /**
+   * Allocate a skill point (increments skill level by 1)
+   */
+  allocateSkillPoint(userId: number, skillId: string): Promise<void>;
+
+  /**
+   * Update skill points for a user (called after XP gain / level up)
+   */
+  updateSkillPoints(userId: number, totalPoints: number): Promise<void>;
+
+  /**
+   * Reset all skills for a user (optional feature)
+   */
+  resetUserSkills(userId: number): Promise<void>;
 }

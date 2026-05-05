@@ -668,14 +668,15 @@ export class GameEngine {
     player: Player,
     tileSize: number,
     dungeon: TileType[][],
-    onContactDamage: (damage: number) => void
+    onContactDamage: (damage: number) => void,
+    doorStates?: Map<string, boolean>
   ): void {
     // Update each fireball
     for (const fireball of this.fireballs) {
       if (!fireball.alive) continue;
 
-      // Update position and check wall collisions
-      fireball.update(dt, dungeon, tileSize);
+      // Update position and check wall/door collisions
+      fireball.update(dt, dungeon, tileSize, doorStates);
 
       // Check player collision
       if (fireball.checkPlayerCollision(player.x, player.y, tileSize)) {

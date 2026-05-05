@@ -35,6 +35,8 @@ next-env.d.ts
 
 # database
 data/game.db
+data/game.db.backup
+data/*.db-journal
 
 # playwright
 /test-results/

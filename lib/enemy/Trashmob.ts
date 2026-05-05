@@ -410,7 +410,7 @@ export class Trashmob {
       const playerCenterX = player.x + tileSize / 2;
       const playerCenterY = player.y + tileSize / 2;
 
-      if (hasLineOfSight(trashmobCenterX, trashmobCenterY, playerCenterX, playerCenterY, dungeon, tileSize)) {
+      if (hasLineOfSight(trashmobCenterX, trashmobCenterY, playerCenterX, playerCenterY, dungeon, tileSize, doorStates)) {
         this.startSlimeAttack(player, tileSize, room.visible);
         return;
       }
@@ -666,7 +666,7 @@ export class Trashmob {
       const playerCenterX = player.x + tileSize / 2;
       const playerCenterY = player.y + tileSize / 2;
 
-      if (hasLineOfSight(trashmobCenterX, trashmobCenterY, playerCenterX, playerCenterY, dungeon, tileSize)) {
+      if (hasLineOfSight(trashmobCenterX, trashmobCenterY, playerCenterX, playerCenterY, dungeon, tileSize, doorStates)) {
         this.startBatAttack(player, tileSize, room.visible);
         return;
       }
@@ -884,7 +884,7 @@ export class Trashmob {
       const playerCenterX = player.x + tileSize / 2;
       const playerCenterY = player.y + tileSize / 2;
 
-      if (hasLineOfSight(trashmobCenterX, trashmobCenterY, playerCenterX, playerCenterY, dungeon, tileSize)) {
+      if (hasLineOfSight(trashmobCenterX, trashmobCenterY, playerCenterX, playerCenterY, dungeon, tileSize, doorStates)) {
         this.startRatAttack(player, tileSize, room.visible);
         return;
       }
@@ -1237,7 +1237,7 @@ export class Trashmob {
       const playerCenterX = player.x + tileSize / 2;
       const playerCenterY = player.y + tileSize / 2;
 
-      if (hasLineOfSight(mageCenterX, mageCenterY, playerCenterX, playerCenterY, dungeon, tileSize)) {
+      if (hasLineOfSight(mageCenterX, mageCenterY, playerCenterX, playerCenterY, dungeon, tileSize, doorStates)) {
         this.startMageShooting(player, tileSize, distanceToPlayer);
         return;
       }

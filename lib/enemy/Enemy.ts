@@ -184,10 +184,10 @@ export class Enemy {
    * Draw enemy sprite and status bar
    * Delegates to EnemyRenderer module
    */
-  draw(ctx: CanvasRenderingContext2D, rooms: Room[], tileSize: number, player?: Player, playerRoomIds?: Set<number>): void {
+  draw(ctx: CanvasRenderingContext2D, rooms: Room[], tileSize: number, player?: Player, playerRoomIds?: Set<number>, isVisibleThroughDoor?: boolean): void {
     // Import dynamically to avoid circular dependency at module load time
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { EnemyRenderer } = require('./EnemyRenderer');
-    EnemyRenderer.draw(this, ctx, rooms, tileSize, player, playerRoomIds);
+    EnemyRenderer.draw(this, ctx, rooms, tileSize, player, playerRoomIds, isVisibleThroughDoor);
   }
 }
