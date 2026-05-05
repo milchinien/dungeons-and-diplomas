@@ -4,6 +4,7 @@
  * Supports both file-based and in-memory databases for testing.
  */
 import Database from 'better-sqlite3';
+import fs from 'fs';
 import path from 'path';
 
 // Database path
@@ -35,6 +36,10 @@ export function createDatabase(options: DatabaseOptions = {}): Database.Database
   const dbPath = options.path ?? DB_PATH;
   const isInMemory = dbPath === ':memory:';
   const shouldSeed = options.seed ?? !isInMemory;
+
+  if (!isInMemory) {
+    fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+  }
 
   const database = new Database(dbPath);
 
