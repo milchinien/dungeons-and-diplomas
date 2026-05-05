@@ -1,5 +1,7 @@
 # Educational Dungeon Crawler
 
+> **Historischer Ideenspeicher (Stand 2026-05-04):** Dieses Dokument ist die urspruengliche Produktvision. Es ist nicht deprecated im Sinne von "falsch", aber kein aktueller Umsetzungsplan. Fuer den aktuellen Projektstatus und die naechsten Schritte siehe [../../CURRENT_STATUS.md](../../CURRENT_STATUS.md) und [Current_Roadmap.md](./Current_Roadmap.md).
+
 ## Erstellt
 2025-11-12 - Michi (michi.waggoner@gmail.com)
 

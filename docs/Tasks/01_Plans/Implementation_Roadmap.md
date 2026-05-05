@@ -1,5 +1,7 @@
 # Implementation Roadmap - MVP
 
+> **Deprecated / historisch (Stand 2026-05-04):** Diese Roadmap beschreibt die urspruengliche MVP-Implementierungssequenz aus der Phaser-/Combat-Scene-Planung. Der aktuelle Code ist deutlich weiter und nutzt Custom Canvas Rendering statt Phaser. Fuer operative Planung siehe [Current_Roadmap.md](./Current_Roadmap.md). Dieses Dokument bleibt als historischer Kontext erhalten.
+
 ## Erstellt
 2025-11-17 - Tobias (mit Claude)
 

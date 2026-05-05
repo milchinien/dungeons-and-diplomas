@@ -1,5 +1,7 @@
 # MVP Definition - Educational Dungeon Crawler
 
+> **Historischer Planungsstand (Stand 2026-05-04):** Dieses Dokument bleibt als urspruengliche MVP-Definition erhalten. Mehrere als Post-MVP markierte Features sind inzwischen teilweise oder vollstaendig im Code vorhanden, z.B. Treasure-Raeume, Items, Highscores, XP, Editor-Tools und Supabase-Adapter. Fuer den aktuellen Stand siehe [../../CURRENT_STATUS.md](../../CURRENT_STATUS.md).
+
 MVP = Minimal Viable Product
 
 ## Erstellt
