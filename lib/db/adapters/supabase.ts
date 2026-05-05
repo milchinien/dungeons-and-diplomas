@@ -18,6 +18,7 @@ import type { Highscore, HighscoreEntry } from '../highscores';
 import type { EditorLevel } from '../editorLevels';
 import type { AnswerLogEntry, XpLogEntry, SubjectEloScore } from '../../types/api';
 import type { ImportedTileset, TileTheme, DungeonTheme } from '../../tiletheme/types';
+import type { UserSkill, SkillPoints } from '../../skills/types';
 import {
   calculateEloOrNull,
   calculateProgressiveElo,
@@ -895,5 +896,153 @@ export class SupabaseAdapter implements DatabaseAdapter {
     const { error } = await this.client.from('dungeon_themes').delete().eq('id', id);
 
     if (error) throw error;
+  }
+
+  // ============================================================================
+  // Skills
+  // ============================================================================
+
+  async getUserSkills(userId: number): Promise<UserSkill[]> {
+    const { data, error } = await this.client
+      .from('user_skills')
+      .select('skill_id, level')
+      .eq('user_id', userId);
+
+    if (error) throw error;
+
+    return (data || []).map((row) => ({
+      skillId: String(row.skill_id),
+      level: Number(row.level),
+    }));
+  }
+
+  async getUserSkillPoints(userId: number): Promise<SkillPoints> {
+    // Ensure user has a skill_points entry
+    const { error: insertError } = await this.client
+      .from('skill_points')
+      .upsert(
+        { user_id: userId, total_points: 0, spent_points: 0, available_points: 0 },
+        { onConflict: 'user_id', ignoreDuplicates: true }
+      );
+
+    if (insertError && insertError.code !== '23505') {
+      // Ignore duplicate key errors
+      throw insertError;
+    }
+
+    const { data, error } = await this.client
+      .from('skill_points')
+      .select('total_points, spent_points, available_points')
+      .eq('user_id', userId)
+      .single();
+
+    if (error) throw error;
+
+    if (!data) {
+      return { totalPoints: 0, spentPoints: 0, availablePoints: 0 };
+    }
+
+    return {
+      totalPoints: Number(data.total_points),
+      spentPoints: Number(data.spent_points),
+      availablePoints: Number(data.available_points),
+    };
+  }
+
+  async allocateSkillPoint(userId: number, skillId: string): Promise<void> {
+    // Check if skill exists
+    const { data: existing, error: selectError } = await this.client
+      .from('user_skills')
+      .select('level')
+      .eq('user_id', userId)
+      .eq('skill_id', skillId)
+      .maybeSingle();
+
+    if (selectError) throw selectError;
+
+    if (existing) {
+      // Increment level
+      const { error: updateError } = await this.client
+        .from('user_skills')
+        .update({ level: Number(existing.level) + 1 })
+        .eq('user_id', userId)
+        .eq('skill_id', skillId);
+
+      if (updateError) throw updateError;
+    } else {
+      // Insert new skill with level 1
+      const { error: insertError } = await this.client
+        .from('user_skills')
+        .insert({ user_id: userId, skill_id: skillId, level: 1 });
+
+      if (insertError) throw insertError;
+    }
+
+    // Update skill_points: increment spent, decrement available
+    const { data: currentPoints, error: pointsError } = await this.client
+      .from('skill_points')
+      .select('spent_points, available_points')
+      .eq('user_id', userId)
+      .single();
+
+    if (pointsError) throw pointsError;
+
+    const { error: updatePointsError } = await this.client
+      .from('skill_points')
+      .update({
+        spent_points: Number(currentPoints.spent_points) + 1,
+        available_points: Number(currentPoints.available_points) - 1,
+      })
+      .eq('user_id', userId);
+
+    if (updatePointsError) throw updatePointsError;
+  }
+
+  async updateSkillPoints(userId: number, totalPoints: number): Promise<void> {
+    // Get current spent points
+    const currentPoints = await this.getUserSkillPoints(userId);
+    const newAvailable = totalPoints - currentPoints.spentPoints;
+
+    const { error } = await this.client.from('skill_points').upsert(
+      {
+        user_id: userId,
+        total_points: totalPoints,
+        spent_points: currentPoints.spentPoints,
+        available_points: newAvailable,
+      },
+      { onConflict: 'user_id' }
+    );
+
+    if (error) throw error;
+  }
+
+  async resetUserSkills(userId: number): Promise<void> {
+    // Delete all skill allocations
+    const { error: deleteError } = await this.client
+      .from('user_skills')
+      .delete()
+      .eq('user_id', userId);
+
+    if (deleteError) throw deleteError;
+
+    // Get current total_points
+    const { data: currentPoints, error: selectError } = await this.client
+      .from('skill_points')
+      .select('total_points')
+      .eq('user_id', userId)
+      .single();
+
+    if (selectError) throw selectError;
+
+    // Reset spent_points to 0, available_points to total_points
+    const { error: updateError } = await this.client
+      .from('skill_points')
+      .update({
+        spent_points: 0,
+        available_points: Number(currentPoints.total_points),
+      })
+      .eq('user_id', userId);
+
+    if (updateError) throw updateError;
   }
 }

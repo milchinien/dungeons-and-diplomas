@@ -8,6 +8,7 @@ interface ActionButtonsProps {
   onSkills: () => void;
   onLogout: () => void;
   onSettings?: () => void;
+  skillPointsAvailable?: number;
 }
 
 interface ActionButtonProps {
@@ -15,12 +16,13 @@ interface ActionButtonProps {
   title: string;
   icon: string;
   accentColor: string;
+  badge?: number;
 }
 
 /**
  * Single action button with medieval metal style
  */
-function ActionButton({ onClick, title, icon, accentColor }: ActionButtonProps) {
+function ActionButton({ onClick, title, icon, accentColor, badge }: ActionButtonProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
@@ -61,6 +63,28 @@ function ActionButton({ onClick, title, icon, accentColor }: ActionButtonProps) 
         height: '2px',
       }} />
       {icon}
+      {/* Badge indicator for available points */}
+      {badge !== undefined && badge > 0 && (
+        <div style={{
+          position: 'absolute',
+          top: '-4px',
+          right: '-4px',
+          backgroundColor: '#fbbf24',
+          color: '#000',
+          borderRadius: '50%',
+          width: '14px',
+          height: '14px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '9px',
+          fontWeight: 'bold',
+          border: '1px solid #000',
+          boxShadow: '0 0 8px rgba(251, 191, 36, 0.8)',
+        }}>
+          {badge}
+        </div>
+      )}
     </button>
   );
 }
@@ -68,7 +92,7 @@ function ActionButton({ onClick, title, icon, accentColor }: ActionButtonProps) 
 /**
  * Action buttons row in medieval metal frame style
  */
-export function ActionButtons({ onRestart, onSkills, onLogout, onSettings }: ActionButtonsProps) {
+export function ActionButtons({ onRestart, onSkills, onLogout, onSettings, skillPointsAvailable }: ActionButtonsProps) {
   return (
     <div style={{ marginTop: '4px' }}>
       {/* Divider */}
@@ -89,9 +113,10 @@ export function ActionButtons({ onRestart, onSkills, onLogout, onSettings }: Act
         />
         <ActionButton
           onClick={onSkills}
-          title="Skills"
+          title="Skills (K)"
           icon="S"
           accentColor={MEDIEVAL_COLORS.mastery.advanced}
+          badge={skillPointsAvailable}
         />
         {onSettings && (
           <ActionButton

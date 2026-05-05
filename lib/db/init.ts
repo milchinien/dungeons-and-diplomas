@@ -4,7 +4,7 @@
 import type Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
-import { migrateEditorLevelsIfNeeded, migrateQuestionsIfNeeded, migrateUserXpIfNeeded } from './migrations';
+import { migrateEditorLevelsIfNeeded, migrateQuestionsIfNeeded, migrateUserXpIfNeeded, migrateSkillsIfNeeded } from './migrations';
 
 export interface InitOptions {
   /** Whether to seed with initial question data (default: true) */
@@ -91,6 +91,37 @@ export function initializeDatabase(database: Database.Database, options: InitOpt
     CREATE INDEX IF NOT EXISTS idx_highscores_user ON highscores(user_id)
   `);
 
+  // Create skill_points table
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS skill_points (
+      user_id INTEGER PRIMARY KEY,
+      total_points INTEGER DEFAULT 0,
+      spent_points INTEGER DEFAULT 0,
+      available_points INTEGER DEFAULT 0,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `);
+
+  // Create user_skills table
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS user_skills (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      skill_id TEXT NOT NULL,
+      level INTEGER DEFAULT 0,
+      UNIQUE(user_id, skill_id),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `);
+
+  // Create indices for user_skills
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_user_skills_user ON user_skills(user_id)
+  `);
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_user_skills_skill ON user_skills(skill_id)
+  `);
+
   // Create editor_levels table
   database.exec(`
     CREATE TABLE IF NOT EXISTS editor_levels (
@@ -126,6 +157,9 @@ export function initializeDatabase(database: Database.Database, options: InitOpt
 
   // Check if we need to add XP column to existing users table
   migrateUserXpIfNeeded(database);
+
+  // Check if we need to initialize skill_points for existing users
+  migrateSkillsIfNeeded(database);
 
   // Check if we need to seed the database
   if (shouldSeed) {

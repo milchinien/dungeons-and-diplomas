@@ -91,6 +91,23 @@ export const COMBAT_TRIGGER_DISTANCE = 0.5; // tiles - distance to trigger comba
 export const COMBAT_FEEDBACK_DELAY = 1500; // milliseconds - delay before next question or ending combat
 
 // =============================================================================
+// Skill constants
+// =============================================================================
+export const SKILL_POINTS_PER_LEVEL = 1; // Base skill points per level (after level 1)
+export const SKILL_BONUS_POINTS_INTERVAL = 5; // Bonus skill point every N levels
+export const SKILL_POINTS_START_LEVEL = 2; // Level at which skill points start being awarded
+export const TOTAL_SKILL_TREES = 3; // Attack, Defense, Utility
+export const TOTAL_SKILLS = 26; // 7 attack + 7 defense + 7 utility + 5 knowledge
+
+// Skill tree names for UI
+export const SKILL_TREE_NAMES = {
+  attack: 'Angriff',
+  defense: 'Verteidigung',
+  utility: 'Nutzen',
+  knowledge: 'Wissen',
+} as const;
+
+// =============================================================================
 // Shrine constants
 // =============================================================================
 export const SHRINE_SPAWN_CHANCE = 0.10; // 10% chance per eligible room

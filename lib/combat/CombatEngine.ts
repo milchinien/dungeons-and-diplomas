@@ -1,6 +1,7 @@
 import type { SelectedQuestion } from './QuestionSelector';
 import { calculatePlayerDamage, calculateEnemyDamage } from './DamageCalculator';
 import type { EquipmentBonuses } from '@/lib/items';
+import type { CombinedBonuses } from '@/lib/items/EquipmentBonusCalculator';
 
 /**
  * Calculate hint for a question based on hint chance
@@ -57,6 +58,15 @@ const NO_BONUSES: EquipmentBonuses = {
 };
 
 /**
+ * Helper to check if bonuses include skill bonuses (CombinedBonuses)
+ */
+function isCombinedBonuses(
+  bonuses: EquipmentBonuses | CombinedBonuses
+): bonuses is CombinedBonuses {
+  return 'critChance' in bonuses;
+}
+
+/**
  * Pure function combat engine.
  * Extracts business logic from useCombat hook for better testability and reusability.
  */
@@ -69,8 +79,9 @@ export class CombatEngine {
    * @param question The current question being answered
    * @param playerElo The player's current ELO for this subject
    * @param enemyLevel The enemy's level
-   * @param equipmentBonuses Optional equipment bonuses (damage, reduction, etc.)
+   * @param equipmentBonuses Optional equipment/skill bonuses (damage, reduction, crit, etc.)
    * @param comboBonus Optional combo bonus damage (from defeating enemies in a row)
+   * @param isFirstQuestion Whether this is the first question in combat (for first strike bonus)
    * @returns The result of the answer including damage and feedback
    */
   static processAnswer(
@@ -78,25 +89,64 @@ export class CombatEngine {
     question: SelectedQuestion,
     playerElo: number,
     enemyLevel: number,
-    equipmentBonuses: EquipmentBonuses = NO_BONUSES,
-    comboBonus: number = 0
+    equipmentBonuses: EquipmentBonuses | CombinedBonuses = NO_BONUSES,
+    comboBonus: number = 0,
+    isFirstQuestion: boolean = false
   ): AnswerResult {
     const isTimeout = selectedIndex === -1;
     const isCorrect = selectedIndex === question.correctIndex;
     const correctAnswerText = question.shuffledAnswers[question.correctIndex];
 
     if (isCorrect) {
-      // Apply damage bonus from equipment + combo
-      const totalDamageBonus = equipmentBonuses.damageBonus + comboBonus;
-      const damage = calculatePlayerDamage(playerElo, enemyLevel, totalDamageBonus);
-      // Show combo bonus in feedback if active
-      const comboText = comboBonus > 0 ? ` (+${comboBonus} Kombo)` : '';
+      // Check if we have skill bonuses
+      const combined = isCombinedBonuses(equipmentBonuses) ? equipmentBonuses : null;
+
+      // Calculate total damage bonus
+      // Base: equipment damage + combo
+      let totalDamageBonus = equipmentBonuses.damageBonus + comboBonus;
+
+      // Add skill combo bonus if available
+      if (combined) {
+        totalDamageBonus += combined.comboBonusDamage;
+      }
+
+      // Calculate base damage
+      let damage = calculatePlayerDamage(playerElo, enemyLevel, totalDamageBonus);
+
+      // Apply first strike bonus if this is the first question
+      if (isFirstQuestion && combined && combined.firstStrikeDamage > 0) {
+        damage += combined.firstStrikeDamage;
+      }
+
+      // Check for critical hit
+      let isCritical = false;
+      if (combined && combined.critChance > 0) {
+        const critRoll = Math.random() * 100;
+        if (critRoll < combined.critChance) {
+          isCritical = true;
+          damage = Math.floor(damage * combined.critMultiplier);
+        }
+      }
+
+      // Build feedback message
+      let feedbackMessage: string;
+      if (isCritical) {
+        feedbackMessage = `🎯 KRITISCH! ${damage} Schaden!`;
+      } else if (isFirstQuestion && combined && combined.firstStrikeDamage > 0) {
+        feedbackMessage = `⚡ Erstschlag! ${damage} Schaden!`;
+      } else if (comboBonus > 0 || (combined && combined.comboBonusDamage > 0)) {
+        const totalCombo = comboBonus + (combined ? combined.comboBonusDamage : 0);
+        feedbackMessage = `✓ Richtig! ${damage} Schaden! (+${totalCombo} Kombo)`;
+      } else {
+        feedbackMessage = `✓ Richtig! ${damage} Schaden!`;
+      }
+
       return {
         isCorrect: true,
         isTimeout: false,
         damage,
         targetedPlayer: false,
-        feedbackMessage: `✓ Richtig! ${damage} Schaden!${comboText}`,
+        feedbackMessage,
         correctAnswerText
       };
     } else {
