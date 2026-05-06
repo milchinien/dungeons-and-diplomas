@@ -82,9 +82,8 @@ export default function MainMenu({ onPlay, onProgress, onSettings, onProfileSele
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 10000,
-        backgroundImage: 'url(/Assets/menu-background.jpg)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
+        backgroundImage:
+          'radial-gradient(ellipse at center, #1a1410 0%, #0a0805 60%, #000000 100%)',
       }}
     >
       {/* Dark overlay for better text visibility */}

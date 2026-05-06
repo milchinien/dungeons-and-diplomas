@@ -47,6 +47,9 @@ data/*.db-journal
 tmpclaude-*-cwd
 Volume*.lnk
 
+# claude code preview launch config (per-machine)
+.claude/launch.json
+
 # local debug/test artifacts in repo root
 /test-*.js
 /test-*.log
