@@ -67,7 +67,7 @@ export interface ShopPurchaseState {
   resetShopData: () => void;
 
   /** Load current gold balance */
-  loadGold: () => Promise<void>;
+  loadGold: (explicitId?: number) => Promise<void>;
 }
 
 export function useShopPurchase({
@@ -90,12 +90,15 @@ export function useShopPurchase({
   // Track last E key state to detect key press (not hold)
   const lastEKeyRef = useRef(false);
 
-  // Load current gold balance
-  const loadGold = useCallback(async () => {
-    if (!userId) return;
+  // Load current gold balance.
+  // Optionally accepts an explicit id to avoid stale-closure issues right after login,
+  // when the userId React state hasn't propagated through the hook yet.
+  const loadGold = useCallback(async (explicitId?: number) => {
+    const id = explicitId ?? userId;
+    if (!id) return;
 
     try {
-      const response = await fetch(`/api/gold?userId=${userId}`);
+      const response = await fetch(`/api/gold?userId=${id}`);
       if (!response.ok) {
         console.error('[useShopPurchase] Failed to load gold');
         return;

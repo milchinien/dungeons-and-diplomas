@@ -9,6 +9,9 @@ interface TopLeftPanelProps {
   level: number;
   currentHp: number;
   maxHp: number;
+  currentShield?: number;
+  maxShield?: number;
+  skillPointsAvailable?: number;
   equippedItems?: Item[];
   activePerks?: Perk[];
 }
@@ -23,6 +26,9 @@ export function TopLeftPanel({
   level,
   currentHp,
   maxHp,
+  currentShield = 0,
+  maxShield = 0,
+  skillPointsAvailable = 0,
   equippedItems = [],
   activePerks = []
 }: TopLeftPanelProps) {
@@ -97,6 +103,23 @@ export function TopLeftPanel({
           }}
         >
           Level {level}
+          {skillPointsAvailable > 0 && (
+            <span
+              style={{
+                marginLeft: '6px',
+                padding: '1px 6px',
+                background: 'linear-gradient(135deg, #ffaa00, #ff6600)',
+                color: '#000',
+                borderRadius: '8px',
+                fontSize: '9px',
+                letterSpacing: '0.5px',
+                boxShadow: '0 0 8px #ff8800aa',
+              }}
+              title="Verfügbare Skill-Punkte"
+            >
+              +{skillPointsAvailable} SP
+            </span>
+          )}
         </div>
       </div>
 
@@ -200,6 +223,72 @@ export function TopLeftPanel({
           )}
         </div>
       </div>
+
+      {/* Shield Bar (only when player has shield capacity) */}
+      {maxShield > 0 && (
+        <div style={{ marginBottom: '8px' }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '4px',
+              paddingLeft: '2px',
+              paddingRight: '2px',
+            }}
+          >
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 'bold',
+                color: '#66ccff',
+                textShadow: '0 0 6px #3399ff80',
+                letterSpacing: '1px',
+              }}
+            >
+              SHIELD
+            </span>
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 'bold',
+                color: 'rgba(255, 255, 255, 0.9)',
+                fontFamily: 'monospace',
+                textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)',
+              }}
+            >
+              {currentShield} / {maxShield}
+            </span>
+          </div>
+          <div
+            style={{
+              position: 'relative',
+              width: '100%',
+              height: '12px',
+              background: 'linear-gradient(180deg, rgba(10, 10, 15, 0.9), rgba(5, 5, 10, 0.95))',
+              border: '2px solid rgba(102, 204, 255, 0.25)',
+              borderRadius: '6px',
+              overflow: 'hidden',
+              boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.8)',
+            }}
+          >
+            <div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                height: '100%',
+                width: `${Math.max(0, Math.min(100, (currentShield / maxShield) * 100))}%`,
+                background: 'linear-gradient(90deg, #66ccff 0%, #3399ffcc 100%)',
+                borderRadius: '4px',
+                boxShadow:
+                  'inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 0 10px #3399ff60',
+                transition: 'width 0.25s ease-out',
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Equipment Display */}
       {(equippedItems.length > 0 || activePerks.length > 0) && (

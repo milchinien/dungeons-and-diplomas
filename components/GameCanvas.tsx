@@ -962,7 +962,7 @@ export default function GameCanvas() {
     await handleLogin(id, name, xp);
     await loadSessionElos(id);
     await loadUserSkills(id);
-    await shopPurchase.loadGold();
+    await shopPurchase.loadGold(id);
 
     // Close login modal
     setShowLoginForPlay(false);
@@ -1056,6 +1056,9 @@ export default function GameCanvas() {
             level={levelInfo.level}
             currentHp={playerHp}
             maxHp={playerRef.current.maxHp}
+            currentShield={playerShield}
+            maxShield={maxShield}
+            skillPointsAvailable={skillPointsAvailable}
             equippedItems={shopPurchase.shopData.equippedItems}
             activePerks={shopPurchase.shopData.activePerks}
           />
