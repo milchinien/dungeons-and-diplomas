@@ -41,9 +41,12 @@ export function selectRandomBuffs(count: number = 2): Buff[] {
  * @param buff The buff to apply
  */
 export function applyBuff(player: Player, buff: Buff): void {
-  // Initialize buffs if not present
+  // Initialize buffs if not present (clone activeBuffs so the shared constant is never mutated)
   if (!player.buffs) {
-    player.buffs = { ...INITIAL_PLAYER_BUFFS };
+    player.buffs = { ...INITIAL_PLAYER_BUFFS, activeBuffs: [] };
+  } else if (player.buffs.activeBuffs === INITIAL_PLAYER_BUFFS.activeBuffs) {
+    // Guard against shallow copies of INITIAL_PLAYER_BUFFS created elsewhere
+    player.buffs.activeBuffs = [...player.buffs.activeBuffs];
   }
 
   // Track the buff
@@ -215,7 +218,7 @@ export function getDamageReduction(player: Player): number {
 export function resetPlayerBuffs(player: Player, resetMaxHp: boolean = true): void {
   const baseMaxHp = resetMaxHp ? (player.maxHp - (player.buffs?.maxHpBonus ?? 0)) : player.maxHp;
 
-  player.buffs = { ...INITIAL_PLAYER_BUFFS };
+  player.buffs = { ...INITIAL_PLAYER_BUFFS, activeBuffs: [] };
   player.maxHp = baseMaxHp;
 
   resetRegenTimer();

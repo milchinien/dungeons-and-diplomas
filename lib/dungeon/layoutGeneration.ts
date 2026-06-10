@@ -8,6 +8,7 @@ import { TILE, DUNGEON_WIDTH, DUNGEON_HEIGHT, SHOP_MIN_ROOM_SIZE, SHOP_MAX_ROOM_
 import { getLayoutPool } from '../roomlayouts/LayoutPool';
 import type { RoomLayout } from '../roomlayouts/types';
 import { generateShopInventory } from '../shop/ShopInventory';
+import { removeDoubleWalls } from './generation';
 
 interface PlacedRoom {
   layout: RoomLayout;
@@ -124,13 +125,17 @@ export function generateDungeonFromLayouts(
   }
 
   // Step 3: Remove double walls between connected rooms
-  removeDoubleWalls(dungeon, rooms, roomMap);
+  removeDoubleWalls(dungeon, roomMap, DUNGEON_WIDTH, DUNGEON_HEIGHT);
+
+  // Step 3.4: Seal the dungeon — every EMPTY tile touching a floor/door becomes
+  // a wall, so non-rectangular layouts or junction corners never leave holes
+  sealExposedFloors(dungeon);
 
   // Step 3.5: Update roomMap after wall removal
-  updateRoomMapAfterWallRemoval(dungeon, roomMap, rooms);
+  updateRoomMapAfterWallRemoval(dungeon, roomMap);
 
   // Step 3.6: Validate and fix doors
-  const doorErrors = validateAllDoors(dungeon, rooms);
+  const doorErrors = validateAllDoors(dungeon);
   if (doorErrors.length > 0) {
     console.warn(`Fixed ${doorErrors.length} invalid doors`);
   }
@@ -175,8 +180,14 @@ function placeRoomInDungeon(
           if (sharedWallSide === 'east' && lx === layout.width - 1) onSharedEdge = true;
 
           if (onSharedEdge) {
-            // Don't overwrite existing walls - skip this tile
-            continue;
+            // Keep the existing room's wall/door/floor on the shared edge — but
+            // only when something is actually there. Where the new room extends
+            // beyond the existing room's footprint, the wall must still be written
+            // or the perimeter gets holes.
+            const existing = dungeon[dungeonY][dungeonX];
+            if (existing !== TILE.EMPTY) {
+              continue;
+            }
           }
         }
 
@@ -209,8 +220,11 @@ function placeRoomInDungeon(
   };
   rooms.push(room);
 
-  // Add open doors using exact positions (no searching required)
-  if (layout.doorPositions.north !== null) {
+  // Add open doors using exact positions (no searching required).
+  // The door on the shared wall side was just consumed to connect this room —
+  // re-adding it would leave a permanently unplaceable entry in openDoors that
+  // burns generation attempts on every pick.
+  if (layout.doorPositions.north !== null && sharedWallSide !== 'north') {
     openDoors.push({
       roomId,
       side: 'north',
@@ -219,7 +233,7 @@ function placeRoomInDungeon(
     });
   }
 
-  if (layout.doorPositions.south !== null) {
+  if (layout.doorPositions.south !== null && sharedWallSide !== 'south') {
     openDoors.push({
       roomId,
       side: 'south',
@@ -228,7 +242,7 @@ function placeRoomInDungeon(
     });
   }
 
-  if (layout.doorPositions.west !== null) {
+  if (layout.doorPositions.west !== null && sharedWallSide !== 'west') {
     openDoors.push({
       roomId,
       side: 'west',
@@ -237,7 +251,7 @@ function placeRoomInDungeon(
     });
   }
 
-  if (layout.doorPositions.east !== null) {
+  if (layout.doorPositions.east !== null && sharedWallSide !== 'east') {
     openDoors.push({
       roomId,
       side: 'east',
@@ -391,79 +405,38 @@ function getOppositeSide(side: 'north' | 'south' | 'east' | 'west'): 'north' | '
  * Scans the entire dungeon grid for wall-wall patterns between rooms
  */
 /**
- * Remove ALL double walls by converting sequences of walls into single walls.
- * Multi-pass algorithm: repeatedly finds and removes double walls until none remain.
- * Same algorithm as in generation.ts to ensure consistency.
- * IMPORTANT: Removes walls when there are floors/doors on EITHER side (OR logic)
+ * Converts every EMPTY tile that touches a floor or door (8-neighborhood) into
+ * a wall. Guarantees the dungeon perimeter is fully sealed even when layouts
+ * are non-rectangular or wall merging opens a junction corner.
  */
-function removeDoubleWalls(dungeon: TileType[][], rooms: Room[], roomMap: number[][]): void {
-  console.log('[layoutGeneration] Removing all double walls...');
+function sealExposedFloors(dungeon: TileType[][]): void {
+  let sealed = 0;
 
-  let totalRemoved = 0;
-  let iteration = 0;
-  let removedThisIteration = 0;
+  for (let y = 0; y < DUNGEON_HEIGHT; y++) {
+    for (let x = 0; x < DUNGEON_WIDTH; x++) {
+      if (dungeon[y][x] !== TILE.EMPTY) continue;
 
-  // Keep looping until no more double walls are found
-  do {
-    removedThisIteration = 0;
-    iteration++;
-
-    // Find and remove horizontal double walls (vertical stacks)
-    for (let y = 0; y < DUNGEON_HEIGHT - 1; y++) {
-      for (let x = 0; x < DUNGEON_WIDTH; x++) {
-        if (dungeon[y][x] === TILE.WALL && dungeon[y + 1][x] === TILE.WALL) {
-          // Remove if floors/doors on EITHER side (OR logic)
-          const hasAccessAbove = y > 0 && (dungeon[y - 1][x] === TILE.FLOOR || dungeon[y - 1][x] === TILE.DOOR);
-          const hasAccessBelow = y + 2 < DUNGEON_HEIGHT && (dungeon[y + 2][x] === TILE.FLOOR || dungeon[y + 2][x] === TILE.DOOR);
-
-          if (hasAccessAbove || hasAccessBelow) {
-            // Remove the first wall
-            dungeon[y][x] = TILE.FLOOR;
-
-            // Update roomMap: assign to adjacent room
-            if (hasAccessAbove && roomMap[y - 1][x] >= 0) {
-              roomMap[y][x] = roomMap[y - 1][x];
-            } else if (hasAccessBelow && roomMap[y + 2][x] >= 0) {
-              roomMap[y][x] = roomMap[y + 2][x];
-            }
-
-            removedThisIteration++;
-            totalRemoved++;
+      let touchesWalkable = false;
+      for (let dy = -1; dy <= 1 && !touchesWalkable; dy++) {
+        for (let dx = -1; dx <= 1 && !touchesWalkable; dx++) {
+          if (dx === 0 && dy === 0) continue;
+          const tile = dungeon[y + dy]?.[x + dx];
+          if (tile === TILE.FLOOR || tile === TILE.DOOR) {
+            touchesWalkable = true;
           }
         }
       }
-    }
 
-    // Find and remove vertical double walls (horizontal pairs)
-    for (let y = 0; y < DUNGEON_HEIGHT; y++) {
-      for (let x = 0; x < DUNGEON_WIDTH - 1; x++) {
-        if (dungeon[y][x] === TILE.WALL && dungeon[y][x + 1] === TILE.WALL) {
-          // Remove if floors/doors on EITHER side (OR logic)
-          const hasAccessLeft = x > 0 && (dungeon[y][x - 1] === TILE.FLOOR || dungeon[y][x - 1] === TILE.DOOR);
-          const hasAccessRight = x + 2 < DUNGEON_WIDTH && (dungeon[y][x + 2] === TILE.FLOOR || dungeon[y][x + 2] === TILE.DOOR);
-
-          if (hasAccessLeft || hasAccessRight) {
-            // Remove the first wall
-            dungeon[y][x] = TILE.FLOOR;
-
-            // Update roomMap: assign to adjacent room
-            if (hasAccessLeft && roomMap[y][x - 1] >= 0) {
-              roomMap[y][x] = roomMap[y][x - 1];
-            } else if (hasAccessRight && roomMap[y][x + 2] >= 0) {
-              roomMap[y][x] = roomMap[y][x + 2];
-            }
-
-            removedThisIteration++;
-            totalRemoved++;
-          }
-        }
+      if (touchesWalkable) {
+        dungeon[y][x] = TILE.WALL;
+        sealed++;
       }
     }
+  }
 
-    console.log(`[layoutGeneration] Iteration ${iteration}: Removed ${removedThisIteration} double walls`);
-  } while (removedThisIteration > 0 && iteration < 10); // Max 10 iterations
-
-  console.log(`[layoutGeneration] Total removed: ${totalRemoved} double walls in ${iteration} iteration(s)`);
+  if (sealed > 0) {
+    console.log(`[layoutGeneration] Sealed ${sealed} exposed tiles with walls`);
+  }
 }
 
 /**
@@ -538,21 +511,19 @@ function assignRoomTypes(rooms: Room[]): void {
  */
 function updateRoomMapAfterWallRemoval(
   dungeon: TileType[][],
-  roomMap: number[][],
-  rooms: Room[]
+  roomMap: number[][]
 ): void {
-  for (let y = 0; y < DUNGEON_HEIGHT; y++) {
-    for (let x = 0; x < DUNGEON_WIDTH; x++) {
-      const tile = dungeon[y][x];
-      const currentRoomId = roomMap[y][x];
+  // Iterate until stable: a floor tile may only get its room id once a
+  // neighboring floor tile has one (e.g. a merged wall between two doors)
+  let changed = true;
+  while (changed) {
+    changed = false;
 
-      // If tile is EMPTY but roomMap says it's a wall (-1), reset it
-      if (tile === TILE.EMPTY && currentRoomId === -1) {
-        roomMap[y][x] = -1; // Keep as -1 (empty space)
-      }
+    for (let y = 0; y < DUNGEON_HEIGHT; y++) {
+      for (let x = 0; x < DUNGEON_WIDTH; x++) {
+        // If tile became FLOOR after wall removal, find which room it should belong to
+        if (dungeon[y][x] !== TILE.FLOOR || roomMap[y][x] !== -1) continue;
 
-      // If tile became FLOOR after wall removal, find which room it should belong to
-      else if (tile === TILE.FLOOR && currentRoomId === -1) {
         // Collect all neighboring room IDs (prefer most common one)
         const neighborRoomIds: number[] = [];
         const neighbors = [
@@ -581,6 +552,7 @@ function updateRoomMapAfterWallRemoval(
           const mostCommon = Array.from(counts.entries())
             .sort((a, b) => b[1] - a[1])[0][0];
           roomMap[y][x] = mostCommon;
+          changed = true;
         }
       }
     }
@@ -599,28 +571,23 @@ function validateDoorConnection(
   const height = dungeon.length;
 
   // Check all 4 neighbors
-  const neighbors = {
-    top: doorY > 0 ? dungeon[doorY - 1][doorX] : TILE.EMPTY,
-    bottom: doorY < height - 1 ? dungeon[doorY + 1][doorX] : TILE.EMPTY,
-    left: doorX > 0 ? dungeon[doorY][doorX - 1] : TILE.EMPTY,
-    right: doorX < width - 1 ? dungeon[doorY][doorX + 1] : TILE.EMPTY
-  };
+  const top = doorY > 0 ? dungeon[doorY - 1][doorX] : TILE.EMPTY;
+  const bottom = doorY < height - 1 ? dungeon[doorY + 1][doorX] : TILE.EMPTY;
+  const left = doorX > 0 ? dungeon[doorY][doorX - 1] : TILE.EMPTY;
+  const right = doorX < width - 1 ? dungeon[doorY][doorX + 1] : TILE.EMPTY;
 
-  // Count floor neighbors
-  const floorCount = Object.values(neighbors).filter(
-    tile => tile === TILE.FLOOR || tile === TILE.EMPTY // EMPTY for future rooms
-  ).length;
+  const walkable = (tile: TileType) => tile === TILE.FLOOR || tile === TILE.DOOR;
 
-  // Must have at least 2 floor neighbors (one on each side)
-  return floorCount >= 2;
+  // A door is valid when it connects walkable tiles on opposite sides of one
+  // axis. Unused doors (facing EMPTY) are converted to walls by the caller.
+  return (walkable(top) && walkable(bottom)) || (walkable(left) && walkable(right));
 }
 
 /**
  * Validates all doors and removes invalid ones
  */
 export function validateAllDoors(
-  dungeon: TileType[][],
-  rooms: Room[]
+  dungeon: TileType[][]
 ): Array<{x: number, y: number, error: string}> {
   const errors: Array<{x: number, y: number, error: string}> = [];
   const width = dungeon[0]?.length || 0;

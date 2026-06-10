@@ -129,11 +129,13 @@ export class CombatEngine {
       }
 
       // Build feedback message
+      // Note: the UI (CombatModal/CombatFeedback) detects a correct answer by the
+      // leading checkmark, so ALL correct-answer messages must start with '✓'.
       let feedbackMessage: string;
       if (isCritical) {
-        feedbackMessage = `🎯 KRITISCH! ${damage} Schaden!`;
+        feedbackMessage = `✓ 🎯 KRITISCH! ${damage} Schaden!`;
       } else if (isFirstQuestion && combined && combined.firstStrikeDamage > 0) {
-        feedbackMessage = `⚡ Erstschlag! ${damage} Schaden!`;
+        feedbackMessage = `✓ ⚡ Erstschlag! ${damage} Schaden!`;
       } else if (comboBonus > 0 || (combined && combined.comboBonusDamage > 0)) {
         const totalCombo = comboBonus + (combined ? combined.comboBonusDamage : 0);
         feedbackMessage = `✓ Richtig! ${damage} Schaden! (+${totalCombo} Kombo)`;

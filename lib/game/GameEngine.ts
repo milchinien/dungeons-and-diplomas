@@ -4,6 +4,7 @@ import {
   TILE,
   ANIMATION,
   PLAYER_SPEED_TILES,
+  PLAYER_SIZE,
   PLAYER_ATTACK_COOLDOWN,
   PLAYER_ATTACK_DURATION,
   PLAYER_ATTACK_SLOWDOWN,
@@ -369,7 +370,12 @@ export class GameEngine {
   }
 
   /**
-   * Push entity away from a closed door
+   * Push entity away from a closed door.
+   * Handles both deep wedges (entity center on the door tile) and partial
+   * overlaps (hitbox corner inside the door tile). Partial overlaps would
+   * otherwise freeze enemies forever: the closed door tile is fully solid
+   * for them and every candidate move still overlaps, so all moves are
+   * rejected and they cannot escape on their own.
    */
   private pushEntityFromDoor(
     entity: { x: number; y: number },
@@ -379,12 +385,59 @@ export class GameEngine {
     dungeon: TileType[][],
     doorStates: Map<string, boolean>
   ): void {
+    // Deep wedge: entity center is on the door tile -> relocate to a free adjacent tile
     if (this.isEntityOnTile(entity.x, entity.y, doorTileX, doorTileY, tileSize)) {
       const freeTile = this.findFreeTile(doorTileX, doorTileY, tileSize, dungeon, doorStates);
       if (freeTile) {
         entity.x = freeTile.x;
         entity.y = freeTile.y;
       }
+      return;
+    }
+
+    // Partial overlap: hitbox intersects the door tile while the center is on
+    // a neighboring tile -> nudge out along the axis of least penetration
+    const margin = (tileSize - tileSize * PLAYER_SIZE) / 2;
+    const left = entity.x + margin;
+    const right = entity.x + tileSize - margin;
+    const top = entity.y + margin;
+    const bottom = entity.y + tileSize - margin;
+
+    const doorLeft = doorTileX * tileSize;
+    const doorRight = doorLeft + tileSize;
+    const doorTop = doorTileY * tileSize;
+    const doorBottom = doorTop + tileSize;
+
+    if (right <= doorLeft || left >= doorRight || bottom <= doorTop || top >= doorBottom) {
+      return; // No overlap with the door tile
+    }
+
+    // Candidate nudges (left/right/up/down), smallest displacement first
+    const epsilon = 0.01;
+    const pushes: { dx: number; dy: number }[] = [
+      { dx: doorLeft - right - epsilon, dy: 0 },
+      { dx: doorRight - left + epsilon, dy: 0 },
+      { dx: 0, dy: doorTop - bottom - epsilon },
+      { dx: 0, dy: doorBottom - top + epsilon }
+    ];
+    pushes.sort((a, b) => (Math.abs(a.dx) + Math.abs(a.dy)) - (Math.abs(b.dx) + Math.abs(b.dy)));
+
+    for (const push of pushes) {
+      const newX = entity.x + push.dx;
+      const newY = entity.y + push.dy;
+      // Strictest check (closed doors fully solid) so the result is valid for any entity
+      if (!CollisionDetector.checkEnemyCollision(newX, newY, tileSize, dungeon, doorStates)) {
+        entity.x = newX;
+        entity.y = newY;
+        return;
+      }
+    }
+
+    // No nudge direction is free -> fall back to a free adjacent tile
+    const freeTile = this.findFreeTile(doorTileX, doorTileY, tileSize, dungeon, doorStates);
+    if (freeTile) {
+      entity.x = freeTile.x;
+      entity.y = freeTile.y;
     }
   }
 
@@ -453,6 +506,9 @@ export class GameEngine {
 
         doorStates.set(doorKey, !isOpen);
 
+        // Track every tile toggled by this action (main door + connected pair tiles)
+        const toggledDoorTiles: { x: number; y: number }[] = [{ x: adjacentDoor.x, y: adjacentDoor.y }];
+
         // Propagate toggle to any adjacent connected door (layout-based door pairs)
         const adjOffsets = [{ dx: 0, dy: -1 }, { dx: 0, dy: 1 }, { dx: -1, dy: 0 }, { dx: 1, dy: 0 }];
         for (const off of adjOffsets) {
@@ -460,18 +516,21 @@ export class GameEngine {
           const ny = adjacentDoor.y + off.dy;
           if (nx >= 0 && nx < DUNGEON_WIDTH && ny >= 0 && ny < DUNGEON_HEIGHT && dungeon[ny][nx] === TILE.DOOR) {
             doorStates.set(`${nx},${ny}`, !isOpen);
+            toggledDoorTiles.push({ x: nx, y: ny });
           }
         }
 
-        // If we just CLOSED the door, push entities away
+        // If we just CLOSED the door, push entities away from every toggled tile
         if (isOpen) { // was open, now closed
-          // Push player if on the door tile
-          this.pushEntityFromDoor(player, adjacentDoor.x, adjacentDoor.y, tileSize, dungeon, doorStates);
+          for (const doorTile of toggledDoorTiles) {
+            // Push player if overlapping the door tile
+            this.pushEntityFromDoor(player, doorTile.x, doorTile.y, tileSize, dungeon, doorStates);
 
-          // Push all enemies if on the door tile
-          for (const enemy of enemies) {
-            if (enemy.alive) {
-              this.pushEntityFromDoor(enemy, adjacentDoor.x, adjacentDoor.y, tileSize, dungeon, doorStates);
+            // Push all enemies if overlapping the door tile
+            for (const enemy of enemies) {
+              if (enemy.alive) {
+                this.pushEntityFromDoor(enemy, doorTile.x, doorTile.y, tileSize, dungeon, doorStates);
+              }
             }
           }
         }
@@ -533,6 +592,13 @@ export class GameEngine {
     playerSprite?.update(dt);
   }
 
+  // Grace period (seconds) during which further combat starts are suppressed
+  // after startCombat was triggered but the inCombat snapshot has not caught
+  // up yet (the React ref only syncs after a re-render). Expires on its own
+  // so a failed combat start cannot block future encounters.
+  private static readonly COMBAT_START_GRACE_PERIOD = 0.5;
+  private combatStartPendingTimer: number = 0;
+
   public updateEnemies(ctx: UpdateEnemiesContext) {
     const {
       dt,
@@ -547,6 +613,22 @@ export class GameEngine {
       doorStates
     } = ctx;
 
+    // Clear the pending guard once combat is actually active; otherwise let it expire
+    if (inCombat) {
+      this.combatStartPendingTimer = 0;
+    } else if (this.combatStartPendingTimer > 0) {
+      this.combatStartPendingTimer -= dt;
+    }
+
+    // Guard startCombat so only the first enemy reaching the player can
+    // trigger it: a second call in the same frame (or before the inCombat
+    // ref syncs) would race two question loads against one combat state.
+    const guardedStartCombat = (enemy: Enemy) => {
+      if (this.combatStartPendingTimer > 0) return;
+      this.combatStartPendingTimer = GameEngine.COMBAT_START_GRACE_PERIOD;
+      startCombat(enemy);
+    };
+
     for (const enemy of enemies) {
       enemy.update(
         dt,
@@ -555,8 +637,8 @@ export class GameEngine {
         rooms,
         dungeon,
         roomMap,
-        startCombat,
-        inCombat,
+        guardedStartCombat,
+        inCombat || this.combatStartPendingTimer > 0,
         doorStates
       );
     }

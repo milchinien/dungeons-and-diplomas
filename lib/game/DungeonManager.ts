@@ -22,6 +22,7 @@ import { generateDungeonStructure } from './DungeonInitializer';
 import { spawnPlayer, spawnEnemies, spawnTreasures, createShrines, spawnTrashmobs } from './EntitySpawner';
 import type { DroppedItem } from '../items/types';
 import { initializeShopDoorStates } from '../shop/ShopDoor';
+import { clearLayoutCache } from '../shop/ShopLayout';
 import { generateDungeonFromLayouts } from '../dungeon/layoutGeneration';
 import { getLayoutPool } from '../roomlayouts/LayoutPool';
 import { generateRenderMap } from '../tiletheme/RenderMapGenerator';
@@ -94,7 +95,7 @@ export class DungeonManager {
     const result = await ThemeLoader.loadTheme(themeId);
 
     if (!result) {
-      console.warn(`Failed to load theme ${themeId}, using fallback rendering`);
+      console.error(`Failed to load theme ${themeId} — no RenderMap can be generated, the main canvas cannot render the dungeon`);
       return false;
     }
 
@@ -114,6 +115,18 @@ export class DungeonManager {
     spawnSeed?: number,
     dungeonConfig?: Partial<DungeonConfig>
   ) {
+    // Clear cached shop layouts from the previous dungeon — room ids restart
+    // at 0 on every generation, so stale cache entries would place shop
+    // counters/items at the old dungeon's world coordinates.
+    clearLayoutCache();
+
+    // Retry the theme load if it failed during initialize() (e.g. transient
+    // network error) — without a theme no RenderMap can be generated and the
+    // main canvas cannot render the dungeon.
+    if (!this.darkTheme) {
+      await this.loadTheme(1);
+    }
+
     // Generate dungeon structure using DungeonInitializer
     const structure = generateDungeonStructure({
       structureSeed,
@@ -164,6 +177,11 @@ export class DungeonManager {
     targetRoomCount: number = 20,
     seed?: number
   ) {
+    // Clear cached shop layouts from the previous dungeon — room ids restart
+    // at 0 on every generation, so stale cache entries would place shop
+    // counters/items at the old dungeon's world coordinates.
+    clearLayoutCache();
+
     // Fetch layouts from API and populate the pool
     const pool = getLayoutPool();
     const response = await fetch('/api/room-layouts');
@@ -220,10 +238,19 @@ export class DungeonManager {
       }
     }
 
-    // Generate RenderMap for themed rendering
+    // Generate RenderMap for themed rendering. Retry the theme load if it
+    // failed during initialize() (e.g. transient network error) — without a
+    // RenderMap the main canvas cannot render the dungeon.
+    if (!this.darkTheme) {
+      await this.loadTheme(1);
+    }
     if (this.darkTheme) {
       const renderSeed = seed ?? Math.floor(Math.random() * 1000000);
       this.renderMap = generateRenderMap(this.dungeon, this.darkTheme, this.lightTheme, renderSeed);
+    } else {
+      // Keep state consistent: never carry a stale RenderMap from a previous dungeon
+      this.renderMap = null;
+      console.error('Theme not loaded — renderMap unavailable, the main canvas cannot render the dungeon');
     }
 
     // Create spawn context for entity spawning

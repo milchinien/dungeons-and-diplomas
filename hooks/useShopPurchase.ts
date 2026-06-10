@@ -90,6 +90,9 @@ export function useShopPurchase({
   // Track last E key state to detect key press (not hold)
   const lastEKeyRef = useRef(false);
 
+  // Prevent concurrent purchase executions (double-click protection)
+  const isPurchasingRef = useRef(false);
+
   // Load current gold balance.
   // Optionally accepts an explicit id to avoid stale-closure issues right after login,
   // when the userId React state hasn't propagated through the hook yet.
@@ -126,8 +129,10 @@ export function useShopPurchase({
     }
 
     const player = playerRef.current;
-    const playerX = player.x + player.width / 2;
-    const playerY = player.y + player.height / 2;
+    // Use tileSize for the player center - player.width/height are always 0.
+    // Must match GameRenderer.updateInteractionTarget (tooltip rendering).
+    const playerX = player.x + tileSize / 2;
+    const playerY = player.y + tileSize / 2;
 
     // Find shop room player is in
     const shopRoom = getPlayerShopRoom(playerX, playerY, rooms);
@@ -140,7 +145,7 @@ export function useShopPurchase({
     } else {
       setNearbyTarget(null);
     }
-  }, [playerRef, rooms, inCombat, gamePaused]);
+  }, [playerRef, rooms, tileSize, inCombat, gamePaused]);
 
   // Handle E key press for shop interaction
   useEffect(() => {
@@ -172,8 +177,10 @@ export function useShopPurchase({
       }
 
       const player = playerRef.current;
-      const playerX = player.x + player.width / 2;
-      const playerY = player.y + player.height / 2;
+      // Use tileSize for the player center - player.width/height are always 0.
+      // Must match GameRenderer.updateInteractionTarget (tooltip rendering).
+      const playerX = player.x + tileSize / 2;
+      const playerY = player.y + tileSize / 2;
 
       // Find shop room player is in
       const shopRoom = getPlayerShopRoom(playerX, playerY, currentRooms);
@@ -191,7 +198,7 @@ export function useShopPurchase({
         setPurchaseTarget(target);
         setShowPurchaseModal(true);
       } else {
-        console.log('[useShopPurchase] No item/perk in range (need to be within 96px)');
+        console.log('[useShopPurchase] No item/perk in interaction range');
       }
     }
 
@@ -207,7 +214,7 @@ export function useShopPurchase({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [playerRef, rooms, inCombat, gamePaused, showPurchaseModal]);
+  }, [playerRef, rooms, tileSize, inCombat, gamePaused, showPurchaseModal]);
 
   // Handle purchase confirmation
   const handlePurchaseConfirm = useCallback(async () => {
@@ -217,106 +224,123 @@ export function useShopPurchase({
       return;
     }
 
-    const inventory = currentShopRoom.shopInventory;
+    // Prevent double-submission (e.g. double-click on confirm button)
+    if (isPurchasingRef.current) return;
+    isPurchasingRef.current = true;
 
-    // Get item/perk and check cost
-    let cost = 0;
-    if (purchaseTarget.type === 'item') {
-      const item = inventory.items[purchaseTarget.index];
-      if (!item) {
-        console.log('[useShopPurchase] Item already purchased or invalid');
+    try {
+      const inventory = currentShopRoom.shopInventory;
+
+      // Get item/perk and check cost
+      let cost = 0;
+      let targetName = '';
+      if (purchaseTarget.type === 'item') {
+        const item = inventory.items[purchaseTarget.index];
+        if (!item) {
+          console.log('[useShopPurchase] Item already purchased or invalid');
+          setShowPurchaseModal(false);
+          setPurchaseTarget(null);
+          return;
+        }
+        cost = item.finalCost;
+        targetName = item.definition.name;
+      } else {
+        const perk = inventory.perks[purchaseTarget.index];
+        if (!perk) {
+          console.log('[useShopPurchase] Perk already purchased or invalid');
+          setShowPurchaseModal(false);
+          setPurchaseTarget(null);
+          return;
+        }
+        cost = perk.finalCost;
+        targetName = perk.definition.name;
+      }
+
+      // Check if player has enough gold
+      if (currentGold < cost) {
+        console.log(`[useShopPurchase] Not enough gold! Need ${cost}, have ${currentGold}`);
         setShowPurchaseModal(false);
         setPurchaseTarget(null);
         return;
       }
-      cost = item.finalCost;
-    } else {
-      const perk = inventory.perks[purchaseTarget.index];
-      if (!perk) {
-        console.log('[useShopPurchase] Perk already purchased or invalid');
+
+      // Deduct gold FIRST - the item/perk is only handed out if payment succeeds
+      let newBalance: number;
+      try {
+        const response = await fetch('/api/gold', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: userId,
+            gold_amount: -cost,
+            reason: 'shop_purchase',
+            item_sold: targetName
+          })
+        });
+
+        if (!response.ok) {
+          console.error('[useShopPurchase] Gold deduction failed, purchase cancelled');
+          setShowPurchaseModal(false);
+          setPurchaseTarget(null);
+          return;
+        }
+
+        const data = await response.json();
+        newBalance = data.new_balance;
+      } catch (error) {
+        console.error('[useShopPurchase] Error deducting gold, purchase cancelled:', error);
         setShowPurchaseModal(false);
         setPurchaseTarget(null);
         return;
       }
-      cost = perk.finalCost;
-    }
 
-    // Check if player has enough gold
-    if (currentGold < cost) {
-      console.log(`[useShopPurchase] Not enough gold! Need ${cost}, have ${currentGold}`);
+      setCurrentGold(newBalance);
+      onGoldChange(newBalance);
+
+      // Execute purchase (payment already succeeded)
+      const result = purchaseTarget.type === 'item'
+        ? executeItemPurchase(shopData, inventory, purchaseTarget.index)
+        : executePerkPurchase(shopData, inventory, purchaseTarget.index);
+
+      if (result.success) {
+        setShopData(result.shopData);
+        if (result.hpIncrease > 0) {
+          // Raise max HP so HP items/perks actually increase max HP instead of only healing
+          playerRef.current.maxHp += result.hpIncrease;
+          onHpChange(result.hpIncrease);
+        }
+        console.log(`[useShopPurchase] ${purchaseTarget.type} purchased: ${targetName} for ${cost} gold. New balance: ${newBalance}`);
+      } else {
+        // Should not happen (slot was checked above) - refund the deducted gold
+        console.error('[useShopPurchase] Purchase failed after payment, refunding gold');
+        try {
+          const refundResponse = await fetch('/api/gold', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              user_id: userId,
+              gold_amount: cost,
+              reason: 'shop_purchase_refund',
+              item_sold: targetName
+            })
+          });
+
+          if (refundResponse.ok) {
+            const refundData = await refundResponse.json();
+            setCurrentGold(refundData.new_balance);
+            onGoldChange(refundData.new_balance);
+          }
+        } catch (refundError) {
+          console.error('[useShopPurchase] Error refunding gold:', refundError);
+        }
+      }
+
       setShowPurchaseModal(false);
       setPurchaseTarget(null);
-      return;
+    } finally {
+      isPurchasingRef.current = false;
     }
-
-    // Execute purchase
-    if (purchaseTarget.type === 'item') {
-      const result = executeItemPurchase(shopData, inventory, purchaseTarget.index);
-      if (result.success && result.item) {
-        setShopData(result.shopData);
-        if (result.hpIncrease > 0) {
-          onHpChange(result.hpIncrease);
-        }
-
-        // Deduct gold via API
-        try {
-          const response = await fetch('/api/gold', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              user_id: userId,
-              gold_amount: -cost,
-              reason: 'shop_purchase',
-              item_sold: result.item.definition.name
-            })
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            setCurrentGold(data.new_balance);
-            onGoldChange(data.new_balance);
-            console.log(`[useShopPurchase] Item purchased: ${result.item.definition.name} for ${cost} gold. New balance: ${data.new_balance}`);
-          }
-        } catch (error) {
-          console.error('[useShopPurchase] Error deducting gold:', error);
-        }
-      }
-    } else {
-      const result = executePerkPurchase(shopData, inventory, purchaseTarget.index);
-      if (result.success && result.perk) {
-        setShopData(result.shopData);
-        if (result.hpIncrease > 0) {
-          onHpChange(result.hpIncrease);
-        }
-
-        // Deduct gold via API
-        try {
-          const response = await fetch('/api/gold', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              user_id: userId,
-              gold_amount: -cost,
-              reason: 'shop_purchase',
-              item_sold: result.perk.definition.name
-            })
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            setCurrentGold(data.new_balance);
-            onGoldChange(data.new_balance);
-            console.log(`[useShopPurchase] Perk purchased: ${result.perk.definition.name} for ${cost} gold. New balance: ${data.new_balance}`);
-          }
-        } catch (error) {
-          console.error('[useShopPurchase] Error deducting gold:', error);
-        }
-      }
-    }
-
-    setShowPurchaseModal(false);
-    setPurchaseTarget(null);
-  }, [purchaseTarget, currentShopRoom, shopData, onHpChange, userId, currentGold, onGoldChange]);
+  }, [purchaseTarget, currentShopRoom, shopData, playerRef, onHpChange, userId, currentGold, onGoldChange]);
 
   // Handle purchase cancel
   const handlePurchaseCancel = useCallback(() => {
