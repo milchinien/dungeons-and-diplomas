@@ -26,19 +26,7 @@ export default function ShopConfirmModal({
   onConfirm,
   onCancel
 }: ShopConfirmModalProps) {
-  const target = item || perk;
-  if (!target) return null;
-
-  const isItem = !!item;
-  const name = isItem ? item!.definition.name : perk!.definition.name;
-  const description = isItem ? item!.definition.description : perk!.definition.description;
-  const effectText = isItem ? getItemEffectDescription(item!) : getPerkEffectDescription(perk!);
-  const cost = target.finalCost;
-  const canAfford = currentGold >= cost;
-  const rarity = target.rarity;
-  const config = RARITY_CONFIG[rarity];
-
-  // Handle keyboard shortcuts
+  // Handle keyboard shortcuts (hooks must run unconditionally, before any early return)
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'Enter') {
@@ -53,6 +41,18 @@ export default function ShopConfirmModal({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onConfirm, onCancel]);
+
+  const target = item || perk;
+  if (!target) return null;
+
+  const isItem = !!item;
+  const name = isItem ? item!.definition.name : perk!.definition.name;
+  const description = isItem ? item!.definition.description : perk!.definition.description;
+  const effectText = isItem ? getItemEffectDescription(item!) : getPerkEffectDescription(perk!);
+  const cost = target.finalCost;
+  const canAfford = currentGold >= cost;
+  const rarity = target.rarity;
+  const config = RARITY_CONFIG[rarity];
 
   return (
     <div style={{

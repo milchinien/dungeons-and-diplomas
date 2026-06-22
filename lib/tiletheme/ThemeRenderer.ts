@@ -119,6 +119,20 @@ export class ThemeRenderer {
           continue;
         }
 
+        // Guard against source coordinates that fall outside the tileset image.
+        // drawImage() silently draws nothing for out-of-bounds source rects,
+        // which hides asset/coordinate drift (e.g. a swapped tileset). Show the
+        // magenta placeholder instead so the mismatch is obvious.
+        if (
+          srcX < 0 || srcY < 0 ||
+          srcX + TILE_SOURCE_SIZE > tileset.width ||
+          srcY + TILE_SOURCE_SIZE > tileset.height
+        ) {
+          ctx.fillStyle = MISSING_TILE_COLOR;
+          ctx.fillRect(destX, destY, tileSize, tileSize);
+          continue;
+        }
+
         // Simple drawImage - all coordinates are pre-calculated!
         ctx.drawImage(
           tileset,

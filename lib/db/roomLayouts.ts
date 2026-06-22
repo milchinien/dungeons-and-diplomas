@@ -6,6 +6,9 @@ import { getDatabase } from './connection';
 import type { RoomLayout, RoomLayoutInput, LayoutFilterOptions } from '../roomlayouts/types';
 import { validateRoomLayout } from '../roomlayouts/validation';
 
+/** Whitelist of valid door sides (doorSide may originate from unvalidated API query params) */
+const VALID_DOOR_SIDES = ['north', 'south', 'east', 'west'] as const;
+
 /**
  * Creates a new room layout
  */
@@ -87,8 +90,15 @@ export function getRoomLayouts(filters?: LayoutFilterOptions): RoomLayout[] {
       params.push(filters.difficulty);
     }
     if (filters.doorSide) {
-      // Filter by specific door position (not null means door exists)
-      query += ` AND json_extract(door_positions, '$.${filters.doorSide}') IS NOT NULL`;
+      if (VALID_DOOR_SIDES.includes(filters.doorSide)) {
+        // Filter by specific door position (not null means door exists).
+        // JSON path is parameterized to prevent SQL injection.
+        query += " AND json_extract(door_positions, '$.' || ?) IS NOT NULL";
+        params.push(filters.doorSide);
+      } else {
+        // Unknown door side: no layout can match (keeps invalid API input from reaching SQL)
+        query += ' AND 1=0';
+      }
     }
   }
 

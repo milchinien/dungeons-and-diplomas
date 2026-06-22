@@ -32,15 +32,22 @@ export function useKeyboardInput(config?: KeyboardInputConfig): UseKeyboardInput
   useEffect(() => {
     const eventTarget = config?.eventTarget ?? defaultEventTarget;
 
-    const handleKeyDown = (e: Event) => {
+    // Normalize single-character keys (e.g. 'W' with Shift/CapsLock -> 'w')
+    // while keeping named keys like 'ArrowUp' untouched.
+    const normalizeKey = (e: Event): string => {
       const key = (e as KeyboardEvent).key;
+      return key.length === 1 ? key.toLowerCase() : key;
+    };
+
+    const handleKeyDown = (e: Event) => {
+      const key = normalizeKey(e);
       if (key in keysRef.current) {
         keysRef.current[key as keyof KeyboardState] = true;
       }
     };
 
     const handleKeyUp = (e: Event) => {
-      const key = (e as KeyboardEvent).key;
+      const key = normalizeKey(e);
       if (key in keysRef.current) {
         keysRef.current[key as keyof KeyboardState] = false;
       }

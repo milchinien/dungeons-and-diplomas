@@ -2,8 +2,10 @@ import { useReducer, useRef, useCallback, useEffect } from 'react';
 import type { Enemy } from '@/lib/enemy';
 import type { Player } from '@/lib/enemy';
 import type { QuestionDatabase } from '@/lib/questions';
-import { COMBAT_FEEDBACK_DELAY, PLAYER_MAX_HP } from '@/lib/constants';
+import { COMBAT_FEEDBACK_DELAY, PLAYER_MAX_HP, DEFAULT_BONUS_STATS } from '@/lib/constants';
+import type { BonusStats } from '@/lib/constants';
 import { selectQuestionFromPool } from '@/lib/combat/QuestionSelector';
+import { applyShopDamageBonus, applyShopDefenseBonus, consumeExtraLife, calculateReviveHp } from '@/lib/combat/DamageCalculator';
 import { calculateEnemyXpReward } from '@/lib/scoring/LevelCalculator';
 import { calculateEnemyGoldReward } from '@/lib/scoring/GoldCalculator';
 import { CombatEngine, calculateHint } from '@/lib/combat/CombatEngine';
@@ -37,6 +39,12 @@ interface UseCombatProps {
   onShrineEnemyDefeated?: (enemyId: number, shrineId: number) => void;
   /** Equipment bonuses from currently equipped items (can include skill bonuses via CombinedBonuses) */
   equipmentBonuses?: EquipmentBonuses | CombinedBonuses;
+  /**
+   * Bonus stats from shop purchases (items/perks bought in shop rooms).
+   * Passed as a ref so the caller can wire it up after this hook is initialized
+   * (useShopPurchase depends on inCombat from this hook).
+   */
+  shopBonusStatsRef?: React.MutableRefObject<BonusStats>;
   /** Bonus damage from combo system */
   comboBonus?: number;
   tileSize?: number;
@@ -58,6 +66,7 @@ export function useCombat({
   onComboBreak,
   onShrineEnemyDefeated,
   equipmentBonuses = DEFAULT_BONUSES,
+  shopBonusStatsRef,
   comboBonus = 0,
   tileSize = 64,
   clock = defaultClock
@@ -204,8 +213,9 @@ export function useCombat({
         return;
       }
 
-      // Apply time bonus from equipment + buffs
-      const totalTimeBonus = equipmentBonuses.timeBonus + getTimeBonus(playerRef.current);
+      // Apply time bonus from equipment + buffs + shop perks
+      const shopStats = shopBonusStatsRef?.current ?? DEFAULT_BONUS_STATS;
+      const totalTimeBonus = equipmentBonuses.timeBonus + getTimeBonus(playerRef.current) + shopStats.timeBonus;
       const dynamicTimeLimit = CombatEngine.calculateDynamicTimeLimit(enemy.level, question.elo, totalTimeBonus);
 
       // Calculate hint based on hint chance from equipment
@@ -227,7 +237,7 @@ export function useCombat({
       logHookError('useCombat', error, 'Failed to fetch questions');
       dispatch({ type: 'END_COMBAT' });
     }
-  }, [state.enemy, state.askedQuestionIds, questionDatabase, userId, playerRef, clock, startTimer, endCombat, equipmentBonuses.timeBonus, equipmentBonuses.hintChance]);
+  }, [state.enemy, state.askedQuestionIds, questionDatabase, userId, playerRef, clock, startTimer, endCombat, equipmentBonuses.timeBonus, equipmentBonuses.hintChance, shopBonusStatsRef]);
 
   const answerQuestion = useCallback(async (selectedIndex: number) => {
     const question = state.question;
@@ -285,19 +295,46 @@ export function useCombat({
       }
     }
 
+    // Apply shop bonus stats (purchased items/perks) on top of the engine result
+    const shopStats = shopBonusStatsRef?.current ?? DEFAULT_BONUS_STATS;
+    let finalDamage = result.damage;
+    let feedbackMessage = result.feedbackMessage;
+
     // Apply damage
     if (result.targetedPlayer) {
+      // Shop defense: block chance + percentage damage reduction
+      const defense = applyShopDefenseBonus(result.damage, shopStats);
+      finalDamage = defense.damage;
+      if (defense.isBlocked) {
+        feedbackMessage = feedbackMessage.replace(`(-${result.damage} HP)`, '(Geblockt!)');
+      } else if (finalDamage !== result.damage) {
+        feedbackMessage = feedbackMessage.replace(`(-${result.damage} HP)`, `(-${finalDamage} HP)`);
+      }
+
       // Use buff system for damage with shield absorption
-      applyDamageToPlayer(playerRef.current, result.damage);
+      applyDamageToPlayer(playerRef.current, finalDamage);
+
+      // Extra life from shop perks: revive at 50% max HP instead of dying
+      if (playerRef.current.hp <= 0 && consumeExtraLife(shopStats)) {
+        playerRef.current.hp = calculateReviveHp(playerRef.current.maxHp);
+        console.log(`[useCombat] Extra life consumed, revived at ${playerRef.current.hp} HP`);
+      }
       onPlayerHpUpdate(playerRef.current.hp);
 
       // Trigger player damage effects (red particles + screen shake)
       const effectsManager = getEffectsManager();
       const playerCenterX = playerRef.current.x + playerRef.current.width / 2;
       const playerCenterY = playerRef.current.y + playerRef.current.height / 2;
-      effectsManager.onPlayerDamage(playerCenterX, playerCenterY, result.damage);
+      effectsManager.onPlayerDamage(playerCenterX, playerCenterY, finalDamage);
     } else {
-      enemy.takeDamage(result.damage);
+      // Shop offense: flat damage, percentage damage, critical chance
+      const attack = applyShopDamageBonus(result.damage, shopStats);
+      finalDamage = attack.damage;
+      if (finalDamage !== result.damage) {
+        feedbackMessage = feedbackMessage.replace(`${result.damage} Schaden`, `${finalDamage} Schaden`);
+      }
+
+      enemy.takeDamage(finalDamage);
 
       // Trigger enemy hit effects (sparks)
       const effectsManager = getEffectsManager();
@@ -308,7 +345,7 @@ export function useCombat({
 
     dispatch({
       type: 'SHOW_FEEDBACK',
-      feedback: result.feedbackMessage,
+      feedback: feedbackMessage,
       enemyHp: enemy.hp
     });
 
@@ -318,7 +355,7 @@ export function useCombat({
     } else {
       setTimeout(() => askQuestion(), COMBAT_FEEDBACK_DELAY);
     }
-  }, [state.question, state.enemy, state.questionStartTime, state.subject, state.playerElo, state.askedQuestionIds.size, userId, clock, stopTimer, loadPlayerElo, onUpdateSessionScores, onPlayerHpUpdate, playerRef, endCombat, askQuestion, equipmentBonuses, onComboBreak]);
+  }, [state.question, state.enemy, state.questionStartTime, state.subject, state.playerElo, state.askedQuestionIds.size, userId, clock, stopTimer, loadPlayerElo, onUpdateSessionScores, onPlayerHpUpdate, playerRef, endCombat, askQuestion, equipmentBonuses, comboBonus, onComboBreak, shopBonusStatsRef, tileSize]);
 
   // Update timeout ref when answerQuestion changes
   useEffect(() => {
@@ -357,8 +394,9 @@ export function useCombat({
           return;
         }
 
-        // Apply time bonus from equipment + buffs
-        const totalTimeBonus = equipmentBonuses.timeBonus + getTimeBonus(playerRef.current);
+        // Apply time bonus from equipment + buffs + shop perks
+        const shopStats = shopBonusStatsRef?.current ?? DEFAULT_BONUS_STATS;
+        const totalTimeBonus = equipmentBonuses.timeBonus + getTimeBonus(playerRef.current) + shopStats.timeBonus;
         const dynamicTimeLimit = CombatEngine.calculateDynamicTimeLimit(enemy.level, question.elo, totalTimeBonus);
 
         // Calculate hint based on hint chance from equipment
@@ -381,7 +419,7 @@ export function useCombat({
         dispatch({ type: 'END_COMBAT' });
       }
     }, 0);
-  }, [questionDatabase, userId, playerRef, clock, startTimer, answerQuestion, equipmentBonuses.timeBonus, equipmentBonuses.hintChance]);
+  }, [questionDatabase, userId, playerRef, clock, startTimer, answerQuestion, equipmentBonuses.timeBonus, equipmentBonuses.hintChance, shopBonusStatsRef]);
 
   const handleVictoryComplete = useCallback(() => {
     dispatch({ type: 'DISMISS_VICTORY' });

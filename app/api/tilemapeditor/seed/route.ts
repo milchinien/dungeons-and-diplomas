@@ -5,24 +5,25 @@ import { WALL_TYPE, DOOR_TYPE } from '@/lib/tiletheme/types';
 import type { TileTheme } from '@/lib/tiletheme/types';
 
 // Default tilesets to seed
+// The 1600x832 Castle Dungeon tileset is a 25x13 grid at 64px per tile.
 const DEFAULT_TILESETS = [
   {
     name: 'Castle Dungeon (Normal)',
     path: '/Assets/Castle-Dungeon2_Tiles/Tileset.png',
-    widthTiles: 20,
-    heightTiles: 12
+    widthTiles: 25,
+    heightTiles: 13
   },
   {
     name: 'Castle Dungeon (Dark)',
     path: '/Assets/Castle-Dungeon2_Tiles/Tileset_Dark.png',
-    widthTiles: 20,
-    heightTiles: 12
+    widthTiles: 25,
+    heightTiles: 13
   },
   {
     name: 'Castle Dungeon (Bright)',
     path: '/Assets/Castle-Dungeon2_Tiles/Tileset_Bright.png',
-    widthTiles: 20,
-    heightTiles: 12
+    widthTiles: 25,
+    heightTiles: 13
   }
 ];
 

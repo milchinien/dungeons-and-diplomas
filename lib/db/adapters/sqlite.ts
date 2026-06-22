@@ -26,6 +26,7 @@ import {
   calculateRoundedElo,
   type AnswerRecord,
 } from '../../scoring/EloCalculator';
+import { DEFAULT_TILESETS, DEFAULT_NORMAL_TILESET_PATH, buildDefaultThemeConfigJSON } from '../defaultTheme';
 
 /**
  * SQLite adapter implementation
@@ -640,9 +641,9 @@ export class SQLiteAdapter implements DatabaseAdapter {
       const insertTileset = this.db.prepare(
         `INSERT INTO tilesets (name, path, width_tiles, height_tiles) VALUES (?, ?, ?, ?)`
       );
-      insertTileset.run('Castle Dungeon (Normal)', '/Assets/Castle-Dungeon2_Tiles/Tileset.png', 20, 12);
-      insertTileset.run('Castle Dungeon (Dark)', '/Assets/Castle-Dungeon2_Tiles/Tileset_Dark.png', 20, 12);
-      insertTileset.run('Castle Dungeon (Bright)', '/Assets/Castle-Dungeon2_Tiles/Tileset_Bright.png', 20, 12);
+      for (const ts of DEFAULT_TILESETS) {
+        insertTileset.run(ts.name, ts.path, ts.widthTiles, ts.heightTiles);
+      }
       console.log('[SQLiteAdapter] Seeded 3 default tilesets');
     }
 
@@ -654,54 +655,18 @@ export class SQLiteAdapter implements DatabaseAdapter {
 
     const normalTileset = this.db
       .prepare(`SELECT id FROM tilesets WHERE path = ?`)
-      .get('/Assets/Castle-Dungeon2_Tiles/Tileset.png') as { id: number } | undefined;
+      .get(DEFAULT_NORMAL_TILESET_PATH) as { id: number } | undefined;
 
     if (!normalTileset) return;
 
-    const tilesetId = normalTileset.id;
-    const floorVariants = [
-      { source: { tilesetId, x: 0, y: 1 }, weight: 200 },
-      { source: { tilesetId, x: 1, y: 1 }, weight: 50 },
-      { source: { tilesetId, x: 2, y: 1 }, weight: 30 },
-      { source: { tilesetId, x: 2, y: 11 }, weight: 2 },
-      { source: { tilesetId, x: 19, y: 8 }, weight: 1 }
-    ];
-    const wallVariants = [
-      { source: { tilesetId, x: 0, y: 0 }, weight: 20 },
-      { source: { tilesetId, x: 1, y: 0 }, weight: 15 },
-      { source: { tilesetId, x: 2, y: 0 }, weight: 15 },
-      { source: { tilesetId, x: 3, y: 0 }, weight: 15 },
-      { source: { tilesetId, x: 3, y: 11 }, weight: 1 }
-    ];
-    const doorHorizontal = [{ source: { tilesetId, x: 13, y: 0 }, weight: 100 }];
-    const doorVertical = [{ source: { tilesetId, x: 8, y: 0 }, weight: 100 }];
-
-    const wallTypes = [
-      'horizontal','vertical','corner_tl','corner_tr','corner_bl','corner_br',
-      't_up','t_down','t_left','t_right','cross','isolated',
-      'end_left','end_right','end_top','end_bottom'
-    ];
-    const wallConfig: Record<string, typeof wallVariants> = {};
-    for (const t of wallTypes) wallConfig[t] = wallVariants;
-
-    const doorConfig = {
-      horizontal_closed: doorHorizontal,
-      horizontal_open: doorHorizontal,
-      vertical_closed: doorVertical,
-      vertical_open: doorVertical
-    };
+    const cfg = buildDefaultThemeConfigJSON(normalTileset.id);
 
     this.db
       .prepare(
         `INSERT INTO tile_themes (name, floor_config, wall_config, door_config)
          VALUES (?, ?, ?, ?)`
       )
-      .run(
-        'Castle Dungeon (Default)',
-        JSON.stringify({ default: floorVariants }),
-        JSON.stringify(wallConfig),
-        JSON.stringify(doorConfig)
-      );
+      .run('Castle Dungeon (Default)', cfg.floor, cfg.wall, cfg.door);
     console.log('[SQLiteAdapter] Seeded default tile theme');
   }
 

@@ -285,7 +285,13 @@ export function useGameState({
 
     // Update buff regeneration (shield + HP)
     updateShieldRegen(playerRef.current, dt);
+    const hpBeforeRegen = playerRef.current.hp;
     updateHpRegen(playerRef.current, dt);
+
+    // Sync HP state to UI when regen changed it (only on regen ticks)
+    if (playerRef.current.hp !== hpBeforeRegen) {
+      onPlayerHpUpdate(playerRef.current.hp);
+    }
 
     // Sync shield state to UI
     if (onPlayerShieldUpdate && playerRef.current.buffs) {

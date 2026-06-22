@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import type { QuestionDatabase } from '@/lib/questions';
-import { PLAYER_MAX_HP, DIRECTION, INITIAL_PLAYER_BUFFS } from '@/lib/constants';
+import { PLAYER_MAX_HP, DIRECTION, INITIAL_PLAYER_BUFFS, DEFAULT_BONUS_STATS } from '@/lib/constants';
+import type { BonusStats } from '@/lib/constants';
 import type { Player } from '@/lib/enemy';
 import type { Shrine } from '@/lib/constants';
 import MainMenu from './MainMenu';
@@ -444,6 +445,10 @@ export default function GameCanvas() {
     }
   }, [combinedBonuses.shieldMaxBonus, combinedBonuses.shieldRegenBonus, combinedBonuses.hpRegenBonus]);
 
+  // Shop bonus stats are held in a ref because useShopPurchase depends on
+  // combat.inCombat and can only be initialized after useCombat
+  const shopBonusStatsRef = useRef<BonusStats>({ ...DEFAULT_BONUS_STATS });
+
   // Combat - initialized first so we have inCombatRef and startCombat
   // Note: onShrineEnemyDefeated uses ref pattern because the handler needs gameState
   const combat = useCombat({
@@ -459,8 +464,8 @@ export default function GameCanvas() {
       resetRegenTimer();
       resetSessionStats();
 
-      // Restore maxHp from skill/equipment bonuses BEFORE generating dungeon
-      const newMaxHp = PLAYER_MAX_HP + combinedBonuses.maxHpBonus;
+      // Restore maxHp from skill/equipment/shop bonuses BEFORE generating dungeon
+      const newMaxHp = PLAYER_MAX_HP + combinedBonuses.maxHpBonus + shopBonusStatsRef.current.maxHpBonus;
       playerRef.current.maxHp = newMaxHp;
       playerRef.current.hp = newMaxHp;
       setPlayerHp(newMaxHp);
@@ -488,7 +493,8 @@ export default function GameCanvas() {
     },
     equipmentBonuses: combinedBonuses, // Pass combined bonuses (equipment + skills)
     comboBonus: combo.damageBonus,
-    tileSize: 64
+    tileSize: 64,
+    shopBonusStatsRef
   });
 
   // Sync combat state to combo hook for timer slowdown
@@ -658,6 +664,11 @@ export default function GameCanvas() {
     onGoldChange: handleGoldChange
   });
 
+  // Keep the combat hook's shop bonus ref in sync with purchased items/perks
+  useEffect(() => {
+    shopBonusStatsRef.current = shopPurchase.shopData.bonusStats;
+  }, [shopPurchase.shopData.bonusStats]);
+
   // Load session ELOs and gold when user logs in (XP is handled by useAuth)
   useEffect(() => {
     if (userId) {
@@ -689,15 +700,26 @@ export default function GameCanvas() {
     }
   });
 
+  // Keep the latest proximity callbacks in a ref so the fixed interval below
+  // always invokes the current closures. Without this, the empty-deps interval
+  // would permanently capture the first render's callbacks, whose `rooms` prop
+  // was still undefined (dungeonManagerRef.current is null on first render),
+  // making shop proximity/purchases permanently dead.
+  const updateProximityRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    updateProximityRef.current = () => {
+      shrineHook.updateProximity();
+      shopPurchase.updateProximity();
+    };
+  });
+
   // Update shrine and shop proximity periodically
   useEffect(() => {
     const interval = setInterval(() => {
-      shrineHook.updateProximity();
-      shopPurchase.updateProximity();
+      updateProximityRef.current();
     }, 100);
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty deps - interval runs independently
+  }, []); // Empty deps - interval runs independently, reads latest callbacks via ref
 
   // Handle canvas click for shrine interaction
   const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -1228,13 +1250,15 @@ export default function GameCanvas() {
         )}
 
         {/* Shop Confirm Modal */}
+        {/* Item/perk come from the target captured at E-press, not from the live
+            inventory slot (which is nulled mid-purchase and would blank the modal). */}
         {shopPurchase.showPurchaseModal && shopPurchase.purchaseTarget && (
           <ShopConfirmModal
             item={shopPurchase.purchaseTarget.type === 'item'
-              ? shopPurchase.currentShopRoom?.shopInventory?.items[shopPurchase.purchaseTarget.index] ?? undefined
+              ? shopPurchase.purchaseTarget.item
               : undefined}
             perk={shopPurchase.purchaseTarget.type === 'perk'
-              ? shopPurchase.currentShopRoom?.shopInventory?.perks[shopPurchase.purchaseTarget.index] ?? undefined
+              ? shopPurchase.purchaseTarget.perk
               : undefined}
             currentGold={currentGold}
             onConfirm={shopPurchase.handlePurchaseConfirm}

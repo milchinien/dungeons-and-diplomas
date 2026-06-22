@@ -1463,12 +1463,21 @@ export class Trashmob {
 
     // Bomb-specific countdown logic (runs parallel to movement)
     switch (this.bombState) {
-      case 'idle':
+      case 'idle': {
         // Check if player is within activation radius
         if (distanceToPlayer <= BOMB_ACTIVATION_RADIUS && !this.bombActivatedOnce) {
-          this.armBomb(room.visible, tileSize);
+          // Check line of sight before arming (don't arm through walls)
+          const armBombCenterX = this.x + tileSize / 2;
+          const armBombCenterY = this.y + tileSize / 2;
+          const armPlayerCenterX = player.x + tileSize / 2;
+          const armPlayerCenterY = player.y + tileSize / 2;
+
+          if (hasLineOfSight(armBombCenterX, armBombCenterY, armPlayerCenterX, armPlayerCenterY, dungeon, tileSize, doorStates)) {
+            this.armBomb(room.visible, tileSize);
+          }
         }
         break;
+      }
 
       case 'armed':
         // Update countdown timer

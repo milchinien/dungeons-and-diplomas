@@ -2,7 +2,7 @@
  * Unit Tests for Dungeon Generation Fixes
  *
  * Tests the core fixes without relying on full E2E setup:
- * 1. Double wall removal (OR logic)
+ * 1. Double wall merging (AND logic — floor on BOTH sides required)
  * 2. Shop inventory generation
  * 3. Room size validation
  */
@@ -11,105 +11,81 @@ import { describe, it, expect } from 'vitest';
 import { TILE } from '../../lib/constants';
 import type { TileType, Room } from '../../lib/constants';
 import { generateShopInventory } from '../../lib/shop/ShopInventory';
+import { removeDoubleWalls } from '../../lib/dungeon/generation';
+
+function emptyRoomMap(width: number, height: number): number[][] {
+  return Array(height).fill(null).map(() => Array(width).fill(-1));
+}
 
 describe('Dungeon Generation Fixes', () => {
-  describe('Double Wall Removal - OR Logic', () => {
-    it('should remove double walls when access on ONE side (horizontal)', () => {
-      // Create a simple dungeon with double walls
+  describe('Double Wall Merging - AND Logic', () => {
+    it('should merge double walls with floor on BOTH sides (horizontal stack)', () => {
       const dungeon: TileType[][] = [
-        [2, 2, 2, 2, 2],  // All walls
+        [2, 2, 2, 2, 2],
         [2, 1, 1, 1, 2],  // Floor room (above)
         [2, 2, 2, 2, 2],  // Wall 1 (double wall)
         [2, 2, 2, 2, 2],  // Wall 2 (double wall)
-        [2, 0, 0, 0, 2],  // Empty (below)
+        [2, 1, 1, 1, 2],  // Floor room (below)
+        [2, 2, 2, 2, 2],
       ];
+      const roomMap = emptyRoomMap(5, 6);
+      roomMap[1] = [-1, 0, 0, 0, -1];
+      roomMap[4] = [-1, 1, 1, 1, -1];
 
-      // Simulate double wall removal with OR logic
-      const height = dungeon.length;
-      const width = dungeon[0].length;
+      removeDoubleWalls(dungeon, roomMap, 5, 6);
 
-      for (let y = 0; y < height - 1; y++) {
-        for (let x = 0; x < width; x++) {
-          if (dungeon[y][x] === TILE.WALL && dungeon[y + 1][x] === TILE.WALL) {
-            const hasAccessAbove = y > 0 && (dungeon[y - 1][x] === TILE.FLOOR || dungeon[y - 1][x] === TILE.DOOR);
-            const hasAccessBelow = y + 2 < height && (dungeon[y + 2][x] === TILE.FLOOR || dungeon[y + 2][x] === TILE.DOOR);
-
-            // OR logic (fixed)
-            if (hasAccessAbove || hasAccessBelow) {
-              dungeon[y][x] = TILE.FLOOR;
-            }
-          }
-        }
-      }
-
-      // Check that first double wall was removed
-      expect(dungeon[2][2]).toBe(TILE.FLOOR); // Was wall, now floor (access above)
-      expect(dungeon[3][2]).toBe(TILE.WALL);  // Still wall (bottom of pair)
+      expect(dungeon[2][2]).toBe(TILE.FLOOR); // First of pair merged
+      expect(dungeon[3][2]).toBe(TILE.WALL);  // Second of pair stays (single wall)
     });
 
-    it('should remove double walls when access on ONE side (vertical)', () => {
-      // Create a simple dungeon with vertical double walls
+    it('should NOT remove walls with access on only ONE side (cascade guard)', () => {
+      // OR logic used to cascade from doors/floors and dissolve entire room
+      // perimeters — walls with floor on only one side must survive.
       const dungeon: TileType[][] = [
         [2, 2, 2, 2, 2, 2, 2],
-        [2, 1, 1, 2, 2, 0, 2],  // Floor left, wall, wall, empty right
+        [2, 1, 1, 2, 2, 0, 2],  // Floor left, wall, wall, EMPTY right
         [2, 1, 1, 2, 2, 0, 2],
         [2, 1, 1, 2, 2, 0, 2],
         [2, 2, 2, 2, 2, 2, 2],
       ];
+      const roomMap = emptyRoomMap(7, 5);
 
-      // Simulate double wall removal with OR logic
-      const height = dungeon.length;
-      const width = dungeon[0].length;
+      removeDoubleWalls(dungeon, roomMap, 7, 5);
 
-      for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width - 1; x++) {
-          if (dungeon[y][x] === TILE.WALL && dungeon[y][x + 1] === TILE.WALL) {
-            const hasAccessLeft = x > 0 && (dungeon[y][x - 1] === TILE.FLOOR || dungeon[y][x - 1] === TILE.DOOR);
-            const hasAccessRight = x + 2 < width && (dungeon[y][x + 2] === TILE.FLOOR || dungeon[y][x + 2] === TILE.DOOR);
-
-            // OR logic (fixed)
-            if (hasAccessLeft || hasAccessRight) {
-              dungeon[y][x] = TILE.FLOOR;
-            }
-          }
-        }
-      }
-
-      // Check that first double wall was removed (access on left side)
-      expect(dungeon[2][3]).toBe(TILE.FLOOR); // Was wall, now floor (access left at x=2)
-      expect(dungeon[2][4]).toBe(TILE.WALL);  // Still wall (second of pair)
+      expect(dungeon[2][3]).toBe(TILE.WALL); // Stays: no floor on the right side
+      expect(dungeon[2][4]).toBe(TILE.WALL);
     });
 
     it('should NOT remove walls without ANY access', () => {
-      // Create a dungeon with isolated double walls
       const dungeon: TileType[][] = [
         [2, 2, 2, 2, 2],
-        [2, 0, 2, 0, 2],  // Empty, wall, wall, empty
+        [2, 0, 2, 0, 2],  // Empty, wall, wall... no floor anywhere
         [2, 0, 2, 0, 2],
         [2, 0, 2, 0, 2],
         [2, 2, 2, 2, 2],
       ];
+      const roomMap = emptyRoomMap(5, 5);
 
-      // Simulate double wall removal with OR logic
-      const height = dungeon.length;
-      const width = dungeon[0].length;
+      removeDoubleWalls(dungeon, roomMap, 5, 5);
 
-      for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width - 1; x++) {
-          if (dungeon[y][x] === TILE.WALL && dungeon[y][x + 1] === TILE.WALL) {
-            const hasAccessLeft = x > 0 && (dungeon[y][x - 1] === TILE.FLOOR || dungeon[y][x - 1] === TILE.DOOR);
-            const hasAccessRight = x + 2 < width && (dungeon[y][x + 2] === TILE.FLOOR || dungeon[y][x + 2] === TILE.DOOR);
-
-            // OR logic - should not remove without access
-            if (hasAccessLeft || hasAccessRight) {
-              dungeon[y][x] = TILE.FLOOR;
-            }
-          }
-        }
-      }
-
-      // Walls should remain (no access on either side)
       expect(dungeon[2][2]).toBe(TILE.WALL);
+    });
+
+    it('should not cascade through wall runs next to doors', () => {
+      // Top wall of a room containing a door: ## D ## with floor below.
+      // No wall may be removed — only genuine floor|wall|wall|floor merges.
+      const dungeon: TileType[][] = [
+        [0, 0, 0, 0, 0, 0, 0],
+        [2, 2, 2, 3, 2, 2, 2],  // Wall run with door
+        [2, 1, 1, 1, 1, 1, 2],  // Room floor
+        [2, 2, 2, 2, 2, 2, 2],
+      ];
+      const before = dungeon.map(row => [...row]);
+      const roomMap = emptyRoomMap(7, 4);
+
+      removeDoubleWalls(dungeon, roomMap, 7, 4);
+
+      expect(dungeon).toEqual(before); // Nothing changed
     });
   });
 

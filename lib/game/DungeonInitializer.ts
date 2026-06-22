@@ -86,7 +86,7 @@ export function generateDungeonStructure(params: DungeonGenerationParams): Dunge
   addWalls(dungeon, config, roomMap);
 
   // Validate and fix doors (Bug #2 fix)
-  const doorErrors = validateAllDoors(dungeon, rooms);
+  const doorErrors = validateAllDoors(dungeon);
   if (doorErrors.length > 0) {
     console.warn(`[BSP] Fixed ${doorErrors.length} invalid doors`);
   }
