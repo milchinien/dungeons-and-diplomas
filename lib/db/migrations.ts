@@ -3,6 +3,13 @@
  */
 import type Database from 'better-sqlite3';
 import { TILE } from '../constants';
+import {
+  DEFAULT_TILESETS,
+  DEFAULT_NORMAL_TILESET_PATH,
+  DEFAULT_THEME_NAME,
+  THEME_SEED_VERSION,
+  buildDefaultThemeConfigJSON,
+} from './defaultTheme';
 
 export function migrateUserXpIfNeeded(database: Database.Database) {
   // Check if users table has xp column
@@ -301,4 +308,104 @@ function convertLegacyDoorPositions(
   }
 
   return result;
+}
+
+/**
+ * Heals stale/legacy tile themes on existing databases.
+ *
+ * Background: the renderer maps tile coordinates against a fixed 64px grid on
+ * the 1600x832 Castle Dungeon tileset. Older databases were seeded with wrong
+ * tileset dimensions (20x12) and, in some cases, the default theme drifted to a
+ * different tileset / coordinate set via the editor — producing the "doors and
+ * corners rendered as floor" bug. The plain seed only runs on empty tables, so
+ * those existing rows never get corrected.
+ *
+ * This migration is versioned via app_settings.theme_seed_version. When the
+ * stored version is below THEME_SEED_VERSION it normalizes the three default
+ * tilesets (path + dimensions) and rewrites the default theme to the canonical
+ * configuration, then records the new version. It is a no-op once applied.
+ */
+export function migrateTileThemeIfNeeded(database: Database.Database) {
+  // The tileset/theme tables are created in init.ts before this runs.
+  const tables = database
+    .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('tilesets','tile_themes')")
+    .all() as Array<{ name: string }>;
+  if (tables.length < 2) return;
+
+  // Fresh database: nothing seeded yet. Let the normal seed path populate the
+  // canonical data (with the corrected dimensions) instead of healing here.
+  // This keeps empty test/in-memory databases empty.
+  const tilesetCount = (database.prepare('SELECT COUNT(*) as count FROM tilesets').get() as { count: number }).count;
+  const themeCount = (database.prepare('SELECT COUNT(*) as count FROM tile_themes').get() as { count: number }).count;
+  if (tilesetCount === 0 && themeCount === 0) return;
+
+  database.exec(`CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT)`);
+
+  const versionRow = database
+    .prepare(`SELECT value FROM app_settings WHERE key = 'theme_seed_version'`)
+    .get() as { value: string } | undefined;
+  const currentVersion = versionRow ? parseInt(versionRow.value, 10) || 0 : 0;
+
+  if (currentVersion >= THEME_SEED_VERSION) return;
+
+  console.log(`Migrating tile themes to seed version ${THEME_SEED_VERSION}...`);
+
+  const heal = database.transaction(() => {
+    // 1. Normalize the three default tilesets (path + grid dimensions) by name.
+    const findByName = database.prepare(`SELECT id FROM tilesets WHERE name = ?`);
+    const updateTileset = database.prepare(
+      `UPDATE tilesets SET path = ?, width_tiles = ?, height_tiles = ? WHERE id = ?`
+    );
+    const insertTileset = database.prepare(
+      `INSERT INTO tilesets (name, path, width_tiles, height_tiles) VALUES (?, ?, ?, ?)`
+    );
+    for (const ts of DEFAULT_TILESETS) {
+      const existing = findByName.get(ts.name) as { id: number } | undefined;
+      if (existing) {
+        updateTileset.run(ts.path, ts.widthTiles, ts.heightTiles, existing.id);
+      } else {
+        insertTileset.run(ts.name, ts.path, ts.widthTiles, ts.heightTiles);
+      }
+    }
+
+    // 2. Rewrite the default theme to the canonical config bound to the Normal tileset.
+    const normalTileset = database
+      .prepare(`SELECT id FROM tilesets WHERE path = ?`)
+      .get(DEFAULT_NORMAL_TILESET_PATH) as { id: number } | undefined;
+
+    if (normalTileset) {
+      const cfg = buildDefaultThemeConfigJSON(normalTileset.id);
+      const existingTheme = database
+        .prepare(`SELECT id FROM tile_themes WHERE name = ?`)
+        .get(DEFAULT_THEME_NAME) as { id: number } | undefined;
+
+      if (existingTheme) {
+        database
+          .prepare(
+            `UPDATE tile_themes
+             SET floor_config = ?, wall_config = ?, door_config = ?, updated_at = CURRENT_TIMESTAMP
+             WHERE id = ?`
+          )
+          .run(cfg.floor, cfg.wall, cfg.door, existingTheme.id);
+      } else {
+        database
+          .prepare(
+            `INSERT INTO tile_themes (name, floor_config, wall_config, door_config)
+             VALUES (?, ?, ?, ?)`
+          )
+          .run(DEFAULT_THEME_NAME, cfg.floor, cfg.wall, cfg.door);
+      }
+    }
+
+    // 3. Record the applied version.
+    database
+      .prepare(
+        `INSERT INTO app_settings (key, value) VALUES ('theme_seed_version', ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value`
+      )
+      .run(String(THEME_SEED_VERSION));
+  });
+
+  heal();
+  console.log(`✓ Tile themes migrated to seed version ${THEME_SEED_VERSION}`);
 }
