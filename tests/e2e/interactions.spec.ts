@@ -36,11 +36,11 @@ test.describe('User Interactions', () => {
     
     // Check pause menu is visible
     await expect(page.getByText('PAUSE')).toBeVisible();
-    await expect(page.getByText('Weiterspielen')).toBeVisible();
-    await expect(page.getByText('Optionen')).toBeVisible();
-    await expect(page.getByText('Statistiken')).toBeVisible();
-    await expect(page.getByText('Neustart')).toBeVisible();
-    await expect(page.getByText('Hauptmenü')).toBeVisible();
+    await expect(page.getByText('Resume')).toBeVisible();
+    await expect(page.getByText('Options')).toBeVisible();
+    await expect(page.getByText('Statistics')).toBeVisible();
+    await expect(page.getByText('Restart')).toBeVisible();
+    await expect(page.getByText('Main Menu')).toBeVisible();
     
     // Close menu with ESC again
     await page.keyboard.press('Escape');
@@ -50,7 +50,7 @@ test.describe('User Interactions', () => {
     await expect(page.getByText('PAUSE')).not.toBeVisible();
   });
 
-  test('ESC menu Statistiken button opens stats dashboard', async ({ page }) => {
+  test('ESC menu Statistics button opens stats dashboard', async ({ page }) => {
     await page.goto('/');
     
     // Login
@@ -62,13 +62,13 @@ test.describe('User Interactions', () => {
     await page.keyboard.press('Escape');
     await page.waitForTimeout(500);
     
-    // Click Statistiken
-    await page.click('button:has-text("Statistiken")');
+    // Click Statistics
+    await page.click('button:has-text("Statistics")');
     await page.waitForTimeout(500);
     
     // Check that stats dashboard is visible
     // (Dashboard has subject stats and ELO information)
-    await expect(page.getByText('Mathematik', { exact: false })).toBeVisible();
+    await expect(page.getByText('Math', { exact: false })).toBeVisible();
     
     // Close with ESC
     await page.keyboard.press('Escape');
@@ -123,12 +123,12 @@ test.describe('User Interactions', () => {
       await page.waitForTimeout(100);
       
       // Check for combat modal
-      const combatModal = page.getByText(/Frage \d+/);
+      const combatModal = page.getByText(/Question \d+/);
       if (await combatModal.isVisible()) {
         combatFound = true;
         
         // Verify combat UI elements
-        await expect(page.getByText(/Frage \d+/)).toBeVisible();
+        await expect(page.getByText(/Question \d+/)).toBeVisible();
         await expect(page.getByText(/Level \d+ Goblin/i)).toBeVisible();
         
         // HP bars should be visible
@@ -159,8 +159,8 @@ test.describe('User Interactions', () => {
     await page.keyboard.press('Escape');
     await page.waitForTimeout(500);
     
-    // Click Optionen
-    await page.click('button:has-text("Optionen")');
+    // Click Options
+    await page.click('button:has-text("Options")');
     await page.waitForTimeout(500);
     
     // Check that volume sliders exist
@@ -173,7 +173,7 @@ test.describe('User Interactions', () => {
     await page.waitForTimeout(200);
     
     // Back button should work
-    await page.click('button:has-text("Zurück")');
+    await page.click('button:has-text("Back")');
     await page.waitForTimeout(500);
     
     // Should be back at pause menu

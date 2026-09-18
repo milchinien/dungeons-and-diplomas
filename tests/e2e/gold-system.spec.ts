@@ -58,7 +58,7 @@ test.describe('Gold System', () => {
       await page.waitForTimeout(100);
       
       // Check if combat modal appeared
-      const combatModal = page.getByText(/Frage \d+/);
+      const combatModal = page.getByText(/Question \d+/);
       if (await combatModal.isVisible()) {
         console.log('Combat started!');
         

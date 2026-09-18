@@ -32,7 +32,7 @@ async function login(page: Page, context: BrowserContext) {
 
   if (needsLogin) {
     await loginInput.fill(`TooltipTest_${Date.now()}`);
-    await page.locator('button:has-text("Starten")').click();
+    await page.locator('button:has-text("Start")').click();
     await page.waitForTimeout(2000);
   }
 }
@@ -175,7 +175,7 @@ test.describe('Shop Tooltip System', () => {
       (window as any).__nearbyTargetHistory = [];
       setInterval(() => {
         // Try to access React state (this is a testing hack)
-        const hasNearbyTarget = document.body.innerHTML.includes('(E) Kaufen');
+        const hasNearbyTarget = document.body.innerHTML.includes('(E) Buy');
         (window as any).__nearbyTargetHistory.push(hasNearbyTarget);
       }, 500);
     });

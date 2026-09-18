@@ -8,7 +8,7 @@ test.describe('Dungeon Wall Fix Test', () => {
 
     await page.waitForSelector('text=Dungeons & Diplomas', { timeout: 10000 });
     await page.fill('input[type="text"]', 'WallFixUser');
-    await page.click('button:has-text("Starten")');
+    await page.click('button:has-text("Start")');
 
     // Start game
     await page.waitForSelector('button:has-text("Spielen")', { timeout: 10000 });
@@ -169,7 +169,7 @@ test.describe('Dungeon Wall Fix Test', () => {
 
     await page.waitForSelector('text=Dungeons & Diplomas', { timeout: 10000 });
     await page.fill('input[type="text"]', 'TileThemeUser');
-    await page.click('button:has-text("Starten")');
+    await page.click('button:has-text("Start")');
 
     await page.waitForSelector('button:has-text("Spielen")', { timeout: 10000 });
     await page.click('button:has-text("Spielen")');

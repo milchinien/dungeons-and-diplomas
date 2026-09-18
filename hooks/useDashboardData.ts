@@ -21,7 +21,7 @@ export function useDashboardData(userId: number): UseDashboardDataResult {
         const data = await api.stats.getStats(userId);
         setStats(data);
       } catch (err) {
-        setError('Fehler beim Laden der Statistiken');
+        setError('Failed to load stats');
         console.error(err);
       } finally {
         setLoading(false);

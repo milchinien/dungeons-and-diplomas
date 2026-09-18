@@ -283,8 +283,8 @@ export default function ComboDisplay({
       <div className={`combo-container tier-${tier} ${showFlash ? 'flash-in' : ''}`}>
         <div className="combo-text">
           <span className="combo-number">x{count}</span>
-          <span className="combo-label">KOMBO</span>
-          <span className="damage-bonus">+{damageBonus} Schaden</span>
+          <span className="combo-label">COMBO</span>
+          <span className="damage-bonus">+{damageBonus} Damage</span>
 
           {/* Timer Bar */}
           <div className="timer-container">

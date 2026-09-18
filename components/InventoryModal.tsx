@@ -32,11 +32,11 @@ interface InventoryModalProps {
 // Effect display names
 const EFFECT_NAMES: Record<string, { name: string; color: string; suffix: string }> = {
   max_hp: { name: 'Max HP', color: '#4ade80', suffix: '' },
-  damage_boost: { name: 'Schaden', color: '#f87171', suffix: '' },
-  damage_reduction: { name: 'Schutz', color: '#60a5fa', suffix: '' },
-  time_boost: { name: 'Zeit', color: '#fbbf24', suffix: 's' },
+  damage_boost: { name: 'Damage', color: '#f87171', suffix: '' },
+  damage_reduction: { name: 'Defense', color: '#60a5fa', suffix: '' },
+  time_boost: { name: 'Time', color: '#fbbf24', suffix: 's' },
   xp_boost: { name: 'XP Bonus', color: '#a78bfa', suffix: '%' },
-  hint_chance: { name: 'Hinweis', color: '#34d399', suffix: '%' },
+  hint_chance: { name: 'Hint', color: '#34d399', suffix: '%' },
 };
 
 // Tooltip component
@@ -95,7 +95,7 @@ function ItemTooltip({ item, style }: { item: Item; style?: React.CSSProperties 
 
       {/* Value */}
       <div style={{ borderTop: `1px solid ${COLORS.border.input}`, paddingTop: '6px', marginTop: '6px' }}>
-        <span style={{ color: COLORS.gold, fontSize: '11px' }}>Wert: {item.value} Gold</span>
+        <span style={{ color: COLORS.gold, fontSize: '11px' }}>Value: {item.value} Gold</span>
       </div>
     </div>
   );
@@ -264,7 +264,7 @@ export default function InventoryModal({
         {/* Left side: Character with equipment slots */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <h3 style={{ color: COLORS.gold, margin: '0 0 16px 0', fontSize: '20px' }}>
-            Ausruestung
+            Equipment
           </h3>
 
           {/* Character T-pose layout */}
@@ -399,7 +399,7 @@ export default function InventoryModal({
         {/* Right side: Inventory grid */}
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <h3 style={{ color: COLORS.gold, margin: '0 0 16px 0', fontSize: '20px' }}>
-            Inventar ({inventory.length}/{INVENTORY_SLOTS})
+            Inventory ({inventory.length}/{INVENTORY_SLOTS})
           </h3>
 
           <div
@@ -428,7 +428,7 @@ export default function InventoryModal({
               textAlign: 'center',
             }}
           >
-            Druecke [I] oder [ESC] zum Schliessen | Klicke auf Item zum Ausruesten
+            Press [I] or [ESC] to close | Click an item to equip
           </div>
         </div>
       </div>

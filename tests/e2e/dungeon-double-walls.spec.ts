@@ -9,7 +9,7 @@ test.describe('Dungeon Generation - Double Walls Check', () => {
     // Wait for login modal and login
     await page.waitForSelector('text=Dungeons & Diplomas', { timeout: 10000 });
     await page.fill('input[type="text"]', 'TestUser');
-    await page.click('button:has-text("Starten")');
+    await page.click('button:has-text("Start")');
 
     // Wait for main menu and click Spielen
     await page.waitForSelector('button:has-text("Spielen")', { timeout: 10000 });
@@ -101,7 +101,7 @@ test.describe('Dungeon Generation - Double Walls Check', () => {
     // Login
     await page.waitForSelector('text=Dungeons & Diplomas', { timeout: 10000 });
     await page.fill('input[type="text"]', 'TestUser2');
-    await page.click('button:has-text("Starten")');
+    await page.click('button:has-text("Start")');
 
     // Wait for main menu and click Spielen
     await page.waitForSelector('button:has-text("Spielen")', { timeout: 10000 });

@@ -66,7 +66,7 @@ export default function SkillTree({ treeType, userSkills, skillPoints, onAllocat
                 </div>
                 <div style={{ fontSize: '10px', marginTop: '4px' }}>
                   <span style={{ color: '#4ade80' }}>
-                    Gesamt: +{skill.effectPerLevel * currentLevel}
+                    Total: +{skill.effectPerLevel * currentLevel}
                   </span>
                   <span style={{ color: '#888', marginLeft: '6px' }}>
                     (+{skill.effectPerLevel}/Lvl)

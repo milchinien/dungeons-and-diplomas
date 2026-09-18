@@ -13,18 +13,21 @@ import type { TileType, Room } from '../../lib/constants';
 import { generateShopInventory } from '../../lib/shop/ShopInventory';
 
 describe('Dungeon Generation Fixes', () => {
-  describe('Double Wall Removal - OR Logic', () => {
-    it('should remove double walls when access on ONE side (horizontal)', () => {
-      // Create a simple dungeon with double walls
+  describe('Double Wall Removal - AND Logic', () => {
+    // A wall pair is only thinned when there is floor/door access on BOTH outer
+    // sides (a genuine 2-tile-thick wall between two rooms). Using OR here would
+    // cascade and dissolve the single walls that separate rooms, merging the
+    // whole dungeon into one open floor blob.
+    it('should remove a double wall when access on BOTH sides (horizontal)', () => {
+      // Floor above AND floor below the 2-thick wall = genuine double wall
       const dungeon: TileType[][] = [
         [2, 2, 2, 2, 2],  // All walls
         [2, 1, 1, 1, 2],  // Floor room (above)
         [2, 2, 2, 2, 2],  // Wall 1 (double wall)
         [2, 2, 2, 2, 2],  // Wall 2 (double wall)
-        [2, 0, 0, 0, 2],  // Empty (below)
+        [2, 1, 1, 1, 2],  // Floor room (below)
       ];
 
-      // Simulate double wall removal with OR logic
       const height = dungeon.length;
       const width = dungeon[0].length;
 
@@ -34,21 +37,54 @@ describe('Dungeon Generation Fixes', () => {
             const hasAccessAbove = y > 0 && (dungeon[y - 1][x] === TILE.FLOOR || dungeon[y - 1][x] === TILE.DOOR);
             const hasAccessBelow = y + 2 < height && (dungeon[y + 2][x] === TILE.FLOOR || dungeon[y + 2][x] === TILE.DOOR);
 
-            // OR logic (fixed)
-            if (hasAccessAbove || hasAccessBelow) {
+            // AND logic (correct): only thin genuine 2-thick walls
+            if (hasAccessAbove && hasAccessBelow) {
               dungeon[y][x] = TILE.FLOOR;
             }
           }
         }
       }
 
-      // Check that first double wall was removed
-      expect(dungeon[2][2]).toBe(TILE.FLOOR); // Was wall, now floor (access above)
-      expect(dungeon[3][2]).toBe(TILE.WALL);  // Still wall (bottom of pair)
+      // Top of the pair becomes floor, bottom stays as the single separator
+      expect(dungeon[2][2]).toBe(TILE.FLOOR); // Was wall, now floor
+      expect(dungeon[3][2]).toBe(TILE.WALL);  // Remains as separator
     });
 
-    it('should remove double walls when access on ONE side (vertical)', () => {
-      // Create a simple dungeon with vertical double walls
+    it('should remove a double wall when access on BOTH sides (vertical)', () => {
+      // Floor left AND floor right of the 2-thick wall = genuine double wall
+      const dungeon: TileType[][] = [
+        [2, 2, 2, 2, 2, 2, 2],
+        [2, 1, 1, 2, 2, 1, 2],  // Floor left, wall, wall, floor right
+        [2, 1, 1, 2, 2, 1, 2],
+        [2, 1, 1, 2, 2, 1, 2],
+        [2, 2, 2, 2, 2, 2, 2],
+      ];
+
+      const height = dungeon.length;
+      const width = dungeon[0].length;
+
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width - 1; x++) {
+          if (dungeon[y][x] === TILE.WALL && dungeon[y][x + 1] === TILE.WALL) {
+            const hasAccessLeft = x > 0 && (dungeon[y][x - 1] === TILE.FLOOR || dungeon[y][x - 1] === TILE.DOOR);
+            const hasAccessRight = x + 2 < width && (dungeon[y][x + 2] === TILE.FLOOR || dungeon[y][x + 2] === TILE.DOOR);
+
+            // AND logic (correct): only thin genuine 2-thick walls
+            if (hasAccessLeft && hasAccessRight) {
+              dungeon[y][x] = TILE.FLOOR;
+            }
+          }
+        }
+      }
+
+      // Left of the pair becomes floor, right stays as the single separator
+      expect(dungeon[2][3]).toBe(TILE.FLOOR); // Was wall, now floor
+      expect(dungeon[2][4]).toBe(TILE.WALL);  // Remains as separator
+    });
+
+    it('should NOT remove a single separator wall (access on only ONE side)', () => {
+      // Floor on the left only; the wall pair is a room border, not a double
+      // wall between two rooms. AND logic must keep it (OR logic wrongly ate it).
       const dungeon: TileType[][] = [
         [2, 2, 2, 2, 2, 2, 2],
         [2, 1, 1, 2, 2, 0, 2],  // Floor left, wall, wall, empty right
@@ -57,7 +93,6 @@ describe('Dungeon Generation Fixes', () => {
         [2, 2, 2, 2, 2, 2, 2],
       ];
 
-      // Simulate double wall removal with OR logic
       const height = dungeon.length;
       const width = dungeon[0].length;
 
@@ -67,21 +102,19 @@ describe('Dungeon Generation Fixes', () => {
             const hasAccessLeft = x > 0 && (dungeon[y][x - 1] === TILE.FLOOR || dungeon[y][x - 1] === TILE.DOOR);
             const hasAccessRight = x + 2 < width && (dungeon[y][x + 2] === TILE.FLOOR || dungeon[y][x + 2] === TILE.DOOR);
 
-            // OR logic (fixed)
-            if (hasAccessLeft || hasAccessRight) {
+            if (hasAccessLeft && hasAccessRight) {
               dungeon[y][x] = TILE.FLOOR;
             }
           }
         }
       }
 
-      // Check that first double wall was removed (access on left side)
-      expect(dungeon[2][3]).toBe(TILE.FLOOR); // Was wall, now floor (access left at x=2)
-      expect(dungeon[2][4]).toBe(TILE.WALL);  // Still wall (second of pair)
+      // Both walls remain (no floor on the right side)
+      expect(dungeon[2][3]).toBe(TILE.WALL);
+      expect(dungeon[2][4]).toBe(TILE.WALL);
     });
 
     it('should NOT remove walls without ANY access', () => {
-      // Create a dungeon with isolated double walls
       const dungeon: TileType[][] = [
         [2, 2, 2, 2, 2],
         [2, 0, 2, 0, 2],  // Empty, wall, wall, empty
@@ -90,7 +123,6 @@ describe('Dungeon Generation Fixes', () => {
         [2, 2, 2, 2, 2],
       ];
 
-      // Simulate double wall removal with OR logic
       const height = dungeon.length;
       const width = dungeon[0].length;
 
@@ -100,8 +132,7 @@ describe('Dungeon Generation Fixes', () => {
             const hasAccessLeft = x > 0 && (dungeon[y][x - 1] === TILE.FLOOR || dungeon[y][x - 1] === TILE.DOOR);
             const hasAccessRight = x + 2 < width && (dungeon[y][x + 2] === TILE.FLOOR || dungeon[y][x + 2] === TILE.DOOR);
 
-            // OR logic - should not remove without access
-            if (hasAccessLeft || hasAccessRight) {
+            if (hasAccessLeft && hasAccessRight) {
               dungeon[y][x] = TILE.FLOOR;
             }
           }

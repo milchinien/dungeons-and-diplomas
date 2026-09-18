@@ -13,7 +13,7 @@ test.describe('Dungeon Generation - Single Door System', () => {
     await page.waitForTimeout(1000);
 
     // Check if login modal is present and log in
-    const loginModal = page.locator('text=Benutzername');
+    const loginModal = page.locator('text=Username');
     if (await loginModal.isVisible({ timeout: 2000 }).catch(() => false)) {
       await page.fill('input[type="text"]', 'TestUser');
       await page.click('button:has-text("Anmelden")');
@@ -49,7 +49,7 @@ test.describe('Dungeon Generation - Single Door System', () => {
     await page.waitForTimeout(500);
 
     // Check for pause menu or main menu
-    const menuVisible = await page.locator('text=Weiterspielen, text=Neustart').first().isVisible({ timeout: 2000 }).catch(() => false);
+    const menuVisible = await page.locator('text=Resume, text=Restart').first().isVisible({ timeout: 2000 }).catch(() => false);
 
     if (menuVisible) {
       console.log('✓ Game is running and menu is accessible');

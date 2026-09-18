@@ -142,7 +142,7 @@ export function renderTooltip(
   // Interaction hint (light gray, italic, left-aligned)
   ctx.fillStyle = '#AAAAAA';
   ctx.font = 'italic 12px sans-serif';
-  ctx.fillText('(E) Kaufen', tooltipX + padding, currentY);
+  ctx.fillText('(E) Buy', tooltipX + padding, currentY);
 
   ctx.restore();
 }
@@ -154,7 +154,7 @@ export function renderInteractionHint(
   ctx: CanvasRenderingContext2D,
   screenX: number,
   screenY: number,
-  text: string = '[E] Interagieren'
+  text: string = '[E] Interact'
 ): void {
   ctx.save();
 
@@ -187,7 +187,7 @@ export function renderShopLabel(
 ): void {
   ctx.save();
 
-  const text = isOpen ? 'Shop (offen)' : 'Shop (geschlossen)';
+  const text = isOpen ? 'Shop (open)' : 'Shop (closed)';
   ctx.font = 'bold 14px Arial';
   ctx.textAlign = 'center';
 

@@ -60,11 +60,11 @@ export default function SkillTreeModal({
         onSkillAllocated(updatedSkills, data.availablePoints);
       } else {
         const error = await response.json();
-        alert(error.error || 'Skill konnte nicht zugewiesen werden');
+        alert(error.error || 'Could not assign skill');
       }
     } catch (error) {
       console.error('Failed to allocate skill:', error);
-      alert('Fehler beim Zuweisen des Skills');
+      alert('Error assigning skill');
     } finally {
       setIsAllocating(false);
     }
@@ -110,10 +110,10 @@ export default function SkillTreeModal({
             alignItems: 'center',
           }}
         >
-          <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#fff', margin: 0 }}>Skill Baum</h2>
+          <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#fff', margin: 0 }}>Skill Tree</h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ fontSize: '14px', color: '#fbbf24', fontWeight: 600 }}>
-              Verfügbare Punkte: {localPoints.availablePoints}
+              Available Points: {localPoints.availablePoints}
             </div>
             <button
               onClick={onClose}
@@ -155,10 +155,10 @@ export default function SkillTreeModal({
                 transition: 'all 0.2s',
               }}
             >
-              {tab === 'attack' && '⚔️ Angriff'}
-              {tab === 'defense' && '🛡️ Verteidigung'}
-              {tab === 'utility' && '⚡ Nutzen'}
-              {tab === 'knowledge' && '📖 Wissen'}
+              {tab === 'attack' && '⚔️ Attack'}
+              {tab === 'defense' && '🛡️ Defense'}
+              {tab === 'utility' && '⚡ Utility'}
+              {tab === 'knowledge' && '📖 Knowledge'}
             </button>
           ))}
         </div>
@@ -185,8 +185,8 @@ export default function SkillTreeModal({
             color: '#888',
           }}
         >
-          <div>Ausgegeben: {localPoints.spentPoints} / {localPoints.totalPoints}</div>
-          <div>Taste: K zum Schließen</div>
+          <div>Spent: {localPoints.spentPoints} / {localPoints.totalPoints}</div>
+          <div>Press K to close</div>
         </div>
       </div>
     </div>

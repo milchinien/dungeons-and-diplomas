@@ -9,7 +9,7 @@ test.describe('Dungeon Visual - Wall Rendering', () => {
     // Login
     await page.waitForSelector('text=Dungeons & Diplomas', { timeout: 10000 });
     await page.fill('input[type="text"]', 'WallTestUser');
-    await page.click('button:has-text("Starten")');
+    await page.click('button:has-text("Start")');
 
     // Wait for main menu and click Spielen
     await page.waitForSelector('button:has-text("Spielen")', { timeout: 10000 });
@@ -103,7 +103,7 @@ test.describe('Dungeon Visual - Wall Rendering', () => {
     // Login
     await page.waitForSelector('text=Dungeons & Diplomas', { timeout: 10000 });
     await page.fill('input[type="text"]', 'DataTestUser');
-    await page.click('button:has-text("Starten")');
+    await page.click('button:has-text("Start")');
 
     // Wait for main menu and click Spielen
     await page.waitForSelector('button:has-text("Spielen")', { timeout: 10000 });

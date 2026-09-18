@@ -47,20 +47,20 @@ export interface ItemDefinition {
 // Slot display names
 export const SLOT_DISPLAY_NAMES: Record<EquipmentSlotKey, string> = {
   helm: 'Helm',
-  brustplatte: 'Brustplatte',
-  schwert: 'Schwert',
-  schild: 'Schild',
-  hose: 'Hose',
-  schuhe: 'Schuhe',
+  brustplatte: 'Chestplate',
+  schwert: 'Sword',
+  schild: 'Shield',
+  hose: 'Pants',
+  schuhe: 'Boots',
 };
 
 // Rarity configuration
 export const RARITY_CONFIG: Record<ItemRarity, { name: string; dropChance: number }> = {
-  common: { name: 'Gewöhnlich', dropChance: 0.50 },
-  uncommon: { name: 'Ungewöhnlich', dropChance: 0.30 },
-  rare: { name: 'Selten', dropChance: 0.15 },
-  epic: { name: 'Episch', dropChance: 0.04 },
-  legendary: { name: 'Legendär', dropChance: 0.01 },
+  common: { name: 'Common', dropChance: 0.50 },
+  uncommon: { name: 'Uncommon', dropChance: 0.30 },
+  rare: { name: 'Rare', dropChance: 0.15 },
+  epic: { name: 'Epic', dropChance: 0.04 },
+  legendary: { name: 'Legendary', dropChance: 0.01 },
 };
 
 // Dropped item on the map

@@ -317,7 +317,7 @@ export function removeDoubleWalls(dungeon: TileType[][], roomMap: number[][], wi
           const hasAccessAbove = y > 0 && (dungeon[y - 1][x] === TILE.FLOOR || dungeon[y - 1][x] === TILE.DOOR);
           const hasAccessBelow = y + 2 < height && (dungeon[y + 2][x] === TILE.FLOOR || dungeon[y + 2][x] === TILE.DOOR);
 
-          if (hasAccessAbove || hasAccessBelow) {  // OR logic - remove if either side has access
+          if (hasAccessAbove && hasAccessBelow) {  // AND logic - only thin genuine 2-thick walls
             // Remove the first wall
             dungeon[y][x] = TILE.FLOOR;
 
@@ -341,7 +341,7 @@ export function removeDoubleWalls(dungeon: TileType[][], roomMap: number[][], wi
           const hasAccessLeft = x > 0 && (dungeon[y][x - 1] === TILE.FLOOR || dungeon[y][x - 1] === TILE.DOOR);
           const hasAccessRight = x + 2 < width && (dungeon[y][x + 2] === TILE.FLOOR || dungeon[y][x + 2] === TILE.DOOR);
 
-          if (hasAccessLeft || hasAccessRight) {  // OR logic - remove if either side has access
+          if (hasAccessLeft && hasAccessRight) {  // AND logic - only thin genuine 2-thick walls
             // Remove the first wall
             dungeon[y][x] = TILE.FLOOR;
 

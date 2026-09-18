@@ -62,7 +62,7 @@ export function ShopItemsDisplay({ equippedItems, activePerks }: ShopItemsDispla
         letterSpacing: '1px',
         marginBottom: '4px'
       }}>
-        Shop-Ausrüstung
+        Shop Gear
       </div>
 
       {/* Items and Perks grid */}

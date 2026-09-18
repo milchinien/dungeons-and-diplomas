@@ -81,11 +81,11 @@ export default function DefeatOverlay({ onRestart, userId, stats }: DefeatOverla
       {playerScore !== null && (
         <div style={{ textAlign: 'center', marginBottom: '30px' }}>
           <div style={{ fontSize: '32px', fontWeight: 'bold', color: isNewPersonalBest ? '#FFD700' : '#fff' }}>
-            {playerScore.toLocaleString()} Punkte
+            {playerScore.toLocaleString('en-US')} Points
           </div>
           {isNewPersonalBest && (
             <div style={{ fontSize: '18px', color: '#FFD700', marginTop: '8px' }}>
-              Neuer persoenlicher Rekord!
+              New personal best!
             </div>
           )}
         </div>
@@ -122,7 +122,7 @@ export default function DefeatOverlay({ onRestart, userId, stats }: DefeatOverla
           }
         }}
       >
-        {isRestarting ? 'Wird neu gestartet...' : 'Nochmal versuchen'}
+        {isRestarting ? 'Restarting...' : 'Try Again'}
       </button>
 
       <style jsx>{`

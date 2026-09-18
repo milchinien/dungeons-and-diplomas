@@ -40,7 +40,7 @@ test.describe('Shop Purchase (Simple)', () => {
     if (needsLogin) {
       console.log('Login modal appeared after load, filling in...');
       await loginInputAfterLoad.fill('TestUser');
-      const startButton = page.locator('button:has-text("Starten")');
+      const startButton = page.locator('button:has-text("Start")');
       await startButton.click();
       console.log('Login submitted');
       await page.waitForTimeout(5000);
@@ -116,8 +116,8 @@ test.describe('Shop Purchase (Simple)', () => {
     await page.screenshot({ path: 'test-results/cheat-menu-open.png', fullPage: true });
 
     // Click shop teleport button
-    console.log('\nClicking "Zum Shop" button...');
-    const shopButton = page.locator('button:has-text("Zum Shop")');
+    console.log('\nClicking "To Shop" button...');
+    const shopButton = page.locator('button:has-text("To Shop")');
     await shopButton.click();
     await page.waitForTimeout(1000);
 

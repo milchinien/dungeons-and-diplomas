@@ -28,7 +28,7 @@ test.describe('Shop Teleport Cheat', () => {
       console.log('Login modal found, logging in...');
       await loginInput.fill('PlaywrightTest');
 
-      const loginButton = page.locator('button:has-text("Starten")');
+      const loginButton = page.locator('button:has-text("Start")');
       await loginButton.click();
       console.log('Clicked login button');
 
@@ -71,8 +71,8 @@ test.describe('Shop Teleport Cheat', () => {
     await expect(cheatMenuTitle).toBeVisible({ timeout: 2000 });
     console.log('Cheat menu is visible');
 
-    // Find and click the "Zum Shop" button
-    const shopButton = page.locator('button:has-text("Zum Shop")');
+    // Find and click the "To Shop" button
+    const shopButton = page.locator('button:has-text("To Shop")');
     await expect(shopButton).toBeVisible();
     console.log('Shop teleport button found');
 

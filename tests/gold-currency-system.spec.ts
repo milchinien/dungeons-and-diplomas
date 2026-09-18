@@ -26,7 +26,7 @@ test.describe('Gold Currency System', () => {
     if (isLoginVisible) {
       console.log('Login modal found, logging in as GoldTester...');
       await loginInput.fill('GoldTester');
-      const loginButton = page.locator('button:has-text("Starten")');
+      const loginButton = page.locator('button:has-text("Start")');
       await loginButton.click();
       console.log('Login button clicked');
 
@@ -122,8 +122,8 @@ test.describe('Gold Currency System', () => {
     await page.keyboard.press('Control+p');
     await page.waitForTimeout(500);
 
-    // Click "Zum Shop" button
-    const shopButton = page.locator('button:has-text("Zum Shop")');
+    // Click "To Shop" button
+    const shopButton = page.locator('button:has-text("To Shop")');
     const hasShopButton = await shopButton.isVisible({ timeout: 2000 }).catch(() => false);
 
     if (hasShopButton) {
@@ -167,7 +167,7 @@ test.describe('Gold Currency System', () => {
     await page.waitForTimeout(1000);
 
     // Check if shop confirmation modal appeared
-    const shopModalTitle = page.locator('text=Kaufbestätigung, text=Shop, text=Kaufen');
+    const shopModalTitle = page.locator('text=Buy, text=Shop');
     const isShopModalVisible = await shopModalTitle.first().isVisible({ timeout: 2000 }).catch(() => false);
 
     if (isShopModalVisible) {
@@ -176,7 +176,7 @@ test.describe('Gold Currency System', () => {
 
       // Check if gold cost is displayed in modal
       const modalText = await page.locator('body').textContent();
-      const hasGoldCost = modalText?.includes('Gold') || modalText?.includes('gold') || modalText?.includes('Kosten');
+      const hasGoldCost = modalText?.includes('Gold') || modalText?.includes('gold') || modalText?.includes('Cost');
       console.log(`Gold cost displayed in modal: ${hasGoldCost}`);
 
       // Try to confirm purchase
@@ -337,7 +337,7 @@ test.describe('Gold Currency System', () => {
 
     if (isLoginVisible) {
       await loginInput.fill('PersistenceTester');
-      const loginButton = page.locator('button:has-text("Starten")');
+      const loginButton = page.locator('button:has-text("Start")');
       await loginButton.click();
       await page.waitForTimeout(3000);
       await page.reload({ waitUntil: 'networkidle' });

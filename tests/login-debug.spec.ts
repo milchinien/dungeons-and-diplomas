@@ -60,7 +60,7 @@ test('Debug login flow in detail', async ({ page }) => {
   await page.screenshot({ path: 'test-results/debug-03-username-filled.png', fullPage: true });
 
   console.log('\n=== STEP 5: Click Starten button ===');
-  const startButton = page.locator('button:has-text("Starten")');
+  const startButton = page.locator('button:has-text("Start")');
   const startButtonVisible = await startButton.isVisible();
   console.log(`Start button visible: ${startButtonVisible}`);
 

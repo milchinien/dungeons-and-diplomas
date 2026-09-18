@@ -72,7 +72,7 @@ export default function CombatAnswers({ answers, onSelectAnswer, isHidden, hinte
         }
 
         .correct-answer::before {
-          content: '✓ RICHTIG';
+          content: '✓ CORRECT';
           position: absolute;
           right: 20px;
           top: 50%;

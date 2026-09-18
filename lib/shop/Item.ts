@@ -45,8 +45,8 @@ export interface Item {
 export const ITEM_DEFINITIONS: ItemDefinition[] = [
   {
     type: ItemType.SWORD,
-    name: 'Schwert',
-    description: 'Erhöht den Schaden bei korrekten Antworten',
+    name: 'Sword',
+    description: 'Increases damage on correct answers',
     baseEffect: 5,
     effectType: ItemEffectType.DAMAGE_FLAT,
     spriteKey: 'item_sword',
@@ -54,8 +54,8 @@ export const ITEM_DEFINITIONS: ItemDefinition[] = [
   },
   {
     type: ItemType.CHESTPLATE,
-    name: 'Brustplatte',
-    description: 'Reduziert eingehenden Schaden',
+    name: 'Chestplate',
+    description: 'Reduces incoming damage',
     baseEffect: 10,
     effectType: ItemEffectType.DAMAGE_REDUCTION,
     spriteKey: 'item_chestplate',
@@ -64,7 +64,7 @@ export const ITEM_DEFINITIONS: ItemDefinition[] = [
   {
     type: ItemType.HELMET,
     name: 'Helm',
-    description: 'Erhöht die maximalen HP',
+    description: 'Increases max HP',
     baseEffect: 10,
     effectType: ItemEffectType.HP_FLAT,
     spriteKey: 'item_helmet',
@@ -72,8 +72,8 @@ export const ITEM_DEFINITIONS: ItemDefinition[] = [
   },
   {
     type: ItemType.SHIELD,
-    name: 'Schild',
-    description: 'Chance, Schaden komplett zu blocken',
+    name: 'Shield',
+    description: 'Chance to fully block damage',
     baseEffect: 10,
     effectType: ItemEffectType.BLOCK_CHANCE,
     spriteKey: 'item_shield',
@@ -81,8 +81,8 @@ export const ITEM_DEFINITIONS: ItemDefinition[] = [
   },
   {
     type: ItemType.BOOTS,
-    name: 'Stiefel',
-    description: 'Erhöht die Bewegungsgeschwindigkeit',
+    name: 'Boots',
+    description: 'Increases movement speed',
     baseEffect: 10,
     effectType: ItemEffectType.SPEED,
     spriteKey: 'item_boots',
@@ -90,8 +90,8 @@ export const ITEM_DEFINITIONS: ItemDefinition[] = [
   },
   {
     type: ItemType.AMULET,
-    name: 'Amulett',
-    description: 'Verbessert alle Stats leicht',
+    name: 'Amulet',
+    description: 'Slightly improves all stats',
     baseEffect: 5,
     effectType: ItemEffectType.ALL_STATS,
     spriteKey: 'item_amulet',
@@ -158,17 +158,17 @@ export function getItemEffectDescription(item: Item): string {
 
   switch (effectType) {
     case ItemEffectType.DAMAGE_FLAT:
-      return `+${value} Schaden`;
+      return `+${value} Damage`;
     case ItemEffectType.DAMAGE_REDUCTION:
-      return `-${value}% eingehender Schaden`;
+      return `-${value}% Damage Taken`;
     case ItemEffectType.HP_FLAT:
       return `+${value} max HP`;
     case ItemEffectType.BLOCK_CHANCE:
-      return `${value}% Block-Chance`;
+      return `${value}% Block Chance`;
     case ItemEffectType.SPEED:
-      return `+${value}% Geschwindigkeit`;
+      return `+${value}% Speed`;
     case ItemEffectType.ALL_STATS:
-      return `+${value}% alle Stats`;
+      return `+${value}% All Stats`;
     default:
       return `+${value}`;
   }

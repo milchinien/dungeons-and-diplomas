@@ -8,7 +8,7 @@ test.describe('Room Bounds Check', () => {
     await page.waitForSelector('input[type="text"]', { timeout: 10000 });
     await page.fill('input[type="text"]', 'BoundsCheckUser');
 
-    const submitButton = page.locator('button:has-text("Starten"), button:has-text("Start"), button[type="submit"]').first();
+    const submitButton = page.locator('button:has-text("Start"), button[type="submit"]').first();
     await submitButton.click();
     await page.waitForTimeout(2000);
 

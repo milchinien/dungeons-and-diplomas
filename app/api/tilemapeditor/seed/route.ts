@@ -9,49 +9,47 @@ const DEFAULT_TILESETS = [
   {
     name: 'Castle Dungeon (Normal)',
     path: '/Assets/Castle-Dungeon2_Tiles/Tileset.png',
-    widthTiles: 20,
-    heightTiles: 12
+    widthTiles: 10,
+    heightTiles: 10
   },
   {
     name: 'Castle Dungeon (Dark)',
     path: '/Assets/Castle-Dungeon2_Tiles/Tileset_Dark.png',
-    widthTiles: 20,
-    heightTiles: 12
+    widthTiles: 25,
+    heightTiles: 13
   },
   {
     name: 'Castle Dungeon (Bright)',
     path: '/Assets/Castle-Dungeon2_Tiles/Tileset_Bright.png',
-    widthTiles: 20,
-    heightTiles: 12
+    widthTiles: 25,
+    heightTiles: 13
   }
 ];
 
 /**
- * Create a default tile theme using the Castle Dungeon tileset.
- * Uses original FLOOR_VARIANTS and WALL_VARIANTS coordinates from spriteConfig.
+ * Create a default tile theme using the Dark Castle Dungeon tileset (25x13).
+ * Coordinates are verified tile indices on Tileset_Dark.png: clean stone
+ * floors on row 1, plain brick walls on row 0, wooden doors at cols 8/9.
  */
 function createDefaultTheme(tilesetId: number): Omit<TileTheme, 'id' | 'created_at' | 'updated_at'> {
-  // Floor variants from original spriteConfig
   const floorVariants = [
-    { source: { tilesetId, x: 0, y: 1 }, weight: 200 },
-    { source: { tilesetId, x: 1, y: 1 }, weight: 50 },
-    { source: { tilesetId, x: 2, y: 1 }, weight: 30 },
-    { source: { tilesetId, x: 2, y: 11 }, weight: 2 },
-    { source: { tilesetId, x: 19, y: 8 }, weight: 1 }
+    { source: { tilesetId, x: 9, y: 1 }, weight: 200 },
+    { source: { tilesetId, x: 10, y: 1 }, weight: 50 },
+    { source: { tilesetId, x: 11, y: 1 }, weight: 30 },
+    { source: { tilesetId, x: 12, y: 1 }, weight: 20 },
+    { source: { tilesetId, x: 13, y: 1 }, weight: 10 }
   ];
 
-  // Wall variants from original spriteConfig (used for all wall types)
+  // Plain brick walls (used for all wall types)
   const wallVariants = [
-    { source: { tilesetId, x: 0, y: 0 }, weight: 20 },
-    { source: { tilesetId, x: 1, y: 0 }, weight: 15 },
-    { source: { tilesetId, x: 2, y: 0 }, weight: 15 },
-    { source: { tilesetId, x: 3, y: 0 }, weight: 15 },
-    { source: { tilesetId, x: 3, y: 11 }, weight: 1 }
+    { source: { tilesetId, x: 1, y: 0 }, weight: 40 },
+    { source: { tilesetId, x: 2, y: 0 }, weight: 20 },
+    { source: { tilesetId, x: 6, y: 0 }, weight: 15 }
   ];
 
-  // Door tiles from original TILESET_COORDS
+  // Wooden door tiles on the Dark tileset
   const doorVertical = [{ source: { tilesetId, x: 8, y: 0 }, weight: 100 }];
-  const doorHorizontal = [{ source: { tilesetId, x: 13, y: 0 }, weight: 100 }];
+  const doorHorizontal = [{ source: { tilesetId, x: 9, y: 0 }, weight: 100 }];
 
   return {
     name: 'Castle Dungeon (Default)',
@@ -102,12 +100,12 @@ export const GET = withErrorHandler(async () => {
   // 2. Seed default theme if no themes exist
   const existingThemes = await getTileThemes();
   if (existingThemes.length === 0) {
-    // Get the Normal tileset ID (first one)
+    // Theme renders against the Dark tileset (25x13).
     const allTilesets = await getTilesets();
-    const normalTileset = allTilesets.find(t => t.path.includes('Tileset.png') && !t.path.includes('Dark') && !t.path.includes('Bright'));
+    const darkTileset = allTilesets.find(t => t.path.includes('Tileset_Dark.png'));
 
-    if (normalTileset) {
-      const defaultTheme = createDefaultTheme(normalTileset.id);
+    if (darkTileset) {
+      const defaultTheme = createDefaultTheme(darkTileset.id);
       await saveTileTheme(defaultTheme);
       added.push(`Theme: ${defaultTheme.name}`);
     }

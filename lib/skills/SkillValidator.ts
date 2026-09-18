@@ -32,7 +32,7 @@ export function validateSkillAllocation(
   if (!skillDef) {
     return {
       valid: false,
-      error: `Skill "${skillId}" existiert nicht.`,
+      error: `Skill "${skillId}" does not exist.`,
     };
   }
 
@@ -40,7 +40,7 @@ export function validateSkillAllocation(
   if (skillPoints.availablePoints <= 0) {
     return {
       valid: false,
-      error: 'Keine Skill-Punkte verfügbar.',
+      error: 'No skill points available.',
     };
   }
 
@@ -52,7 +52,7 @@ export function validateSkillAllocation(
   if (currentLevel >= skillDef.maxLevel) {
     return {
       valid: false,
-      error: `${skillDef.name} ist bereits auf Maximum (Level ${skillDef.maxLevel}).`,
+      error: `${skillDef.name} is already maxed (Level ${skillDef.maxLevel}).`,
     };
   }
 
@@ -72,7 +72,7 @@ export function validateSkillAllocation(
   if (missingDeps.length > 0) {
     return {
       valid: false,
-      error: `Benötigt: ${missingDeps.join(', ')}`,
+      error: `Requires: ${missingDeps.join(', ')}`,
       missingDependencies: skillDef.dependencies.map((d) => d.skillId),
     };
   }

@@ -4,7 +4,7 @@
 import type { Room } from '../constants';
 import type { Enemy } from './Enemy';
 import type { Player } from './types';
-import { AI_STATE } from '../constants';
+import { AI_STATE, getSubjectDisplayName } from '../constants';
 
 export class EnemyRenderer {
   /**
@@ -106,9 +106,10 @@ export class EnemyRenderer {
     tileSize: number,
     hasAggro: boolean
   ): void {
+    const subjectName = getSubjectDisplayName(enemy.subject);
     const statusText = enemy.alive
-      ? `${enemy.subject} | Lvl ${enemy.level} | HP ${enemy.hp}`
-      : `${enemy.subject} | Lvl ${enemy.level} | BESIEGT`;
+      ? `${subjectName} | Lvl ${enemy.level} | HP ${enemy.hp}`
+      : `${subjectName} | Lvl ${enemy.level} | DEFEATED`;
 
     // Color based on level: 1-3 green, 4-7 yellow, 8-10 red
     let borderColor = '#4CAF50'; // green

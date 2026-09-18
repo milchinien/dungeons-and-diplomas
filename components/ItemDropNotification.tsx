@@ -13,11 +13,11 @@ interface ItemDropNotificationProps {
 // Effect display names
 const EFFECT_NAMES: Record<string, { name: string; color: string; suffix: string }> = {
   max_hp: { name: 'Max HP', color: '#4ade80', suffix: '' },
-  damage_boost: { name: 'Schaden', color: '#f87171', suffix: '' },
-  damage_reduction: { name: 'Schutz', color: '#60a5fa', suffix: '' },
-  time_boost: { name: 'Zeit', color: '#fbbf24', suffix: 's' },
+  damage_boost: { name: 'Damage', color: '#f87171', suffix: '' },
+  damage_reduction: { name: 'Defense', color: '#60a5fa', suffix: '' },
+  time_boost: { name: 'Time', color: '#fbbf24', suffix: 's' },
   xp_boost: { name: 'XP Bonus', color: '#a78bfa', suffix: '%' },
-  hint_chance: { name: 'Hinweis', color: '#34d399', suffix: '%' },
+  hint_chance: { name: 'Hint', color: '#34d399', suffix: '%' },
 };
 
 export default function ItemDropNotification({ item, onComplete }: ItemDropNotificationProps) {
@@ -111,7 +111,7 @@ export default function ItemDropNotification({ item, onComplete }: ItemDropNotif
             letterSpacing: '2px',
             textTransform: 'uppercase',
           }}>
-            Item erhalten!
+            Item received!
           </div>
 
           {/* Item name */}
@@ -163,7 +163,7 @@ export default function ItemDropNotification({ item, onComplete }: ItemDropNotif
             fontSize: '11px',
             marginTop: '4px',
           }}>
-            Druecke [I] fuer Inventar
+            Press [I] for inventory
           </div>
         </div>
       </div>

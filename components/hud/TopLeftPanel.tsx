@@ -115,7 +115,7 @@ export function TopLeftPanel({
                 letterSpacing: '0.5px',
                 boxShadow: '0 0 8px #ff8800aa',
               }}
-              title="Verfügbare Skill-Punkte"
+              title="Available skill points"
             >
               +{skillPointsAvailable} SP
             </span>

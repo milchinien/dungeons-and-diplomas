@@ -134,7 +134,7 @@ export default function MainMenu({ onPlay, onProgress, onSettings, onProfileSele
               textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
             }}
           >
-            Willkommen zurück, <span style={{ color: MEDIEVAL_COLORS.gold.primary }}>{username}</span>!
+            Welcome back, <span style={{ color: MEDIEVAL_COLORS.gold.primary }}>{username}</span>!
           </p>
         )}
       </div>
@@ -184,7 +184,7 @@ export default function MainMenu({ onPlay, onProgress, onSettings, onProfileSele
             e.currentTarget.style.color = MEDIEVAL_COLORS.text.primary;
           }}
         >
-          Spielen
+          Play
         </button>
 
         {/* Progress button */}
@@ -221,7 +221,7 @@ export default function MainMenu({ onPlay, onProgress, onSettings, onProfileSele
             e.currentTarget.style.color = MEDIEVAL_COLORS.text.secondary;
           }}
         >
-          Fortschritt
+          Progress
         </button>
       </div>
 
@@ -259,7 +259,7 @@ export default function MainMenu({ onPlay, onProgress, onSettings, onProfileSele
             0 2px 4px rgba(0, 0, 0, 0.5)
           `;
         }}
-        title="Einstellungen"
+        title="Settings"
       >
         {/* Gear icon */}
         <svg
@@ -312,7 +312,7 @@ export default function MainMenu({ onPlay, onProgress, onSettings, onProfileSele
             0 2px 4px rgba(0, 0, 0, 0.5)
           `;
         }}
-        title="Profil auswählen"
+        title="Select profile"
       >
         {/* Repeat/refresh icon */}
         <svg

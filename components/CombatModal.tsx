@@ -119,7 +119,7 @@ export default function CombatModal({
         transform: 'translateX(-50%)',
         zIndex: 15
       }}>
-        <HPBar current={playerHp} max={player?.maxHp ?? 100} color="#00ff00" label="SPIELER" />
+        <HPBar current={playerHp} max={player?.maxHp ?? 100} color="#00ff00" label="PLAYER" />
       </div>
 
       <div style={{
