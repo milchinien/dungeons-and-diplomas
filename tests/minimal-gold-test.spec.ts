@@ -16,7 +16,7 @@ test('Minimal gold and shop system test', async ({ page }) => {
   if (await loginInput.isVisible({ timeout: 2000 }).catch(() => false)) {
     console.log('[TEST] Logging in');
     await loginInput.fill('MinimalTest');
-    await page.locator('button:has-text("Starten")').click();
+    await page.locator('button:has-text("Start")').click();
     await page.waitForTimeout(1500);
   }
 
@@ -45,7 +45,7 @@ test('Minimal gold and shop system test', async ({ page }) => {
   console.log(`[TEST] Gold buttons found: ${goldBtnCount}`);
 
   // Test 3: Check for shop teleport button
-  const shopButton = page.locator('button:has-text("Zum Shop")');
+  const shopButton = page.locator('button:has-text("To Shop")');
   const shopBtnVisible = await shopButton.isVisible({ timeout: 1000 }).catch(() => false);
   console.log(`[TEST] Shop teleport button: ${shopBtnVisible}`);
 

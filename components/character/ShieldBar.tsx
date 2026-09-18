@@ -33,7 +33,7 @@ export function ShieldBar({ currentShield, maxShield }: ShieldBarProps) {
           color: MEDIEVAL_COLORS.text.shield,
           fontSize: '12px',
         }}>
-          Schild
+          Shield
         </span>
         <span style={{
           ...MEDIEVAL_STYLES.barValue,

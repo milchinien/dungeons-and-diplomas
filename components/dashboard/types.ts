@@ -11,28 +11,28 @@ export function getMasteryLevel(elo: number): MasteryLevel {
   // Perfect mastery: 9.5+ rounds to 10, display as gold
   if (Math.round(elo) >= 10) {
     return {
-      label: '👑 Perfekt',
+      label: '👑 Perfect',
       color: '#FFD700',
       icon: '👑',
       bgColor: 'rgba(255, 215, 0, 0.1)'
     };
   } else if (elo >= 8) {
     return {
-      label: '⚔️ Meister',
+      label: '⚔️ Master',
       color: '#4CAF50',
       icon: '⚔️',
       bgColor: 'rgba(76, 175, 80, 0.1)'
     };
   } else if (elo >= 5) {
     return {
-      label: '🛡️ Fortgeschritten',
+      label: '🛡️ Advanced',
       color: '#2196F3',
       icon: '🛡️',
       bgColor: 'rgba(33, 150, 243, 0.1)'
     };
   } else {
     return {
-      label: '⚠️ Anfänger',
+      label: '⚠️ Beginner',
       color: '#ff9800',
       icon: '⚠️',
       bgColor: 'rgba(255, 152, 0, 0.1)'

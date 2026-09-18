@@ -60,7 +60,7 @@ export default function SkillDashboard({ userId, onClose }: SkillDashboardProps)
               cursor: 'pointer'
             }}
           >
-            Schließen
+            Close
           </button>
         </div>
 
@@ -71,7 +71,7 @@ export default function SkillDashboard({ userId, onClose }: SkillDashboardProps)
           flex: 1
         }}>
           {loading && (
-            <p style={{ color: '#ccc', textAlign: 'center' }}>Lade Statistiken...</p>
+            <p style={{ color: '#ccc', textAlign: 'center' }}>Loading stats...</p>
           )}
 
           {error && (
@@ -80,7 +80,7 @@ export default function SkillDashboard({ userId, onClose }: SkillDashboardProps)
 
           {!loading && !error && !hasData && (
             <p style={{ color: '#ccc', textAlign: 'center' }}>
-              Noch keine Fragen beantwortet. Spiele ein paar Runden, um deine Statistiken zu sehen!
+              No questions answered yet. Play a few rounds to see your stats!
             </p>
           )}
 

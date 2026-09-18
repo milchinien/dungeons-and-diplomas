@@ -15,7 +15,7 @@ test('connected door pairs are open', async ({ page }) => {
   await input.waitFor({ timeout: 10000 });
   await input.fill('door_pair_test');
 
-  const startBtn = page.locator('button').filter({ hasText: /Starten/i });
+  const startBtn = page.locator('button').filter({ hasText: /Start/i });
   await startBtn.waitFor({ timeout: 5000 });
   await startBtn.click();
 
@@ -75,7 +75,7 @@ test('player can reach adjacent room via BFS pathfinding', async ({ page }) => {
   await input.waitFor({ timeout: 10000 });
   await input.fill('traversal_bfs_test');
 
-  const startBtn = page.locator('button').filter({ hasText: /Starten/i });
+  const startBtn = page.locator('button').filter({ hasText: /Start/i });
   await startBtn.waitFor({ timeout: 5000 });
   await startBtn.click();
 

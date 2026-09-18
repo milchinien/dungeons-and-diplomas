@@ -32,7 +32,7 @@ test.describe('Shop Layout Fix Verification', () => {
     if (isLoginVisible) {
       console.log('Login modal found, logging in...');
       await loginInput.fill('ShopLayoutTester');
-      const loginButton = page.locator('button:has-text("Starten")');
+      const loginButton = page.locator('button:has-text("Start")');
       await loginButton.click();
       await page.waitForTimeout(3000);
     }
@@ -83,7 +83,7 @@ test.describe('Shop Layout Fix Verification', () => {
       console.log(`\n=== Attempt ${attempt + 1} ===`);
 
       // Teleport to shop
-      const shopButton = page.locator('button:has-text("Zum Shop")');
+      const shopButton = page.locator('button:has-text("To Shop")');
       await expect(shopButton).toBeVisible();
       await shopButton.click();
       console.log('Clicked shop teleport button');
@@ -147,7 +147,7 @@ test.describe('Shop Layout Fix Verification', () => {
     const isLoginVisible = await loginInput.isVisible().catch(() => false);
     if (isLoginVisible) {
       await loginInput.fill('CenterTest');
-      await page.locator('button:has-text("Starten")').click();
+      await page.locator('button:has-text("Start")').click();
       await page.waitForTimeout(3000);
     }
 
@@ -158,7 +158,7 @@ test.describe('Shop Layout Fix Verification', () => {
     await page.keyboard.press('Control+p');
     await page.waitForTimeout(500);
 
-    const shopButton = page.locator('button:has-text("Zum Shop")');
+    const shopButton = page.locator('button:has-text("To Shop")');
     await shopButton.click();
     await page.waitForTimeout(1000);
 

@@ -1111,7 +1111,7 @@ export default function GameCanvas() {
             zIndex: 200,
             textShadow: '0 0 10px rgba(255, 215, 0, 0.5)'
           }}>
-            [E] Schrein aktivieren
+            [E] Activate Shrine
           </div>
         )}
         {combat.inCombat && (

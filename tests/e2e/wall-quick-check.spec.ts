@@ -11,7 +11,7 @@ test.describe('Quick Wall Check', () => {
     await page.fill('input[type="text"]', 'WallTestUser');
 
     // Find the submit button (it should be enabled after entering username)
-    const submitButton = page.locator('button:has-text("Starten"), button:has-text("Start"), button[type="submit"]').first();
+    const submitButton = page.locator('button:has-text("Start"), button[type="submit"]').first();
     await submitButton.click();
     await page.waitForTimeout(2000);
 

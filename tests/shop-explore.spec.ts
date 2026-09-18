@@ -32,7 +32,7 @@ test.describe('Shop Exploration', () => {
     const needsLogin = await loginInput.isVisible().catch(() => false);
     if (needsLogin) {
       await loginInput.fill('Explorer');
-      await page.locator('button:has-text("Starten")').click();
+      await page.locator('button:has-text("Start")').click();
       await page.waitForTimeout(5000);
     }
 
@@ -51,7 +51,7 @@ test.describe('Shop Exploration', () => {
     // Open cheat menu and teleport to shop
     await page.keyboard.press('Control+KeyP');
     await page.waitForTimeout(1000);
-    await page.locator('button:has-text("Zum Shop")').click();
+    await page.locator('button:has-text("To Shop")').click();
     await page.waitForTimeout(1000);
     await page.keyboard.press('Escape');
     await page.waitForTimeout(500);

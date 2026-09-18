@@ -44,7 +44,7 @@ test.describe('Comprehensive Feature Tests', () => {
 
     if (needsLogin) {
       await loginInput.fill('FeatureTestUser');
-      await page.locator('button:has-text("Starten")').click();
+      await page.locator('button:has-text("Start")').click();
       console.log('  ✓ Login successful');
       await page.waitForTimeout(3000);
     }
@@ -152,7 +152,7 @@ test.describe('Comprehensive Feature Tests', () => {
     console.log('  ✓ Character panel visible');
 
     // Check for ELO circles (subject indicators)
-    const hasEloDisplay = await page.locator('text=/CHEMIE|MATHEMATIK|PHYSIK/i').first().isVisible().catch(() => false);
+    const hasEloDisplay = await page.locator('text=/CHEMISTRY|MATH|PHYSICS/i').first().isVisible().catch(() => false);
     console.log(`  ✓ ELO display: ${hasEloDisplay ? 'Visible' : 'Not visible'}`);
 
     await page.screenshot({ path: 'test-results/feature-06-character-panel.png', fullPage: true });
@@ -185,7 +185,7 @@ test.describe('Comprehensive Feature Tests', () => {
     // ============================================================================
     console.log('\n📋 Test 9: Shop System');
 
-    const shopButton = page.locator('button:has-text("Zum Shop")');
+    const shopButton = page.locator('button:has-text("To Shop")');
     const hasShopButton = await shopButton.isVisible().catch(() => false);
 
     if (hasShopButton) {
@@ -242,7 +242,7 @@ test.describe('Comprehensive Feature Tests', () => {
     await page.keyboard.press('Control+KeyP');
     await page.waitForTimeout(500);
 
-    const shrineButton = page.locator('button:has-text("Zum Schrein")');
+    const shrineButton = page.locator('button:has-text("To Shrine")');
     const hasShrineButton = await shrineButton.isVisible().catch(() => false);
 
     if (hasShrineButton) {
@@ -285,7 +285,7 @@ test.describe('Comprehensive Feature Tests', () => {
       await page.waitForTimeout(3000);
 
       // Check if combat modal appeared
-      const combatModal = page.locator('text=/Frage|Antwort|Richtig|Falsch/i').first();
+      const combatModal = page.locator('text=/Question|Answer|Correct|Wrong/i').first();
       const inCombat = await combatModal.isVisible({ timeout: 2000 }).catch(() => false);
 
       if (inCombat) {
@@ -444,7 +444,7 @@ test.describe('Comprehensive Feature Tests', () => {
     const needsLogin = await loginInput.isVisible().catch(() => false);
     if (needsLogin) {
       await loginInput.fill('EnemyTestUser');
-      await page.locator('button:has-text("Starten")').click();
+      await page.locator('button:has-text("Start")').click();
       await page.waitForTimeout(3000);
     }
 
@@ -516,7 +516,7 @@ test.describe('Comprehensive Feature Tests', () => {
     const needsLogin = await loginInput.isVisible().catch(() => false);
     if (needsLogin) {
       await loginInput.fill('EffectsTestUser');
-      await page.locator('button:has-text("Starten")').click();
+      await page.locator('button:has-text("Start")').click();
       await page.waitForTimeout(3000);
     }
 

@@ -26,7 +26,7 @@ test.describe('Shop Item Purchase', () => {
     if (isLoginVisible) {
       console.log('Login modal found, logging in as ShopTester...');
       await loginInput.fill('ShopTester');
-      const loginButton = page.locator('button:has-text("Starten")');
+      const loginButton = page.locator('button:has-text("Start")');
       await loginButton.click();
       console.log('Login button clicked');
 
@@ -99,9 +99,9 @@ test.describe('Shop Item Purchase', () => {
     // Take screenshot of cheat menu
     await page.screenshot({ path: 'test-results/cheat-menu.png', fullPage: true });
 
-    // Click "Zum Shop" button
+    // Click "To Shop" button
     console.log('\n=== Teleporting to shop ===');
-    const shopButton = page.locator('button:has-text("Zum Shop")');
+    const shopButton = page.locator('button:has-text("To Shop")');
     await expect(shopButton).toBeVisible();
     await shopButton.click();
     console.log('✓ Clicked shop teleport button');
@@ -145,7 +145,7 @@ test.describe('Shop Item Purchase', () => {
     await page.waitForTimeout(1000);
 
     // Check if shop confirmation modal appeared
-    const shopModalTitle = page.locator('text=Kaufbestätigung, text=Shop, text=Kaufen');
+    const shopModalTitle = page.locator('text=Buy, text=Shop');
     const isShopModalVisible = await shopModalTitle.first().isVisible({ timeout: 2000 }).catch(() => false);
 
     if (isShopModalVisible) {

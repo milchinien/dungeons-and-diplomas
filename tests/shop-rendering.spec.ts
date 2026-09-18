@@ -40,7 +40,7 @@ test.describe('Shop Rendering', () => {
     if (needsLogin) {
       console.log('Login modal appeared, filling in...');
       await loginInput.fill('RenderingTestUser');
-      await page.locator('button:has-text("Starten")').click();
+      await page.locator('button:has-text("Start")').click();
       console.log('Login submitted');
       await page.waitForTimeout(5000);
     }
@@ -98,7 +98,7 @@ test.describe('Shop Rendering', () => {
 
     // Click shop teleport button
     console.log('\nTeleporting to shop...');
-    const shopButton = page.locator('button:has-text("Zum Shop")');
+    const shopButton = page.locator('button:has-text("To Shop")');
     await shopButton.click();
     await page.waitForTimeout(1000);
 
@@ -257,7 +257,7 @@ test.describe('Shop Rendering', () => {
 
       if (needsLogin) {
         await loginInput.fill(`SpawnTest${iteration}`);
-        await page.locator('button:has-text("Starten")').click();
+        await page.locator('button:has-text("Start")').click();
         await page.waitForTimeout(3000);
       }
 
@@ -268,11 +268,11 @@ test.describe('Shop Rendering', () => {
       // Wait for dungeon generation
       await page.waitForTimeout(3000);
 
-      // Check if player spawned in shop by opening cheat menu and checking "Zum Shop" teleport
+      // Check if player spawned in shop by opening cheat menu and checking "To Shop" teleport
       await page.keyboard.press('Control+KeyP');
       await page.waitForTimeout(500);
 
-      const shopButton = page.locator('button:has-text("Zum Shop")');
+      const shopButton = page.locator('button:has-text("To Shop")');
       await shopButton.click();
       await page.waitForTimeout(500);
 

@@ -85,17 +85,17 @@ export default function PauseMenu({ onResume, onOptions, onStats, onRestart, onM
           alignItems: 'center',
         }}
       >
-        <MenuButton label="Weiterspielen" onClick={onResume} />
-        <MenuButton label="Optionen" onClick={onOptions} />
-        <MenuButton label="Statistiken" onClick={onStats} color={COLORS.info} hoverColor="#66B2FF" />
+        <MenuButton label="Resume" onClick={onResume} />
+        <MenuButton label="Options" onClick={onOptions} />
+        <MenuButton label="Statistics" onClick={onStats} color={COLORS.info} hoverColor="#66B2FF" />
         <MenuButton
-          label="Neustart"
+          label="Restart"
           onClick={onRestart}
           color={COLORS.warning}
           hoverColor="#FFB833"
         />
         <MenuButton
-          label="Hauptmenü"
+          label="Main Menu"
           onClick={onMainMenu}
           color={COLORS.error}
           hoverColor="#FF6666"
@@ -112,7 +112,7 @@ export default function PauseMenu({ onResume, onOptions, onStats, onRestart, onM
           userSelect: 'none',
         }}
       >
-        Drücke ESC um fortzufahren
+        Press ESC to continue
       </div>
 
       <style jsx>{`

@@ -9,7 +9,7 @@ test.describe('Dungeon Wall Visual Check with Fog of War Off', () => {
     // Login
     await page.waitForSelector('text=Dungeons & Diplomas', { timeout: 10000 });
     await page.fill('input[type="text"]', 'WallCheckUser');
-    await page.click('button:has-text("Starten")');
+    await page.click('button:has-text("Start")');
 
     // Wait for main menu and click Spielen
     await page.waitForSelector('button:has-text("Spielen")', { timeout: 10000 });

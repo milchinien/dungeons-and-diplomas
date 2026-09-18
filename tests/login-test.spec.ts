@@ -33,7 +33,7 @@ test('Login should work', async ({ page }) => {
   await loginInput.fill('LoginTest');
 
   console.log('[TEST] Clicking Starten button...');
-  const startButton = page.locator('button:has-text("Starten")');
+  const startButton = page.locator('button:has-text("Start")');
   await startButton.click();
 
   // Wait a bit to see if errors occur

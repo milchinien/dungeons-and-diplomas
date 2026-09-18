@@ -164,8 +164,8 @@ export default function ShopConfirmModal({
             color: canAfford ? '#6c6' : '#c66',
           }}>
             {canAfford
-              ? `Du hast ${currentGold} Gold`
-              : `Nicht genug Gold! (${currentGold}/${cost})`
+              ? `You have ${currentGold} Gold`
+              : `Not enough Gold! (${currentGold}/${cost})`
             }
           </div>
         </div>
@@ -195,7 +195,7 @@ export default function ShopConfirmModal({
               e.currentTarget.style.backgroundColor = '#333';
             }}
           >
-            Abbrechen
+            Cancel
           </button>
           <button
             onClick={onConfirm}
@@ -224,7 +224,7 @@ export default function ShopConfirmModal({
               e.currentTarget.style.boxShadow = 'none';
             }}
           >
-            Erwerben
+            Buy
           </button>
         </div>
 
@@ -235,7 +235,7 @@ export default function ShopConfirmModal({
           textAlign: 'center',
           marginTop: '15px',
         }}>
-          [Enter] Bestaetigen · [Esc] Abbrechen
+          [Enter] Confirm · [Esc] Cancel
         </p>
       </div>
     </div>

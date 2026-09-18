@@ -42,7 +42,7 @@ test.describe('Shop Final Verification', () => {
 
     if (needsLogin) {
       await loginInput.fill('FinalVerificationUser');
-      await page.locator('button:has-text("Starten")').click();
+      await page.locator('button:has-text("Start")').click();
       console.log('  ✓ Login successful');
       await page.waitForTimeout(3000);
     }
@@ -68,7 +68,7 @@ test.describe('Shop Final Verification', () => {
     expect(isCheatMenuVisible).toBe(true);
     console.log('  ✓ Cheat menu opened');
 
-    const shopButton = page.locator('button:has-text("Zum Shop")');
+    const shopButton = page.locator('button:has-text("To Shop")');
     await shopButton.click();
     await page.waitForTimeout(1000);
 
@@ -281,7 +281,7 @@ test.describe('Shop Final Verification', () => {
 
     if (needsLogin) {
       await loginInput.fill('AnimationTestUser');
-      await page.locator('button:has-text("Starten")').click();
+      await page.locator('button:has-text("Start")').click();
       await page.waitForTimeout(3000);
     }
 
@@ -291,7 +291,7 @@ test.describe('Shop Final Verification', () => {
     // Teleport to shop
     await page.keyboard.press('Control+KeyP');
     await page.waitForTimeout(1000);
-    await page.locator('button:has-text("Zum Shop")').click();
+    await page.locator('button:has-text("To Shop")').click();
     await page.waitForTimeout(1000);
     await page.keyboard.press('Escape');
     await page.waitForTimeout(1000);
@@ -347,7 +347,7 @@ test.describe('Shop Final Verification', () => {
 
     if (needsLogin) {
       await loginInput.fill('MultiShopUser');
-      await page.locator('button:has-text("Starten")').click();
+      await page.locator('button:has-text("Start")').click();
       await page.waitForTimeout(3000);
     }
 
@@ -365,7 +365,7 @@ test.describe('Shop Final Verification', () => {
 
       await page.keyboard.press('Control+KeyP');
       await page.waitForTimeout(500);
-      await page.locator('button:has-text("Zum Shop")').click();
+      await page.locator('button:has-text("To Shop")').click();
       await page.waitForTimeout(1000);
       await page.keyboard.press('Escape');
       await page.waitForTimeout(1000);

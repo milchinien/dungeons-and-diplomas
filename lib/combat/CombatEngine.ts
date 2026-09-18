@@ -131,14 +131,14 @@ export class CombatEngine {
       // Build feedback message
       let feedbackMessage: string;
       if (isCritical) {
-        feedbackMessage = `🎯 KRITISCH! ${damage} Schaden!`;
+        feedbackMessage = `🎯 CRITICAL! ${damage} damage!`;
       } else if (isFirstQuestion && combined && combined.firstStrikeDamage > 0) {
-        feedbackMessage = `⚡ Erstschlag! ${damage} Schaden!`;
+        feedbackMessage = `⚡ First Strike! ${damage} damage!`;
       } else if (comboBonus > 0 || (combined && combined.comboBonusDamage > 0)) {
         const totalCombo = comboBonus + (combined ? combined.comboBonusDamage : 0);
-        feedbackMessage = `✓ Richtig! ${damage} Schaden! (+${totalCombo} Kombo)`;
+        feedbackMessage = `✓ Correct! ${damage} damage! (+${totalCombo} combo)`;
       } else {
-        feedbackMessage = `✓ Richtig! ${damage} Schaden!`;
+        feedbackMessage = `✓ Correct! ${damage} damage!`;
       }
 
       return {
@@ -153,8 +153,8 @@ export class CombatEngine {
       // Apply damage reduction from equipment
       const damage = calculateEnemyDamage(playerElo, enemyLevel, equipmentBonuses.damageReduction);
       const feedbackMessage = isTimeout
-        ? `✗ Zeit abgelaufen! Richtige Antwort: ${correctAnswerText} (-${damage} HP)`
-        : `✗ Falsch! Richtige Antwort: ${correctAnswerText} (-${damage} HP)`;
+        ? `✗ Time's up! Correct answer: ${correctAnswerText} (-${damage} HP)`
+        : `✗ Wrong! Correct answer: ${correctAnswerText} (-${damage} HP)`;
 
       return {
         isCorrect: false,

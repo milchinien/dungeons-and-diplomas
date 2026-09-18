@@ -198,7 +198,7 @@ export function MasteryCircles({ scores }: MasteryCirclesProps) {
           padding: '20px',
           ...MEDIEVAL_STYLES.barFrameSmall,
         }}>
-          Lade Statistiken...
+          Loading stats...
         </div>
       ) : (
         scores.map((score) => (

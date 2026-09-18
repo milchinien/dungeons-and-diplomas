@@ -39,7 +39,7 @@ export const PERK_DEFINITIONS: PerkDefinition[] = [
   {
     type: PerkType.HP_FLAT,
     name: '+HP',
-    description: 'Erhöht die maximalen HP um einen festen Wert',
+    description: 'Increases max HP by a flat amount',
     baseEffect: 5,
     iconKey: 'perk_hp_flat',
     baseCost: 30
@@ -47,23 +47,23 @@ export const PERK_DEFINITIONS: PerkDefinition[] = [
   {
     type: PerkType.HP_PERCENT,
     name: '+HP%',
-    description: 'Erhöht die maximalen HP prozentual',
+    description: 'Increases max HP by a percentage',
     baseEffect: 5,
     iconKey: 'perk_hp_percent',
     baseCost: 40
   },
   {
     type: PerkType.DAMAGE_FLAT,
-    name: '+Schaden',
-    description: 'Erhöht den Basis-Schaden',
+    name: '+Damage',
+    description: 'Increases base damage',
     baseEffect: 3,
     iconKey: 'perk_damage_flat',
     baseCost: 50
   },
   {
     type: PerkType.DAMAGE_PERCENT,
-    name: '+Schaden%',
-    description: 'Erhöht den Schaden prozentual',
+    name: '+Damage%',
+    description: 'Increases damage by a percentage',
     baseEffect: 5,
     iconKey: 'perk_damage_percent',
     baseCost: 60
@@ -71,31 +71,31 @@ export const PERK_DEFINITIONS: PerkDefinition[] = [
   {
     type: PerkType.REGENERATION,
     name: 'Regeneration',
-    description: 'Regeneriert HP über Zeit',
+    description: 'Regenerates HP over time',
     baseEffect: 1,  // HP per 5 seconds
     iconKey: 'perk_regeneration',
     baseCost: 70
   },
   {
     type: PerkType.CRITICAL,
-    name: 'Kritisch',
-    description: 'Chance auf doppelten Schaden',
+    name: 'Critical',
+    description: 'Chance to deal double damage',
     baseEffect: 10,  // Percent
     iconKey: 'perk_critical',
     baseCost: 80
   },
   {
     type: PerkType.TIME_BONUS,
-    name: 'Zeitbonus',
-    description: 'Mehr Zeit bei Quiz-Fragen',
+    name: 'Time Bonus',
+    description: 'More time for quiz questions',
     baseEffect: 2,  // Seconds
     iconKey: 'perk_time_bonus',
     baseCost: 55
   },
   {
     type: PerkType.EXTRA_LIFE,
-    name: 'Extra Leben',
-    description: 'Einmal bei 0 HP wiederbeleben',
+    name: 'Extra Life',
+    description: 'Revive once at 0 HP',
     baseEffect: 1,  // Number of lives
     iconKey: 'perk_extra_life',
     baseCost: 100
@@ -103,7 +103,7 @@ export const PERK_DEFINITIONS: PerkDefinition[] = [
   {
     type: PerkType.ELO_BOOST,
     name: 'ELO-Boost',
-    description: 'Verbessert alle Fach-ELOs',
+    description: 'Improves all subject ELOs',
     baseEffect: 1,
     iconKey: 'perk_elo_boost',
     baseCost: 90
@@ -181,17 +181,17 @@ export function getPerkEffectDescription(perk: Perk): string {
     case PerkType.HP_PERCENT:
       return `+${value}% HP`;
     case PerkType.DAMAGE_FLAT:
-      return `+${value} Schaden`;
+      return `+${value} Damage`;
     case PerkType.DAMAGE_PERCENT:
-      return `+${value}% Schaden`;
+      return `+${value}% Damage`;
     case PerkType.REGENERATION:
       return `+${value} HP/5s`;
     case PerkType.CRITICAL:
-      return `${value}% Kritisch`;
+      return `${value}% Crit`;
     case PerkType.TIME_BONUS:
-      return `+${value}s Quiz-Zeit`;
+      return `+${value}s Quiz Time`;
     case PerkType.EXTRA_LIFE:
-      return `${value} Extra Leben`;
+      return `${value} Extra ${value === 1 ? 'Life' : 'Lives'}`;
     case PerkType.ELO_BOOST:
       return `+${value} ELO`;
     default:

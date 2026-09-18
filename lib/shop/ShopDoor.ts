@@ -62,7 +62,7 @@ export function getShopDoorStatus(
   // Is the player room a neighbor of the shop?
   const isNeighbor = shopRoom.neighbors.includes(playerRoom.id);
   if (!isNeighbor) {
-    return { isLocked: true, reason: 'Nicht erreichbar' };
+    return { isLocked: true, reason: 'Not reachable' };
   }
 
   // Is the player room cleared?
@@ -73,7 +73,7 @@ export function getShopDoorStatus(
 
     return {
       isLocked: true,
-      reason: `Besiege alle Gegner! (${remainingEnemies} übrig)`
+      reason: `Defeat all enemies! (${remainingEnemies} left)`
     };
   }
 
@@ -111,10 +111,10 @@ export function getLockedDoorMessage(
   ).length;
 
   if (remainingEnemies > 0) {
-    return `Besiege alle Gegner! (${remainingEnemies} übrig)`;
+    return `Defeat all enemies! (${remainingEnemies} left)`;
   }
 
-  return 'Shop nicht erreichbar';
+  return 'Shop not reachable';
 }
 
 /**

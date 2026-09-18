@@ -49,7 +49,7 @@ export const RARITY_CONFIG: Record<Rarity, RarityConfig> = {
     effectMultiplier: 3.0
   },
   [Rarity.LEGENDARY]: {
-    name: 'Legendär',
+    name: 'Legendary',
     color: '#F59E0B',
     glowIntensity: 1.0,
     spawnWeight: 2,

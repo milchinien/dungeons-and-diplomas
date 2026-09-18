@@ -20,12 +20,12 @@ test.describe('Dungeon Generation Fixes', () => {
     // Handle login modal if it appears
     try {
       // Wait for login modal or canvas (game already started)
-      const loginModalVisible = await page.isVisible('input[placeholder*="Benutzername"]', { timeout: 3000 }).catch(() => false);
+      const loginModalVisible = await page.isVisible('input[placeholder*="Username"]', { timeout: 3000 }).catch(() => false);
 
       if (loginModalVisible) {
         // Fill in username and submit
-        await page.fill('input[placeholder*="Benutzername"]', 'test-user-' + Date.now());
-        await page.click('button:has-text("Starten")');
+        await page.fill('input[placeholder*="Username"]', 'test-user-' + Date.now());
+        await page.click('button:has-text("Start")');
 
         // Wait for modal to close
         await page.waitForTimeout(1000);

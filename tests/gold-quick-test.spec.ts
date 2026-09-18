@@ -17,7 +17,7 @@ test.describe('Gold System Quick Test', () => {
 
     if (isLoginVisible) {
       await loginInput.fill('QuickGoldTest');
-      const loginButton = page.locator('button:has-text("Starten")');
+      const loginButton = page.locator('button:has-text("Start")');
       await loginButton.click();
       await page.waitForTimeout(2000);
       await page.reload({ waitUntil: 'networkidle' });
@@ -119,7 +119,7 @@ test.describe('Gold System Quick Test', () => {
     const loginInput = page.locator('input[type="text"]').first();
     if (await loginInput.isVisible().catch(() => false)) {
       await loginInput.fill('QuickShopTest');
-      await page.locator('button:has-text("Starten")').click();
+      await page.locator('button:has-text("Start")').click();
       await page.waitForTimeout(2000);
       await page.reload({ waitUntil: 'networkidle' });
       await page.waitForTimeout(2000);
@@ -134,7 +134,7 @@ test.describe('Gold System Quick Test', () => {
     await page.keyboard.press('Control+p');
     await page.waitForTimeout(500);
 
-    const shopTeleportButton = page.locator('button:has-text("Zum Shop")');
+    const shopTeleportButton = page.locator('button:has-text("To Shop")');
     const hasShopButton = await shopTeleportButton.isVisible({ timeout: 2000 }).catch(() => false);
 
     if (hasShopButton) {
@@ -153,7 +153,7 @@ test.describe('Gold System Quick Test', () => {
       await page.waitForTimeout(1000);
 
       // Check if shop modal appeared
-      const shopModal = page.locator('text=Kaufbestätigung, text=Shop, text=Item');
+      const shopModal = page.locator('text=Buy, text=Shop, text=Item');
       const modalVisible = await shopModal.first().isVisible({ timeout: 2000 }).catch(() => false);
 
       if (modalVisible) {

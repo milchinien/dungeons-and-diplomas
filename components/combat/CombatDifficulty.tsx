@@ -3,25 +3,25 @@ interface CombatDifficultyProps {
 }
 
 export default function CombatDifficulty({ elo }: CombatDifficultyProps) {
-  let difficulty = 'Neu';
+  let difficulty = 'New';
   let diffColor = '#888';
 
   if (elo !== null) {
     const diffLevel = 11 - elo;
     if (diffLevel <= 2) {
-      difficulty = 'Sehr leicht';
+      difficulty = 'Very easy';
       diffColor = '#4CAF50';
     } else if (diffLevel <= 4) {
-      difficulty = 'Leicht';
+      difficulty = 'Easy';
       diffColor = '#8BC34A';
     } else if (diffLevel <= 6) {
-      difficulty = 'Mittel';
+      difficulty = 'Medium';
       diffColor = '#FFC107';
     } else if (diffLevel <= 8) {
-      difficulty = 'Schwer';
+      difficulty = 'Hard';
       diffColor = '#FF9800';
     } else {
-      difficulty = 'Sehr schwer';
+      difficulty = 'Very hard';
       diffColor = '#FF4444';
     }
   }

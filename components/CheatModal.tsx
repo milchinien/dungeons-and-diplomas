@@ -180,25 +180,25 @@ export default function CheatModal({
           <SectionTitle>Teleport</SectionTitle>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <CheatButton
-              label="Zum Schatz"
+              label="To Treasure"
               onClick={() => onTeleportToRoom('treasure')}
               color="#FFD700"
               disabled={inCombat}
             />
             <CheatButton
-              label="Zum Shop"
+              label="To Shop"
               onClick={() => onTeleportToRoom('shop')}
               color="#00CED1"
               disabled={inCombat}
             />
             <CheatButton
-              label="Zum Gegner"
+              label="To Enemy"
               onClick={() => onTeleportToRoom('combat')}
               color="#FF4444"
               disabled={inCombat}
             />
             <CheatButton
-              label="Zum Schrein"
+              label="To Shrine"
               onClick={() => onTeleportToRoom('shrine')}
               color="#FFA500"
               disabled={inCombat}
@@ -213,7 +213,7 @@ export default function CheatModal({
           borderRadius: '12px',
           border: '2px solid #444',
         }}>
-          <SectionTitle>HP / Schild</SectionTitle>
+          <SectionTitle>HP / Shield</SectionTitle>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <CheatButton
               label="+50 HP"
@@ -221,12 +221,12 @@ export default function CheatModal({
               color={COLORS.success}
             />
             <CheatButton
-              label="Voll heilen"
+              label="Full Heal"
               onClick={onFullHeal}
               color={COLORS.success}
             />
             <CheatButton
-              label="+20 Schild"
+              label="+20 Shield"
               onClick={() => onAddShield(20)}
               color="#4488FF"
             />
@@ -246,22 +246,22 @@ export default function CheatModal({
           borderRadius: '12px',
           border: '2px solid #444',
         }}>
-          <SectionTitle>Kampf</SectionTitle>
+          <SectionTitle>Combat</SectionTitle>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <ToggleButton
-              label="Antwort zeigen"
+              label="Show Answer"
               isActive={cheatState.showCorrectAnswer}
               onClick={onToggleShowCorrectAnswer}
               activeColor="#00FF00"
             />
             <CheatButton
-              label="Gegner töten"
+              label="Kill Enemy"
               onClick={onKillCurrentEnemy}
               color="#FF4444"
               disabled={!inCombat}
             />
             <CheatButton
-              label="Alle Gegner töten"
+              label="Kill All Enemies"
               onClick={onKillAllEnemies}
               color="#FF0000"
             />
@@ -275,10 +275,10 @@ export default function CheatModal({
           borderRadius: '12px',
           border: '2px solid #444',
         }}>
-          <SectionTitle>Sonstiges</SectionTitle>
+          <SectionTitle>Misc</SectionTitle>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <CheatButton
-              label="Fog of War aus"
+              label="Fog of War Off"
               onClick={onRevealAllRooms}
               color="#888888"
               disabled={cheatState.fogOfWarDisabled}
@@ -295,7 +295,7 @@ export default function CheatModal({
               activeColor="#00BFFF"
             />
             <CheatButton
-              label="Neues Dungeon"
+              label="New Dungeon"
               onClick={onNewDungeon}
               color="#FFA500"
               disabled={inCombat}
@@ -311,7 +311,7 @@ export default function CheatModal({
         fontSize: '14px',
         userSelect: 'none',
       }}>
-        Drücke STRG+P oder ESC zum Schließen
+        Press CTRL+P or ESC to close
       </div>
 
       <style jsx>{`

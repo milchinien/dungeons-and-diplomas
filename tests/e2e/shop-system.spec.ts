@@ -33,7 +33,7 @@ test.describe('Shop System', () => {
       }
       
       // Also check for combat - skip it
-      const combatModal = page.getByText(/Frage \d+/);
+      const combatModal = page.getByText(/Question \d+/);
       if (await combatModal.isVisible()) {
         console.log('Encountered combat, skipping...');
         // Press ESC or wait for defeat

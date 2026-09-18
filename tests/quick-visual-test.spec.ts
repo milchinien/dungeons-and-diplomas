@@ -13,7 +13,7 @@ test('Quick visual wall check', async ({ page }) => {
 
   if (needsLogin) {
     await loginInput.fill('TestUser');
-    await page.locator('button:has-text("Starten")').click();
+    await page.locator('button:has-text("Start")').click();
     await page.waitForTimeout(2000);
   }
 

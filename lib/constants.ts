@@ -101,11 +101,23 @@ export const TOTAL_SKILLS = 26; // 7 attack + 7 defense + 7 utility + 5 knowledg
 
 // Skill tree names for UI
 export const SKILL_TREE_NAMES = {
-  attack: 'Angriff',
-  defense: 'Verteidigung',
-  utility: 'Nutzen',
-  knowledge: 'Wissen',
+  attack: 'Attack',
+  defense: 'Defense',
+  utility: 'Utility',
+  knowledge: 'Knowledge',
 } as const;
+
+// Display names for subject keys (keys stay unchanged in the DB)
+export const SUBJECT_DISPLAY_NAMES: Record<string, string> = {
+  mathe: 'Math',
+  chemie: 'Chemistry',
+  physik: 'Physics',
+};
+
+/** Returns a player-facing name for a subject key (falls back to the key, capitalized) */
+export function getSubjectDisplayName(subjectKey: string): string {
+  return SUBJECT_DISPLAY_NAMES[subjectKey] ?? (subjectKey.charAt(0).toUpperCase() + subjectKey.slice(1));
+}
 
 // =============================================================================
 // Shrine constants
@@ -323,44 +335,44 @@ export const INITIAL_PLAYER_BUFFS: PlayerBuffs = {
 export const BUFF_POOL: Buff[] = [
   {
     type: 'hp_boost',
-    name: 'Vitalität',
-    description: '+25 Maximale HP',
+    name: 'Vitality',
+    description: '+25 Max HP',
     icon: '❤️',
     value: 25,
   },
   {
     type: 'shield',
-    name: 'Schutzschild',
-    description: '20 Schild-HP, regeneriert 2/s',
+    name: 'Shield',
+    description: '20 shield HP, regenerates 2/s',
     icon: '🛡️',
     maxShield: 20,
     regenRate: 2,
   },
   {
     type: 'time_bonus',
-    name: 'Zeitdehnung',
-    description: '+5 Sekunden Antwortzeit',
+    name: 'Time Warp',
+    description: '+5 seconds answer time',
     icon: '⏱️',
     value: 5,
   },
   {
     type: 'damage_boost',
-    name: 'Macht',
-    description: '+5 Schaden bei richtiger Antwort',
+    name: 'Might',
+    description: '+5 damage on correct answer',
     icon: '⚔️',
     value: 5,
   },
   {
     type: 'damage_reduction',
-    name: 'Widerstand',
-    description: '-3 Schaden bei falscher Antwort',
+    name: 'Resistance',
+    description: '-3 damage on wrong answer',
     icon: '🛡️',
     value: 3,
   },
   {
     type: 'regen',
-    name: 'Heilung',
-    description: 'Regeneriere 1 HP alle 3 Sekunden',
+    name: 'Regeneration',
+    description: 'Regenerate 1 HP every 3 seconds',
     icon: '💚',
     hpPerTick: 1,
     tickInterval: 3,

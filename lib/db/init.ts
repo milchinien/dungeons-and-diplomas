@@ -240,6 +240,9 @@ export function initializeDatabase(database: Database.Database, options: InitOpt
 
     if (count.count === 0) {
       seedQuestions(database);
+    } else {
+      // Existing installs were seeded with the German question set: update those rows in place
+      migrateSeedQuestionsToEnglish(database);
     }
 
     // Seed room layouts
@@ -265,10 +268,19 @@ function seedDefaultTheme(database: Database.Database) {
     const insertTileset = database.prepare(
       `INSERT INTO tilesets (name, path, width_tiles, height_tiles) VALUES (?, ?, ?, ?)`
     );
-    insertTileset.run('Castle Dungeon (Normal)', '/Assets/Castle-Dungeon2_Tiles/Tileset.png', 20, 12);
-    insertTileset.run('Castle Dungeon (Dark)', '/Assets/Castle-Dungeon2_Tiles/Tileset_Dark.png', 20, 12);
-    insertTileset.run('Castle Dungeon (Bright)', '/Assets/Castle-Dungeon2_Tiles/Tileset_Bright.png', 20, 12);
+    // Tileset.png is a 10x10 sheet; the Dark/Bright variants are 25x13.
+    insertTileset.run('Castle Dungeon (Normal)', '/Assets/Castle-Dungeon2_Tiles/Tileset.png', 10, 10);
+    insertTileset.run('Castle Dungeon (Dark)', '/Assets/Castle-Dungeon2_Tiles/Tileset_Dark.png', 25, 13);
+    insertTileset.run('Castle Dungeon (Bright)', '/Assets/Castle-Dungeon2_Tiles/Tileset_Bright.png', 25, 13);
     console.log('Seeded 3 default tilesets');
+  } else {
+    // Repair dimensions for installs seeded with the old (incorrect) values.
+    const fixDims = database.prepare(
+      `UPDATE tilesets SET width_tiles = ?, height_tiles = ? WHERE path = ?`
+    );
+    fixDims.run(10, 10, '/Assets/Castle-Dungeon2_Tiles/Tileset.png');
+    fixDims.run(25, 13, '/Assets/Castle-Dungeon2_Tiles/Tileset_Dark.png');
+    fixDims.run(25, 13, '/Assets/Castle-Dungeon2_Tiles/Tileset_Bright.png');
   }
 
   const themeCount = database
@@ -279,28 +291,29 @@ function seedDefaultTheme(database: Database.Database) {
     return;
   }
 
-  const normalTileset = database
+  // Theme renders against the Dark tileset (25x13). Coordinates below are
+  // verified tile indices on Tileset_Dark.png: clean stone floors on row 1,
+  // brick walls on row 0, wooden doors at cols 9/10 of row 0.
+  const darkTileset = database
     .prepare(`SELECT id FROM tilesets WHERE path = ?`)
-    .get('/Assets/Castle-Dungeon2_Tiles/Tileset.png') as { id: number } | undefined;
+    .get('/Assets/Castle-Dungeon2_Tiles/Tileset_Dark.png') as { id: number } | undefined;
 
-  if (!normalTileset) return;
+  if (!darkTileset) return;
 
-  const tilesetId = normalTileset.id;
+  const tilesetId = darkTileset.id;
   const floorVariants = [
-    { source: { tilesetId, x: 0, y: 1 }, weight: 200 },
-    { source: { tilesetId, x: 1, y: 1 }, weight: 50 },
-    { source: { tilesetId, x: 2, y: 1 }, weight: 30 },
-    { source: { tilesetId, x: 2, y: 11 }, weight: 2 },
-    { source: { tilesetId, x: 19, y: 8 }, weight: 1 }
+    { source: { tilesetId, x: 9, y: 1 }, weight: 200 },
+    { source: { tilesetId, x: 10, y: 1 }, weight: 50 },
+    { source: { tilesetId, x: 11, y: 1 }, weight: 30 },
+    { source: { tilesetId, x: 12, y: 1 }, weight: 20 },
+    { source: { tilesetId, x: 13, y: 1 }, weight: 10 }
   ];
   const wallVariants = [
-    { source: { tilesetId, x: 0, y: 0 }, weight: 20 },
-    { source: { tilesetId, x: 1, y: 0 }, weight: 15 },
-    { source: { tilesetId, x: 2, y: 0 }, weight: 15 },
-    { source: { tilesetId, x: 3, y: 0 }, weight: 15 },
-    { source: { tilesetId, x: 3, y: 11 }, weight: 1 }
+    { source: { tilesetId, x: 1, y: 0 }, weight: 40 },
+    { source: { tilesetId, x: 2, y: 0 }, weight: 20 },
+    { source: { tilesetId, x: 6, y: 0 }, weight: 15 }
   ];
-  const doorHorizontal = [{ source: { tilesetId, x: 13, y: 0 }, weight: 100 }];
+  const doorHorizontal = [{ source: { tilesetId, x: 9, y: 0 }, weight: 100 }];
   const doorVertical = [{ source: { tilesetId, x: 8, y: 0 }, weight: 100 }];
 
   const wallTypes = [
@@ -407,4 +420,51 @@ function seedQuestions(database: Database.Database) {
   });
 
   insertMany(questions);
+}
+
+/**
+ * Idempotent update for databases seeded with the original German questions.
+ * Rows are matched by subject key + the exact German question text (see
+ * seed-questions-legacy-de.json, same order as seed-questions.json) and replaced with
+ * the English text/answers. Question ids, correct_index, difficulty and the answer log
+ * stay untouched. Custom questions never match and are left alone. Subject display
+ * names are only renamed where they still hold the original German name.
+ */
+function migrateSeedQuestionsToEnglish(database: Database.Database) {
+  const dataDir = path.join(process.cwd(), 'lib', 'data');
+  const legacyPath = path.join(dataDir, 'seed-questions-legacy-de.json');
+  if (!fs.existsSync(legacyPath)) return;
+
+  const legacy = JSON.parse(fs.readFileSync(legacyPath, 'utf-8')) as any[];
+  const current = JSON.parse(fs.readFileSync(path.join(dataDir, 'seed-questions.json'), 'utf-8')) as any[];
+  if (legacy.length !== current.length) return;
+
+  const updateQuestion = database.prepare(`
+    UPDATE questions SET subject_name = ?, question = ?, answers = ?
+    WHERE subject_key = ? AND question = ? AND correct_index = ?
+  `);
+  const renameSubject = database.prepare(
+    `UPDATE questions SET subject_name = ? WHERE subject_key = ? AND subject_name = ?`
+  );
+
+  const migrate = database.transaction(() => {
+    let changed = 0;
+    const subjectNames = new Map<string, [string, string]>();
+    legacy.forEach((de, i) => {
+      const en = current[i];
+      if (!en || en.subjectKey !== de.subjectKey || en.correct !== de.correct) return;
+      changed += updateQuestion.run(
+        en.subjectName, en.question, JSON.stringify(en.answers),
+        de.subjectKey, de.question, de.correct
+      ).changes;
+      subjectNames.set(de.subjectKey, [de.subjectName, en.subjectName]);
+    });
+    subjectNames.forEach(([deName, enName], key) => {
+      changed += renameSubject.run(enName, key, deName).changes;
+    });
+    return changed;
+  });
+
+  const changed = migrate();
+  if (changed > 0) console.log(`Updated ${changed} seeded question rows to English`);
 }

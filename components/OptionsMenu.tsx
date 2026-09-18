@@ -22,10 +22,10 @@ interface VolumeSliderProps {
 }
 
 const PARTICLE_QUALITY_OPTIONS: { value: ParticleQuality; label: string }[] = [
-  { value: 'off', label: 'Aus' },
-  { value: 'low', label: 'Niedrig' },
-  { value: 'medium', label: 'Mittel' },
-  { value: 'high', label: 'Hoch' },
+  { value: 'off', label: 'Off' },
+  { value: 'low', label: 'Low' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'high', label: 'High' },
 ];
 
 function VolumeSlider({ label, value, onChange, icon }: VolumeSliderProps) {
@@ -337,7 +337,7 @@ export default function OptionsMenu({
           letterSpacing: '6px',
         }}
       >
-        OPTIONEN
+        OPTIONS
       </div>
 
       {/* Audio Section */}
@@ -369,19 +369,19 @@ export default function OptionsMenu({
           gap: '20px',
         }}>
           <VolumeSlider
-            label="Gesamt"
+            label="Master"
             icon="🔊"
             value={settings.masterVolume}
             onChange={onMasterVolumeChange}
           />
           <VolumeSlider
-            label="Musik"
+            label="Music"
             icon="🎵"
             value={settings.musicVolume}
             onChange={onMusicVolumeChange}
           />
           <VolumeSlider
-            label="Effekte"
+            label="Effects"
             icon="👣"
             value={settings.sfxVolume}
             onChange={onSfxVolumeChange}
@@ -409,7 +409,7 @@ export default function OptionsMenu({
             userSelect: 'none',
           }}
         >
-          Visuelle Effekte
+          Visual Effects
         </div>
 
         <div style={{
@@ -418,19 +418,19 @@ export default function OptionsMenu({
           gap: '20px',
         }}>
           <QualitySelector
-            label="Partikel"
+            label="Particles"
             icon="✨"
             value={effectSettings.particleQuality}
             onChange={handleParticleQualityChange}
           />
           <ToggleSwitch
-            label="Screen-Shake"
+            label="Screen Shake"
             icon="📳"
             value={effectSettings.screenShakeEnabled}
             onChange={handleScreenShakeChange}
           />
           <ToggleSwitch
-            label="Raum-Übergänge"
+            label="Room Transitions"
             icon="🚪"
             value={effectSettings.transitionsEnabled}
             onChange={handleTransitionsChange}
@@ -458,7 +458,7 @@ export default function OptionsMenu({
           userSelect: 'none',
         }}
       >
-        Zurück
+        Back
       </button>
 
       <style jsx>{`

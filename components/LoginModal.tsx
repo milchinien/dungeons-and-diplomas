@@ -21,7 +21,7 @@ export default function LoginModal({ onLogin, storage = defaultStorage }: LoginM
     setError('');
 
     if (!username.trim()) {
-      setError('Bitte gib einen Benutzernamen ein');
+      setError('Please enter a username');
       return;
     }
 
@@ -37,7 +37,7 @@ export default function LoginModal({ onLogin, storage = defaultStorage }: LoginM
       // Call parent callback with XP
       onLogin(data.id, data.username, data.xp);
     } catch (err) {
-      setError('Login fehlgeschlagen. Bitte versuche es erneut.');
+      setError('Login failed. Please try again.');
       console.error('Login error:', err);
     } finally {
       setIsLoading(false);
@@ -80,14 +80,14 @@ export default function LoginModal({ onLogin, storage = defaultStorage }: LoginM
           textAlign: 'center',
           fontSize: '14px'
         }}>
-          Gib deinen Benutzernamen ein, um zu starten
+          Enter your username to start
         </p>
         <form onSubmit={handleSubmit}>
           <input
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            placeholder="Benutzername"
+            placeholder="Username"
             disabled={isLoading}
             style={{
               width: '100%',
@@ -127,7 +127,7 @@ export default function LoginModal({ onLogin, storage = defaultStorage }: LoginM
               opacity: isLoading ? 0.6 : 1
             }}
           >
-            {isLoading ? 'Lädt...' : 'Starten'}
+            {isLoading ? 'Loading...' : 'Start'}
           </button>
         </form>
       </div>

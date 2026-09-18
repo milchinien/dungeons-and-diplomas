@@ -133,6 +133,10 @@ export function generateDungeonFromLayouts(
   const doorErrors = validateAllDoors(dungeon, rooms);
   if (doorErrors.length > 0) {
     console.warn(`Fixed ${doorErrors.length} invalid doors`);
+    // Converting invalid doors to walls can create new 2-thick walls, so
+    // thin them out again and refresh the roomMap.
+    removeDoubleWalls(dungeon, rooms, roomMap);
+    updateRoomMapAfterWallRemoval(dungeon, roomMap, rooms);
   }
 
   // Step 4: Assign room types
@@ -412,11 +416,13 @@ function removeDoubleWalls(dungeon: TileType[][], rooms: Room[], roomMap: number
     for (let y = 0; y < DUNGEON_HEIGHT - 1; y++) {
       for (let x = 0; x < DUNGEON_WIDTH; x++) {
         if (dungeon[y][x] === TILE.WALL && dungeon[y + 1][x] === TILE.WALL) {
-          // Remove if floors/doors on EITHER side (OR logic)
+          // Only remove if floors/doors on BOTH sides (AND logic). This thins a
+          // genuine 2-tile-thick wall to a single separator. Using OR here would
+          // cascade and dissolve the single walls separating rooms.
           const hasAccessAbove = y > 0 && (dungeon[y - 1][x] === TILE.FLOOR || dungeon[y - 1][x] === TILE.DOOR);
           const hasAccessBelow = y + 2 < DUNGEON_HEIGHT && (dungeon[y + 2][x] === TILE.FLOOR || dungeon[y + 2][x] === TILE.DOOR);
 
-          if (hasAccessAbove || hasAccessBelow) {
+          if (hasAccessAbove && hasAccessBelow) {
             // Remove the first wall
             dungeon[y][x] = TILE.FLOOR;
 
@@ -438,11 +444,11 @@ function removeDoubleWalls(dungeon: TileType[][], rooms: Room[], roomMap: number
     for (let y = 0; y < DUNGEON_HEIGHT; y++) {
       for (let x = 0; x < DUNGEON_WIDTH - 1; x++) {
         if (dungeon[y][x] === TILE.WALL && dungeon[y][x + 1] === TILE.WALL) {
-          // Remove if floors/doors on EITHER side (OR logic)
+          // Only remove if floors/doors on BOTH sides (AND logic). See note above.
           const hasAccessLeft = x > 0 && (dungeon[y][x - 1] === TILE.FLOOR || dungeon[y][x - 1] === TILE.DOOR);
           const hasAccessRight = x + 2 < DUNGEON_WIDTH && (dungeon[y][x + 2] === TILE.FLOOR || dungeon[y][x + 2] === TILE.DOOR);
 
-          if (hasAccessLeft || hasAccessRight) {
+          if (hasAccessLeft && hasAccessRight) {
             // Remove the first wall
             dungeon[y][x] = TILE.FLOOR;
 

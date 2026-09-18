@@ -10,8 +10,8 @@ const COMMON_ITEMS: ItemDefinition[] = [
   // === HELME (common) ===
   {
     id: "equipment_helm_topf",
-    name: "Verbeulter Topfhelm",
-    description: "Ein alter Kochtopf, der notduerftig als Helm umfunktioniert wurde. Die Henkel wurden abgesaegt, aber man sieht noch die Stellen. Riecht leicht nach Eintopf.",
+    name: "Dented Pot Helm",
+    description: "An old cooking pot hastily repurposed as a helmet. The handles were sawn off, but you can still see where they were. Smells faintly of stew.",
     type: "equipment",
     rarity: "common",
     slot: "helm",
@@ -27,8 +27,8 @@ const COMMON_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_helm_muetze",
-    name: "Zerfranste Wollmuetze",
-    description: "Eine alte Wollmuetze voller Mottenloecher. Haelt den Kopf warm, aber nicht viel mehr.",
+    name: "Frayed Wool Cap",
+    description: "An old wool cap full of moth holes. Keeps your head warm, but not much else.",
     type: "equipment",
     rarity: "common",
     slot: "helm",
@@ -44,8 +44,8 @@ const COMMON_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_helm_strohhut",
-    name: "Loechtiger Strohhut",
-    description: "Ein Bauernhut, den selbst Voegel nicht mehr als Nest benutzen wuerden. Schuetzt immerhin vor der Sonne.",
+    name: "Holey Straw Hat",
+    description: "A farmer's hat that not even birds would nest in anymore. At least it keeps the sun off.",
     type: "equipment",
     rarity: "common",
     slot: "helm",
@@ -62,8 +62,8 @@ const COMMON_ITEMS: ItemDefinition[] = [
   // === BRUSTPLATTEN (common) ===
   {
     id: "equipment_brustplatte_geflickt",
-    name: "Geflickte Ledertunika",
-    description: "Eine abgetragene Ledertunika mit diversen Flicken. Jeder Flicken erzaehlt eine Geschichte - meistens davon, wie der Vorbesitzer getroffen wurde.",
+    name: "Patched Leather Tunic",
+    description: "A worn leather tunic covered in patches. Every patch tells a story - mostly about how the previous owner got hit.",
     type: "equipment",
     rarity: "common",
     slot: "brustplatte",
@@ -79,8 +79,8 @@ const COMMON_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_brustplatte_sack",
-    name: "Kartoffelsack-Weste",
-    description: "Ein umgenaehter Kartoffelsack. Kratzt fuerchterlich auf der Haut, aber besser als nichts.",
+    name: "Potato Sack Vest",
+    description: "A resewn potato sack. Itches terribly, but it's better than nothing.",
     type: "equipment",
     rarity: "common",
     slot: "brustplatte",
@@ -96,8 +96,8 @@ const COMMON_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_brustplatte_lumpen",
-    name: "Zusammengebundene Lumpen",
-    description: "Verschiedene Stofffetzen, die notduerftig zu einer Art Weste zusammengenaeht wurden. Modisch gewagt.",
+    name: "Bundled Rags",
+    description: "Assorted scraps of cloth roughly stitched into a sort of vest. Daring fashion.",
     type: "equipment",
     rarity: "common",
     slot: "brustplatte",
@@ -114,8 +114,8 @@ const COMMON_ITEMS: ItemDefinition[] = [
   // === SCHWERTER (common) ===
   {
     id: "equipment_schwert_rostig",
-    name: "Rostiges Kurzschwert",
-    description: "Ein Kurzschwert, das bessere Tage gesehen hat. Der Rost hat sich bereits in die Klinge gefressen und der Griff ist mit altem Stoff umwickelt.",
+    name: "Rusty Shortsword",
+    description: "A shortsword that has seen better days. Rust has eaten into the blade, and the grip is wrapped in old cloth.",
     type: "equipment",
     rarity: "common",
     slot: "schwert",
@@ -131,8 +131,8 @@ const COMMON_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_schwert_kuechenmesser",
-    name: "Stumpfes Kuechenmesser",
-    description: "Ein grosses Kuechenmesser. Schneidet Brot nicht mehr, aber Goblins sind auch nicht viel haerter.",
+    name: "Dull Kitchen Knife",
+    description: "A big kitchen knife. It no longer cuts bread, but goblins aren't much tougher.",
     type: "equipment",
     rarity: "common",
     slot: "schwert",
@@ -148,8 +148,8 @@ const COMMON_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_schwert_spitzer_stock",
-    name: "Angespitzter Stock",
-    description: "Ein Ast, der mit einem Stein angespitzt wurde. Primitiv aber effektiv - irgendwie.",
+    name: "Sharpened Stick",
+    description: "A branch sharpened with a rock. Primitive but effective - sort of.",
     type: "equipment",
     rarity: "common",
     slot: "schwert",
@@ -166,8 +166,8 @@ const COMMON_ITEMS: ItemDefinition[] = [
   // === SCHILDE (common) ===
   {
     id: "equipment_schild_brett",
-    name: "Holzbrett mit Griff",
-    description: "Ein Stueck Holz aus einer alten Scheunentuer, an das jemand einen Lederriemen genagelt hat. Es haelt Schlaege ab - zumindest ein paar.",
+    name: "Board with a Handle",
+    description: "A plank from an old barn door with a leather strap nailed to it. It blocks hits - at least a few.",
     type: "equipment",
     rarity: "common",
     slot: "schild",
@@ -183,8 +183,8 @@ const COMMON_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_schild_topfdeckel",
-    name: "Verbogener Topfdeckel",
-    description: "Ein grosser Topfdeckel, dessen Griff als Halterung dient. Klingt laut beim Blocken.",
+    name: "Bent Pot Lid",
+    description: "A large pot lid whose handle serves as a grip. Very loud when blocking.",
     type: "equipment",
     rarity: "common",
     slot: "schild",
@@ -200,8 +200,8 @@ const COMMON_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_schild_fassdeckel",
-    name: "Rissiger Fassdeckel",
-    description: "Der Deckel eines alten Weinfasses. Riecht noch nach vergorenem Traubensaft.",
+    name: "Cracked Barrel Lid",
+    description: "The lid of an old wine barrel. Still smells of fermented grape juice.",
     type: "equipment",
     rarity: "common",
     slot: "schild",
@@ -218,8 +218,8 @@ const COMMON_ITEMS: ItemDefinition[] = [
   // === HOSEN (common) ===
   {
     id: "equipment_hose_ausgebeult",
-    name: "Ausgebeulte Stoffhose",
-    description: "Eine braune Stoffhose, die an den Knien stark ausgebeult ist. Der Bund muss mit einem Strick zusammengehalten werden. Hat ueberraschend tiefe Taschen.",
+    name: "Baggy Cloth Trousers",
+    description: "Brown cloth trousers, badly baggy at the knees. The waist has to be held up with a rope. Surprisingly deep pockets.",
     type: "equipment",
     rarity: "common",
     slot: "hose",
@@ -235,8 +235,8 @@ const COMMON_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_hose_flicken",
-    name: "Mehr Flicken als Hose",
-    description: "Eine Hose, bei der man nicht mehr erkennen kann, welcher Teil das Original war. Sehr bunt.",
+    name: "More Patch Than Pants",
+    description: "Trousers where you can no longer tell which part was the original. Very colorful.",
     type: "equipment",
     rarity: "common",
     slot: "hose",
@@ -252,8 +252,8 @@ const COMMON_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_hose_kurz",
-    name: "Abgeschnittene Arbeitshose",
-    description: "Eine Hose, die am Knie abgeschnitten wurde. Wahrscheinlich aus Not, nicht aus Stil.",
+    name: "Cut-Off Work Pants",
+    description: "Trousers cut off at the knee. Probably out of necessity, not style.",
     type: "equipment",
     rarity: "common",
     slot: "hose",
@@ -270,8 +270,8 @@ const COMMON_ITEMS: ItemDefinition[] = [
   // === SCHUHE (common) ===
   {
     id: "equipment_schuhe_abgelaufen",
-    name: "Abgelaufene Lederstiefel",
-    description: "Ein Paar Stiefel, deren Sohlen schon ziemlich duenn sind. Man spuert jeden spitzen Stein. Halten die Fuesse trocken - solange es nicht regnet.",
+    name: "Worn-Out Leather Boots",
+    description: "A pair of boots with soles worn quite thin. You feel every sharp stone. They keep your feet dry - as long as it doesn't rain.",
     type: "equipment",
     rarity: "common",
     slot: "schuhe",
@@ -287,8 +287,8 @@ const COMMON_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_schuhe_sandalen",
-    name: "Ausgeleierte Sandalen",
-    description: "Einfache Holzsandalen mit Lederriemen. Die Riemen reissen bald, das ist sicher.",
+    name: "Stretched-Out Sandals",
+    description: "Simple wooden sandals with leather straps. The straps will snap soon, that's for sure.",
     type: "equipment",
     rarity: "common",
     slot: "schuhe",
@@ -304,8 +304,8 @@ const COMMON_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_schuhe_fusslappen",
-    name: "Dicke Fusslappen",
-    description: "Stoffstreifen, die um die Fuesse gewickelt werden. Besser als barfuss, aber nicht viel.",
+    name: "Thick Foot Wraps",
+    description: "Strips of cloth wrapped around the feet. Better than going barefoot, but not by much.",
     type: "equipment",
     rarity: "common",
     slot: "schuhe",
@@ -326,8 +326,8 @@ const UNCOMMON_ITEMS: ItemDefinition[] = [
   // === HELME (uncommon) ===
   {
     id: "equipment_helm_lederkappe",
-    name: "Gefuetterte Lederkappe",
-    description: "Eine einfache Lederkappe mit Wollfutter. Schuetzt den Kopf und haelt warm.",
+    name: "Lined Leather Cap",
+    description: "A simple leather cap with a wool lining. Protects your head and keeps it warm.",
     type: "equipment",
     rarity: "uncommon",
     slot: "helm",
@@ -342,8 +342,8 @@ const UNCOMMON_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_helm_kettenhaube",
-    name: "Flickwerk-Kettenhaube",
-    description: "Eine Kettenhaube, bei der einige Ringe fehlen. Trotzdem besser als Stoff.",
+    name: "Patchwork Mail Coif",
+    description: "A chainmail coif with a few rings missing. Still better than cloth.",
     type: "equipment",
     rarity: "uncommon",
     slot: "helm",
@@ -358,8 +358,8 @@ const UNCOMMON_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_helm_eisenhelm",
-    name: "Billiger Eisenhelm",
-    description: "Ein einfacher Helm aus duennem Eisen. Verbeult leicht, aber schuetzt den Schaedel.",
+    name: "Cheap Iron Helm",
+    description: "A simple helmet of thin iron. Dents easily, but protects your skull.",
     type: "equipment",
     rarity: "uncommon",
     slot: "helm",
@@ -375,8 +375,8 @@ const UNCOMMON_ITEMS: ItemDefinition[] = [
   // === BRUSTPLATTEN (uncommon) ===
   {
     id: "equipment_brustplatte_wattiert",
-    name: "Wattierte Jacke",
-    description: "Eine dicke Stoffjacke mit Wattierung. Federleicht und ueberraschend schützend.",
+    name: "Padded Jacket",
+    description: "A thick cloth jacket with padding. Light as a feather and surprisingly protective.",
     type: "equipment",
     rarity: "uncommon",
     slot: "brustplatte",
@@ -391,8 +391,8 @@ const UNCOMMON_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_brustplatte_kette",
-    name: "Kurzes Kettenhemd",
-    description: "Ein kurzes Kettenhemd ohne Aermel. Rostet an manchen Stellen, schuetzt aber ordentlich.",
+    name: "Short Chain Shirt",
+    description: "A short, sleeveless chain shirt. Rusty in places, but it protects well.",
     type: "equipment",
     rarity: "uncommon",
     slot: "brustplatte",
@@ -407,8 +407,8 @@ const UNCOMMON_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_brustplatte_leder_gehaertet",
-    name: "Gehaertete Lederweste",
-    description: "Leder, das in Wachs gehaertet wurde. Bietet soliden Schutz ohne zu viel Gewicht.",
+    name: "Hardened Leather Vest",
+    description: "Leather hardened in wax. Solid protection without too much weight.",
     type: "equipment",
     rarity: "uncommon",
     slot: "brustplatte",
@@ -424,8 +424,8 @@ const UNCOMMON_ITEMS: ItemDefinition[] = [
   // === SCHWERTER (uncommon) ===
   {
     id: "equipment_schwert_jagdmesser",
-    name: "Scharfes Jagdmesser",
-    description: "Ein handliches Messer fuer die Jagd. Die Klinge ist noch scharf und gepflegt.",
+    name: "Sharp Hunting Knife",
+    description: "A handy knife for hunting. The blade is still sharp and well cared for.",
     type: "equipment",
     rarity: "uncommon",
     slot: "schwert",
@@ -440,8 +440,8 @@ const UNCOMMON_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_schwert_saebel",
-    name: "Alter Kavalleriesaebel",
-    description: "Ein leicht gebogener Saebel aus Armeebestaenden. Hat schon bessere Zeiten gesehen.",
+    name: "Old Cavalry Saber",
+    description: "A slightly curved saber from army stock. It has seen better days.",
     type: "equipment",
     rarity: "uncommon",
     slot: "schwert",
@@ -456,8 +456,8 @@ const UNCOMMON_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_schwert_breitschwert",
-    name: "Abgenutztes Breitschwert",
-    description: "Ein breites, schweres Schwert. Die Schneide ist stumpf, aber das Gewicht tut trotzdem weh.",
+    name: "Worn Broadsword",
+    description: "A wide, heavy sword. The edge is dull, but the weight still hurts.",
     type: "equipment",
     rarity: "uncommon",
     slot: "schwert",
@@ -473,8 +473,8 @@ const UNCOMMON_ITEMS: ItemDefinition[] = [
   // === SCHILDE (uncommon) ===
   {
     id: "equipment_schild_holz_verstaerkt",
-    name: "Verstaerkter Holzschild",
-    description: "Ein Holzschild mit Metallrand. Haelt mehr aus als pures Holz.",
+    name: "Reinforced Wooden Shield",
+    description: "A wooden shield with a metal rim. Takes more punishment than plain wood.",
     type: "equipment",
     rarity: "uncommon",
     slot: "schild",
@@ -489,8 +489,8 @@ const UNCOMMON_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_schild_tartsche",
-    name: "Kleine Tartsche",
-    description: "Ein kleiner dreieckiger Schild. Leicht zu handhaben und schnell zu positionieren.",
+    name: "Small Targe",
+    description: "A small triangular shield. Easy to handle and quick to position.",
     type: "equipment",
     rarity: "uncommon",
     slot: "schild",
@@ -505,8 +505,8 @@ const UNCOMMON_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_schild_buckler",
-    name: "Rostiger Buckler",
-    description: "Ein kleiner runder Faustschild. Der Rost stoert kaum beim Blocken.",
+    name: "Rusty Buckler",
+    description: "A small round fist shield. The rust barely gets in the way of blocking.",
     type: "equipment",
     rarity: "uncommon",
     slot: "schild",
@@ -522,8 +522,8 @@ const UNCOMMON_ITEMS: ItemDefinition[] = [
   // === HOSEN (uncommon) ===
   {
     id: "equipment_hose_leder",
-    name: "Robuste Lederhose",
-    description: "Eine solide Lederhose, die einiges aushält. Knarzt beim Gehen.",
+    name: "Sturdy Leather Pants",
+    description: "Solid leather pants that can take a beating. They creak when you walk.",
     type: "equipment",
     rarity: "uncommon",
     slot: "hose",
@@ -538,8 +538,8 @@ const UNCOMMON_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_hose_kettenrock",
-    name: "Kurzer Kettenrock",
-    description: "Ein Kettenpanzer-Rock, der die Oberschenkel schuetzt. Klirrend aber effektiv.",
+    name: "Short Mail Skirt",
+    description: "A chainmail skirt that protects the thighs. Clinky but effective.",
     type: "equipment",
     rarity: "uncommon",
     slot: "hose",
@@ -554,8 +554,8 @@ const UNCOMMON_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_hose_reiter",
-    name: "Ausgediente Reiterhose",
-    description: "Eine verstärkte Hose aus Armeebeständen. Die Lederflicken sind noch intakt.",
+    name: "Retired Riding Breeches",
+    description: "Reinforced trousers from army stock. The leather patches are still intact.",
     type: "equipment",
     rarity: "uncommon",
     slot: "hose",
@@ -571,8 +571,8 @@ const UNCOMMON_ITEMS: ItemDefinition[] = [
   // === SCHUHE (uncommon) ===
   {
     id: "equipment_schuhe_wanderer",
-    name: "Stabile Wanderstiefel",
-    description: "Gut eingelaufene Stiefel mit dicker Sohle. Perfekt fuer lange Maersche.",
+    name: "Sturdy Hiking Boots",
+    description: "Well-broken-in boots with thick soles. Perfect for long marches.",
     type: "equipment",
     rarity: "uncommon",
     slot: "schuhe",
@@ -587,8 +587,8 @@ const UNCOMMON_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_schuhe_beschlagen",
-    name: "Beschlagene Lederstiefel",
-    description: "Schwere Stiefel mit Metallbeschlaegen. Gut fuer Tritte, weniger gut fuer Schleichen.",
+    name: "Studded Leather Boots",
+    description: "Heavy boots with metal studs. Great for kicking, not so great for sneaking.",
     type: "equipment",
     rarity: "uncommon",
     slot: "schuhe",
@@ -603,8 +603,8 @@ const UNCOMMON_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_schuhe_jaeger",
-    name: "Leichte Jaegerstiefel",
-    description: "Weiche, leise Stiefel mit gutem Grip. Ideal fuer unwegsames Gelaende.",
+    name: "Light Hunter's Boots",
+    description: "Soft, quiet boots with good grip. Ideal for rough terrain.",
     type: "equipment",
     rarity: "uncommon",
     slot: "schuhe",
@@ -623,8 +623,8 @@ const UNCOMMON_ITEMS: ItemDefinition[] = [
 const RARE_ITEMS: ItemDefinition[] = [
   {
     id: "equipment_helm_lehrmeister",
-    name: "Lehrmeister-Kapuze",
-    description: "Eine abgetragene Kapuze aus dunkelblauem Stoff, die einst einem weisen Lehrmeister gehoerte. Die feinen Runen entlang der Naht gluehen schwach.",
+    name: "Mentor's Hood",
+    description: "A worn hood of dark blue cloth that once belonged to a wise mentor. The fine runes along the seam glow faintly.",
     type: "equipment",
     rarity: "rare",
     slot: "helm",
@@ -639,8 +639,8 @@ const RARE_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_brustplatte_wanderer",
-    name: "Schuluniform des Wanderers",
-    description: "Eine robuste Lederweste mit verstaerkten Schulterpolstern, wie sie von reisenden Gelehrten getragen wird.",
+    name: "Wanderer's School Uniform",
+    description: "A sturdy leather vest with reinforced shoulder pads, as worn by traveling scholars.",
     type: "equipment",
     rarity: "rare",
     slot: "brustplatte",
@@ -655,8 +655,8 @@ const RARE_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_schwert_stahl",
-    name: "Staehernes Langschwert",
-    description: "Ein gut gepflegtes Schwert aus gehaertetem Stahl. Die Klinge ist scharf und der Griff liegt gut in der Hand.",
+    name: "Steel Longsword",
+    description: "A well-kept sword of hardened steel. The blade is sharp and the grip sits nicely in the hand.",
     type: "equipment",
     rarity: "rare",
     slot: "schwert",
@@ -671,8 +671,8 @@ const RARE_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_schild_eisen",
-    name: "Eisenbeschlagener Rundschild",
-    description: "Ein solider Schild aus Holz mit Eisenbeschlaegen. Haelt deutlich mehr aus als ein einfaches Brett.",
+    name: "Iron-Banded Round Shield",
+    description: "A solid wooden shield with iron fittings. Holds up far better than a simple plank.",
     type: "equipment",
     rarity: "rare",
     slot: "schild",
@@ -687,8 +687,8 @@ const RARE_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_hose_forscher",
-    name: "Wanderhosen des Forschers",
-    description: "Strapazierfahige Hosen aus gewachstem Leinen mit zahlreichen Geheimtaschen.",
+    name: "Explorer's Trekking Pants",
+    description: "Durable pants of waxed linen with plenty of secret pockets.",
     type: "equipment",
     rarity: "rare",
     slot: "hose",
@@ -703,8 +703,8 @@ const RARE_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_schuhe_schleich",
-    name: "Schleichsohlen des Schuelers",
-    description: "Weiche Lederschuhe mit einem Quietsch-Verhinderungs-Zauber - ein Muss fuer jeden, der nachts heimlich weiterlernen moechte.",
+    name: "Student's Sneaky Soles",
+    description: "Soft leather shoes with an anti-squeak charm - a must for anyone who wants to secretly study late at night.",
     type: "equipment",
     rarity: "rare",
     slot: "schuhe",
@@ -724,8 +724,8 @@ const EPIC_ITEMS: ItemDefinition[] = [
   // === HELME (epic) ===
   {
     id: "equipment_helm_gelehrter",
-    name: "Diadem des Gelehrten",
-    description: "Ein silbernes Stirnband mit einem pulsierenden Kristall. Die eingravierten Runen fluestern vergessenes Wissen.",
+    name: "Scholar's Diadem",
+    description: "A silver circlet set with a pulsing crystal. The engraved runes whisper forgotten knowledge.",
     type: "equipment",
     rarity: "epic",
     slot: "helm",
@@ -740,8 +740,8 @@ const EPIC_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_helm_daemonenkrone",
-    name: "Daemonenkrone",
-    description: "Eine dunkle Krone aus geschwaerztem Metall. Wer sie traegt, spuert die Praesenz uralter Maechte.",
+    name: "Demon Crown",
+    description: "A dark crown of blackened metal. Whoever wears it senses the presence of ancient powers.",
     type: "equipment",
     rarity: "epic",
     slot: "helm",
@@ -756,8 +756,8 @@ const EPIC_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_helm_phoenix",
-    name: "Phönixfeder-Haube",
-    description: "Ein Helm geschmueckt mit einer leuchtenden Phönixfeder. Die Waerme des ewigen Feuers durchstroemt den Traeger.",
+    name: "Phoenix Feather Helm",
+    description: "A helmet adorned with a glowing phoenix feather. The warmth of eternal fire flows through its wearer.",
     type: "equipment",
     rarity: "epic",
     slot: "helm",
@@ -773,8 +773,8 @@ const EPIC_ITEMS: ItemDefinition[] = [
   // === BRUSTPLATTEN (epic) ===
   {
     id: "equipment_brustplatte_drachen",
-    name: "Drachenschuppen-Harnisch",
-    description: "Eine Ruestung aus echten Drachenschuppen. Jede Schuppe schimmert in einem anderen Farbton.",
+    name: "Dragonscale Cuirass",
+    description: "Armor made from real dragon scales. Every scale shimmers in a different hue.",
     type: "equipment",
     rarity: "epic",
     slot: "brustplatte",
@@ -789,8 +789,8 @@ const EPIC_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_brustplatte_magier",
-    name: "Robe des Erzmagiers",
-    description: "Eine wallende Robe durchwoben mit magischen Faeden. Arkane Symbole leuchten bei Gefahr.",
+    name: "Archmage's Robe",
+    description: "A flowing robe woven with magical threads. Arcane symbols glow in the face of danger.",
     type: "equipment",
     rarity: "epic",
     slot: "brustplatte",
@@ -805,8 +805,8 @@ const EPIC_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_brustplatte_mithril",
-    name: "Mithril-Kettenhemd",
-    description: "Ein federleichtes Kettenhemd aus dem seltenen Mithril. Es glaenzt wie Mondlicht auf Wasser.",
+    name: "Mithril Chain Shirt",
+    description: "A feather-light chain shirt made of rare mithril. It gleams like moonlight on water.",
     type: "equipment",
     rarity: "epic",
     slot: "brustplatte",
@@ -822,8 +822,8 @@ const EPIC_ITEMS: ItemDefinition[] = [
   // === SCHWERTER (epic) ===
   {
     id: "equipment_schwert_flammen",
-    name: "Flammenklinge",
-    description: "Ein Schwert, dessen Klinge in ewigem Feuer brennt. Die Hitze ist spuerbar, verbrennt aber nicht den Traeger.",
+    name: "Flameblade",
+    description: "A sword whose blade burns with eternal fire. You can feel the heat, but it never burns its wielder.",
     type: "equipment",
     rarity: "epic",
     slot: "schwert",
@@ -838,8 +838,8 @@ const EPIC_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_schwert_seelen",
-    name: "Seelenschneider",
-    description: "Ein dunkles Schwert, das die Seelen seiner Opfer zu absorbieren scheint. Ein unheiliges Fluestern umgibt es.",
+    name: "Soulcleaver",
+    description: "A dark sword that seems to absorb the souls of its victims. An unholy whisper surrounds it.",
     type: "equipment",
     rarity: "epic",
     slot: "schwert",
@@ -854,8 +854,8 @@ const EPIC_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_schwert_blitz",
-    name: "Blitzschlag-Saebel",
-    description: "Ein schimmernder Saebel, um den sich elektrische Funken winden. Bei jedem Schwung knistert die Luft.",
+    name: "Lightning Saber",
+    description: "A shimmering saber wreathed in electric sparks. The air crackles with every swing.",
     type: "equipment",
     rarity: "epic",
     slot: "schwert",
@@ -871,8 +871,8 @@ const EPIC_ITEMS: ItemDefinition[] = [
   // === SCHILDE (epic) ===
   {
     id: "equipment_schild_aegis",
-    name: "Aegis des Wissens",
-    description: "Ein leuchtender Schild mit dem Symbol einer Eule. Er scheint Wissen aus der Luft zu ziehen.",
+    name: "Aegis of Knowledge",
+    description: "A glowing shield bearing the symbol of an owl. It seems to draw knowledge from the air.",
     type: "equipment",
     rarity: "epic",
     slot: "schild",
@@ -887,8 +887,8 @@ const EPIC_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_schild_spiegel",
-    name: "Spiegelschild",
-    description: "Ein polierter Schild, der wie ein perfekter Spiegel glaenzt. Feinde sehen ihre eigene Schwaeche.",
+    name: "Mirror Shield",
+    description: "A polished shield that gleams like a perfect mirror. Enemies see their own weakness.",
     type: "equipment",
     rarity: "epic",
     slot: "schild",
@@ -903,8 +903,8 @@ const EPIC_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_schild_eis",
-    name: "Frostrunen-Schild",
-    description: "Ein Schild aus ewigem Eis. Runen der Kaelte sind tief in die Oberflaeche geaetzt.",
+    name: "Frostrune Shield",
+    description: "A shield of eternal ice. Runes of cold are etched deep into its surface.",
     type: "equipment",
     rarity: "epic",
     slot: "schild",
@@ -920,8 +920,8 @@ const EPIC_ITEMS: ItemDefinition[] = [
   // === HOSEN (epic) ===
   {
     id: "equipment_hose_schatten",
-    name: "Schattenweber-Beinkleid",
-    description: "Eine Hose gewoben aus verdichteten Schatten. Sie passt sich jedem Traeger perfekt an.",
+    name: "Shadowweaver Leggings",
+    description: "Pants woven from condensed shadows. They fit every wearer perfectly.",
     type: "equipment",
     rarity: "epic",
     slot: "hose",
@@ -936,8 +936,8 @@ const EPIC_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_hose_titan",
-    name: "Titanenschurz",
-    description: "Ein gepanzerter Beinschutz aus Titanplatten. Schwer, aber nahezu unzerstoerbar.",
+    name: "Titan Tassets",
+    description: "Armored leg guards made of titan plates. Heavy, but nearly indestructible.",
     type: "equipment",
     rarity: "epic",
     slot: "hose",
@@ -952,8 +952,8 @@ const EPIC_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_hose_meister",
-    name: "Meistergelehrten-Hose",
-    description: "Eine elegante Hose mit versteckten Taschen voller Notizen. Die Naehte sind mit Wissenssymbolen verziert.",
+    name: "Master Scholar's Pants",
+    description: "Elegant pants with hidden pockets full of notes. The seams are decorated with symbols of knowledge.",
     type: "equipment",
     rarity: "epic",
     slot: "hose",
@@ -969,8 +969,8 @@ const EPIC_ITEMS: ItemDefinition[] = [
   // === SCHUHE (epic) ===
   {
     id: "equipment_schuhe_hermes",
-    name: "Hermesstiefel",
-    description: "Geflügelte Stiefel, die ihren Traeger fast schweben lassen. Zeit scheint langsamer zu vergehen.",
+    name: "Hermes Boots",
+    description: "Winged boots that let their wearer almost float. Time seems to pass more slowly.",
     type: "equipment",
     rarity: "epic",
     slot: "schuhe",
@@ -985,8 +985,8 @@ const EPIC_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_schuhe_vulkan",
-    name: "Vulkanschmiede-Stiefel",
-    description: "Stiefel geschmiedet im Herzen eines Vulkans. Lava scheint in den Sohlen zu pulsieren.",
+    name: "Volcano-Forged Boots",
+    description: "Boots forged in the heart of a volcano. Lava seems to pulse in the soles.",
     type: "equipment",
     rarity: "epic",
     slot: "schuhe",
@@ -1001,8 +1001,8 @@ const EPIC_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_schuhe_gelehrter",
-    name: "Wanderschuhe des Gelehrten",
-    description: "Bequeme Schuhe, die unzaehlige Bibliotheken besucht haben. Jeder Schritt bringt neue Erkenntnis.",
+    name: "Scholar's Walking Shoes",
+    description: "Comfortable shoes that have visited countless libraries. Every step brings new insight.",
     type: "equipment",
     rarity: "epic",
     slot: "schuhe",
@@ -1022,8 +1022,8 @@ const LEGENDARY_ITEMS: ItemDefinition[] = [
   // === HELME (legendary) ===
   {
     id: "equipment_helm_allwissend",
-    name: "Krone der Allwissenheit",
-    description: "Eine uralte Krone, die einst einem Gott der Weisheit gehoerte. Alle Geheimnisse des Universums scheinen dem Traeger offen.",
+    name: "Crown of Omniscience",
+    description: "An ancient crown that once belonged to a god of wisdom. All the secrets of the universe seem open to its wearer.",
     type: "equipment",
     rarity: "legendary",
     slot: "helm",
@@ -1038,8 +1038,8 @@ const LEGENDARY_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_helm_unsterblich",
-    name: "Helm der Unsterblichen",
-    description: "Ein Helm getragen von einem legendaeren Krieger, der nie fiel. Die Legende besagt, er lebte tausend Jahre.",
+    name: "Helm of the Immortals",
+    description: "A helmet worn by a legendary warrior who never fell. Legend says he lived a thousand years.",
     type: "equipment",
     rarity: "legendary",
     slot: "helm",
@@ -1054,8 +1054,8 @@ const LEGENDARY_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_helm_sternenlicht",
-    name: "Sternenlicht-Tiara",
-    description: "Ein Diadem geschmiedet aus dem Licht gefallener Sterne. Es erleuchtet selbst die dunkelste Nacht.",
+    name: "Starlight Tiara",
+    description: "A diadem forged from the light of fallen stars. It lights up even the darkest night.",
     type: "equipment",
     rarity: "legendary",
     slot: "helm",
@@ -1071,8 +1071,8 @@ const LEGENDARY_ITEMS: ItemDefinition[] = [
   // === BRUSTPLATTEN (legendary) ===
   {
     id: "equipment_brustplatte_goetter",
-    name: "Goetterruestung",
-    description: "Eine Ruestung geschmiedet auf dem Amboss der Goetter selbst. Selbst Drachen waeren neidisch.",
+    name: "Armor of the Gods",
+    description: "Armor forged on the anvil of the gods themselves. Even dragons would be jealous.",
     type: "equipment",
     rarity: "legendary",
     slot: "brustplatte",
@@ -1087,8 +1087,8 @@ const LEGENDARY_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_brustplatte_erzmagier",
-    name: "Gewand des Obersten Erzmagiers",
-    description: "Die Robe des maechtigsten Magiers aller Zeiten. Arkane Energie umgibt sie wie ein Sturm.",
+    name: "Vestments of the High Archmage",
+    description: "The robe of the mightiest mage of all time. Arcane energy surrounds it like a storm.",
     type: "equipment",
     rarity: "legendary",
     slot: "brustplatte",
@@ -1103,8 +1103,8 @@ const LEGENDARY_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_brustplatte_adamant",
-    name: "Adamant-Plattenruestung",
-    description: "Eine massive Ruestung aus unzerstoerbarem Adamant. Der Traeger ist nahezu unverwundbar.",
+    name: "Adamant Plate Armor",
+    description: "Massive armor of indestructible adamant. Its wearer is all but invulnerable.",
     type: "equipment",
     rarity: "legendary",
     slot: "brustplatte",
@@ -1120,8 +1120,8 @@ const LEGENDARY_ITEMS: ItemDefinition[] = [
   // === SCHWERTER (legendary) ===
   {
     id: "equipment_schwert_weltenschneider",
-    name: "Weltenschneider",
-    description: "Ein Schwert, das angeblich die Realitaet selbst durchschneiden kann. Die Klinge scheint zwischen den Dimensionen zu flimmern.",
+    name: "Worldcleaver",
+    description: "A sword said to cut through reality itself. The blade seems to flicker between dimensions.",
     type: "equipment",
     rarity: "legendary",
     slot: "schwert",
@@ -1136,8 +1136,8 @@ const LEGENDARY_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_schwert_sonnenfeuer",
-    name: "Schwert des Sonnenfeuers",
-    description: "Eine Klinge geschmiedet im Kern einer Sonne. Ihr Licht ist so blendend, dass Feinde abwenden muessen.",
+    name: "Sword of Sunfire",
+    description: "A blade forged in the core of a sun. Its light is so blinding that enemies must look away.",
     type: "equipment",
     rarity: "legendary",
     slot: "schwert",
@@ -1152,8 +1152,8 @@ const LEGENDARY_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_schwert_verdammnis",
-    name: "Klinge der Verdammnis",
-    description: "Ein verfluchtes Schwert, das die Seelen tausender Krieger enthaelt. Sein Wille ist staerker als die meisten Traeger.",
+    name: "Blade of Damnation",
+    description: "A cursed sword holding the souls of thousands of warriors. Its will is stronger than most who wield it.",
     type: "equipment",
     rarity: "legendary",
     slot: "schwert",
@@ -1169,8 +1169,8 @@ const LEGENDARY_ITEMS: ItemDefinition[] = [
   // === SCHILDE (legendary) ===
   {
     id: "equipment_schild_unendlichkeit",
-    name: "Schild der Unendlichkeit",
-    description: "Ein mystischer Schild, der alle Angriffe in eine Endlosschleife zu schicken scheint.",
+    name: "Shield of Infinity",
+    description: "A mystical shield that seems to send every attack into an endless loop.",
     type: "equipment",
     rarity: "legendary",
     slot: "schild",
@@ -1185,8 +1185,8 @@ const LEGENDARY_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_schild_weisheit",
-    name: "Aegis der Uralten Weisheit",
-    description: "Ein Schild, der das gesammelte Wissen aller Zeitalter in sich traegt. Fragen beantworten sich wie von selbst.",
+    name: "Aegis of Ancient Wisdom",
+    description: "A shield that carries the collected knowledge of all ages. Questions seem to answer themselves.",
     type: "equipment",
     rarity: "legendary",
     slot: "schild",
@@ -1201,8 +1201,8 @@ const LEGENDARY_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_schild_titan",
-    name: "Schild des Weltenwächters",
-    description: "Ein gewaltiger Schild, der einst die Welt vor dem Untergang schuetzte. Seine Macht ist ungebrochen.",
+    name: "Worldwarden's Shield",
+    description: "A mighty shield that once saved the world from destruction. Its power remains unbroken.",
     type: "equipment",
     rarity: "legendary",
     slot: "schild",
@@ -1218,8 +1218,8 @@ const LEGENDARY_ITEMS: ItemDefinition[] = [
   // === HOSEN (legendary) ===
   {
     id: "equipment_hose_dimension",
-    name: "Dimensionswandler-Beinkleid",
-    description: "Eine Hose, die in mehreren Dimensionen gleichzeitig zu existieren scheint. Die Taschen sind unendlich tief.",
+    name: "Dimensionshifter Leggings",
+    description: "Pants that seem to exist in several dimensions at once. The pockets are infinitely deep.",
     type: "equipment",
     rarity: "legendary",
     slot: "hose",
@@ -1234,8 +1234,8 @@ const LEGENDARY_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_hose_goettlich",
-    name: "Goettliche Beinplatten",
-    description: "Beinruestung, die in den himmlischen Schmieden gefertigt wurde. Sie verleiht die Staerke der Goetter.",
+    name: "Divine Greaves",
+    description: "Leg armor crafted in the heavenly forges. It grants the strength of the gods.",
     type: "equipment",
     rarity: "legendary",
     slot: "hose",
@@ -1250,8 +1250,8 @@ const LEGENDARY_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_hose_erkenntnis",
-    name: "Hose der Ewigen Erkenntnis",
-    description: "Eine unscheinbare Hose, doch wer sie traegt, versteht die tiefsten Wahrheiten des Universums.",
+    name: "Pants of Eternal Insight",
+    description: "An unremarkable pair of pants, yet whoever wears them understands the deepest truths of the universe.",
     type: "equipment",
     rarity: "legendary",
     slot: "hose",
@@ -1267,8 +1267,8 @@ const LEGENDARY_ITEMS: ItemDefinition[] = [
   // === SCHUHE (legendary) ===
   {
     id: "equipment_schuhe_zeitwanderer",
-    name: "Stiefel des Zeitwanderers",
-    description: "Stiefel, die dem Traeger erlauben, die Zeit zu verlangsamen. Ein Herzschlag kann eine Ewigkeit dauern.",
+    name: "Boots of the Time Walker",
+    description: "Boots that let their wearer slow down time. A single heartbeat can last an eternity.",
     type: "equipment",
     rarity: "legendary",
     slot: "schuhe",
@@ -1283,8 +1283,8 @@ const LEGENDARY_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_schuhe_weltlaeufer",
-    name: "Weltlaeufer-Stiefel",
-    description: "Stiefel, die jeden Weg der Welt kennen. Kein Terrain ist zu schwierig, keine Reise zu lang.",
+    name: "Worldstrider Boots",
+    description: "Boots that know every road in the world. No terrain is too rough, no journey too long.",
     type: "equipment",
     rarity: "legendary",
     slot: "schuhe",
@@ -1299,8 +1299,8 @@ const LEGENDARY_ITEMS: ItemDefinition[] = [
   },
   {
     id: "equipment_schuhe_transzendenz",
-    name: "Schuhe der Transzendenz",
-    description: "Mystische Schuhe, die ihren Traeger ueber die Grenzen des Moeglichen hinaus tragen.",
+    name: "Shoes of Transcendence",
+    description: "Mystical shoes that carry their wearer beyond the limits of the possible.",
     type: "equipment",
     rarity: "legendary",
     slot: "schuhe",

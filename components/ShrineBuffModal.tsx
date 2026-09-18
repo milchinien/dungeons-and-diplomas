@@ -35,7 +35,7 @@ export default function ShrineBuffModal({ buffs, onSelectBuff }: ShrineBuffModal
         marginBottom: '20px',
         letterSpacing: '4px',
       }}>
-        SCHREIN-SEGEN
+        SHRINE BLESSING
       </h1>
 
       <p style={{
@@ -43,7 +43,7 @@ export default function ShrineBuffModal({ buffs, onSelectBuff }: ShrineBuffModal
         fontSize: '18px',
         marginBottom: '40px',
       }}>
-        Waehle einen Buff
+        Choose a buff
       </p>
 
       {/* Buff Cards */}

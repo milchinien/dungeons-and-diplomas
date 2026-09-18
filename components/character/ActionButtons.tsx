@@ -121,7 +121,7 @@ export function ActionButtons({ onRestart, onSkills, onLogout, onSettings, skill
         {onSettings && (
           <ActionButton
             onClick={onSettings}
-            title="Einstellungen"
+            title="Settings"
             icon="⚙"
             accentColor={MEDIEVAL_COLORS.text.primary}
           />
